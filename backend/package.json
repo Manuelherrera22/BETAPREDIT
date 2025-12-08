@@ -12,6 +12,7 @@
     "migrate": "prisma migrate dev",
     "generate": "prisma generate",
     "verify-db": "node scripts/verify-supabase-connection.js",
+    "verify-oauth": "node scripts/verify-google-oauth.js",
     "db:push": "prisma db push",
     "db:studio": "prisma studio"
   },
