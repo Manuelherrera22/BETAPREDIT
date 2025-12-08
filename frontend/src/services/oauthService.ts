@@ -13,12 +13,23 @@ class OAuthService {
    * Uses Supabase Auth if configured, otherwise uses backend API
    */
   async getGoogleAuthUrl(): Promise<string> {
+    // Check if Supabase is configured
+    const supabaseConfigured = isSupabaseConfigured();
+    console.log('Supabase configured:', supabaseConfigured);
+    console.log('Supabase client:', supabase ? 'exists' : 'null');
+    
     // Try Supabase Auth first
-    if (isSupabaseConfigured() && supabase) {
+    if (supabaseConfigured && supabase) {
       try {
         // Use current origin (works for both localhost and production)
         const frontendUrl = window.location.origin;
         const callbackUrl = `${frontendUrl}/auth/callback`;
+        
+        console.log('Attempting Supabase OAuth with:', {
+          frontendUrl,
+          callbackUrl,
+          supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+        });
 
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
@@ -31,36 +42,44 @@ class OAuthService {
           },
         });
 
+        console.log('Supabase OAuth response:', { data, error });
+
         if (error) {
           console.error('Supabase OAuth error:', error);
-          throw error;
+          throw new Error(`Supabase Auth error: ${error.message || 'Error desconocido'}`);
         }
 
-        if (data.url) {
-          console.log('Using Supabase Auth for OAuth');
+        if (data && data.url) {
+          console.log('✅ Using Supabase Auth for OAuth');
           console.log('OAuth URL:', data.url);
           console.log('Callback URL:', callbackUrl);
           return data.url;
         } else {
-          throw new Error('No OAuth URL returned from Supabase');
+          console.error('No URL in Supabase response:', data);
+          throw new Error('No se recibió URL de autenticación de Supabase');
         }
       } catch (error: any) {
-        console.error('Supabase OAuth error:', error);
+        console.error('Supabase OAuth failed:', error);
         console.error('Error details:', {
           message: error.message,
           code: error.code,
           status: error.status,
+          stack: error.stack,
         });
         
         // If Supabase is configured, don't fallback to backend
-        // The error should be shown to the user
-        if (isSupabaseConfigured()) {
-          throw new Error(`Error con Supabase Auth: ${error.message || 'Error desconocido'}`);
-        }
-        
-        console.warn('Supabase not configured, falling back to backend');
-        // Fall through to backend implementation only if Supabase is not configured
+        // Show the error to the user
+        throw new Error(`Error con Supabase Auth: ${error.message || 'No se pudo generar la URL de autenticación'}`);
       }
+    }
+    
+    // If Supabase is not configured, log it
+    if (!supabaseConfigured) {
+      console.warn('⚠️ Supabase not configured, falling back to backend API');
+      console.warn('Missing:', {
+        url: !import.meta.env.VITE_SUPABASE_URL,
+        key: !import.meta.env.VITE_SUPABASE_ANON_KEY,
+      });
     }
 
     // Fallback to backend API (only if Supabase is not configured)
