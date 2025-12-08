@@ -45,19 +45,15 @@ export default function OnboardingTour({ onComplete, skipOnboarding = false }: O
       description: 'Nuestro sistema detecta automáticamente oportunidades de valor comparando cuotas de múltiples casas de apuestas.',
       position: 'center',
       action: {
-        label: 'Ver cómo funciona',
-        onClick: () => {
-          navigate('/odds-comparison');
-          setTimeout(() => setCurrentStep(2), 500);
-        },
+        label: 'Siguiente',
+        onClick: () => setCurrentStep(2),
       },
     },
     {
       id: 'comparison',
       title: 'Compara Cuotas en Tiempo Real',
       description: 'Ve las mejores cuotas disponibles en diferentes plataformas. Encuentra la mejor oportunidad antes de apostar.',
-      target: '.odds-comparison-section',
-      position: 'top',
+      position: 'center',
       action: {
         label: 'Siguiente',
         onClick: () => setCurrentStep(3),
@@ -67,24 +63,20 @@ export default function OnboardingTour({ onComplete, skipOnboarding = false }: O
       id: 'alerts',
       title: 'Alertas en Tiempo Real',
       description: 'Recibe notificaciones instantáneas cuando detectamos un value bet. No te pierdas ninguna oportunidad.',
+      position: 'center',
       action: {
-        label: 'Ver alertas',
-        onClick: () => {
-          navigate('/alerts');
-          setTimeout(() => setCurrentStep(4), 500);
-        },
+        label: 'Siguiente',
+        onClick: () => setCurrentStep(4),
       },
     },
     {
       id: 'statistics',
       title: 'Trackea tus Resultados',
       description: 'Registra tus apuestas y ve estadísticas detalladas: ROI, win rate, y análisis por deporte.',
+      position: 'center',
       action: {
-        label: 'Ver estadísticas',
-        onClick: () => {
-          navigate('/statistics');
-          setTimeout(() => setCurrentStep(5), 500);
-        },
+        label: 'Siguiente',
+        onClick: () => setCurrentStep(5),
       },
     },
     {
@@ -93,15 +85,8 @@ export default function OnboardingTour({ onComplete, skipOnboarding = false }: O
       description: 'Vamos a encontrar tu primer value bet ahora mismo. Esto te tomará menos de 30 segundos.',
       position: 'center',
       action: {
-        label: '¡Encontrar Value Bet!',
-        onClick: () => {
-          // This will trigger a demo value bet search
-          navigate('/odds-comparison');
-          setTimeout(() => {
-            // Simulate finding a value bet
-            setCurrentStep(6);
-          }, 2000);
-        },
+        label: 'Siguiente',
+        onClick: () => setCurrentStep(6),
       },
     },
     {
@@ -110,11 +95,10 @@ export default function OnboardingTour({ onComplete, skipOnboarding = false }: O
       description: 'Ya conoces lo básico. Ahora puedes explorar la plataforma y empezar a encontrar value bets reales.',
       position: 'center',
       action: {
-        label: 'Ir al Dashboard',
+        label: 'Finalizar',
         onClick: () => {
           setIsVisible(false);
           onComplete();
-          navigate('/dashboard');
         },
       },
     },

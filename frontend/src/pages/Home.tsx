@@ -7,13 +7,12 @@ import ValueBetCalculator from '../components/ValueBetCalculator'
 import StatsCard from '../components/StatsCard'
 import { useLiveEvents, useMockAlerts, generateMockEvents } from '../hooks/useMockData'
 import { useState, useEffect } from 'react'
-import OnboardingTour from '../components/OnboardingTour'
 import { useOnboarding } from '../hooks/useOnboarding'
 import QuickValueBetDemo from '../components/QuickValueBetDemo'
 import SocialProof from '../components/SocialProof'
 
 export default function Home() {
-  const { shouldShow, completeOnboarding } = useOnboarding()
+  const { shouldShow } = useOnboarding()
   // Usar datos mock para el demo
   const mockLiveEvents = useLiveEvents()
   const mockAlerts = useMockAlerts()
@@ -87,7 +86,6 @@ export default function Home() {
 
   return (
     <>
-      {shouldShow && <OnboardingTour onComplete={completeOnboarding} />}
       <div className="px-4 py-6">
       <div className="mb-8">
         <h1 className="text-4xl font-black text-white mb-2">

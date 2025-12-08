@@ -2,6 +2,8 @@ import { ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import QuickAddBet from './QuickAddBet'
+import OnboardingTour from './OnboardingTour'
+import { useOnboarding } from '../hooks/useOnboarding'
 
 interface LayoutProps {
   children: ReactNode
@@ -10,6 +12,7 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
+  const { shouldShow, completeOnboarding } = useOnboarding()
 
   const handleLogout = () => {
     logout()
@@ -18,6 +21,8 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div className="min-h-screen bg-slate-900">
+      {/* Onboarding Tour - Persists across all authenticated pages */}
+      {shouldShow && <OnboardingTour onComplete={completeOnboarding} />}
       <nav className="bg-slate-800 border-b border-slate-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
