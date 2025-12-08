@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  # PostgreSQL - Base de datos principal
+  postgres:
+    image: postgres:15-alpine
+    container_name: betapredit-postgres
+    environment:
+      POSTGRES_USER: betapredit
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: betapredit
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U betapredit"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - betapredit-network
+
+  # Redis - Cache y baja latencia
+  redis:
+    image: redis:7-alpine
+    container_name: betapredit-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - betapredit-network
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: betapredit-backend
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://betapredit:${POSTGRES_PASSWORD:-changeme}@postgres:5432/betapredit
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-changeme}
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - betapredit-network
+
+  # ML Services
+  ml-services:
+    build:
+      context: ./ml-services
+      dockerfile: Dockerfile
+    container_name: betapredit-ml
+    environment:
+      PYTHONUNBUFFERED: 1
+      DATABASE_URL: postgresql://betapredit:${POSTGRES_PASSWORD:-changeme}@postgres:5432/betapredit
+      REDIS_URL: redis://redis:6379
+      ML_API_PORT: 8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./ml-services:/app
+      - ml_models:/app/models
+    networks:
+      - betapredit-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  ml_models:
+
+networks:
+  betapredit-network:
+    driver: bridge
+
