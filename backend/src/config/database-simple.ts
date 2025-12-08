@@ -5,19 +5,19 @@ export const prisma = {
   $queryRaw: async () => [{ '?column?': 1 }],
   $disconnect: async () => {},
   user: {
-    findUnique: async (args: any) => null,
-    findFirst: async (args: any) => null,
+    findUnique: async (_args: any) => null,
+    findFirst: async (_args: any) => null,
     create: async (args: any) => ({ id: '1', ...args.data }),
     update: async (args: any) => ({ id: args.where.id, ...args.data }),
     findMany: async () => [],
   },
   event: {
-    findUnique: async (args: any) => null,
+    findUnique: async (_args: any) => null,
     findMany: async () => [],
     create: async (args: any) => ({ id: '1', ...args.data }),
   },
   odds: {
-    findUnique: async (args: any) => null,
+    findUnique: async (_args: any) => null,
     findMany: async () => [],
     create: async (args: any) => ({ id: '1', ...args.data }),
     updateMany: async () => ({ count: 0 }),

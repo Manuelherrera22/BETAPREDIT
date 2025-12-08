@@ -22,7 +22,7 @@ class RedisMock {
     });
   }
 
-  async publish(channel: string, message: string): Promise<number> {
+  async publish(_channel: string, _message: string): Promise<number> {
     return 1;
   }
 
@@ -81,7 +81,7 @@ redisClient.on('connect', () => {
   logger.info('✅ Redis connected');
 });
 
-redisClient.on('error', (error) => {
+redisClient.on('error', (error: Error) => {
   logger.error('❌ Redis error:', error);
 });
 
@@ -108,6 +108,10 @@ export const redisHelpers = {
   async publishOddsUpdate(eventId: string, odds: any) {
     await redisClient.publish(`odds:${eventId}`, JSON.stringify(odds));
   },
+};
+
+// Export redisClient
+export { redisClient };
 
   // Rate limiting
   async checkRateLimit(key: string, limit: number, window: number): Promise<boolean> {

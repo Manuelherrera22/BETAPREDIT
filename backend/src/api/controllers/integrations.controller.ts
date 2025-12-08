@@ -6,14 +6,15 @@ import { AuthRequest } from '../../middleware/auth';
 
 class IntegrationsController {
   // Sportradar endpoints
-  async getSportradarOdds(req: AuthRequest, res: Response, next: NextFunction) {
+  async getSportradarOdds(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const { eventId } = req.params;
       if (!sportradarService) {
-        return res.status(503).json({
+        res.status(503).json({
           success: false,
           error: { message: 'Sportradar service not configured' },
         });
+        return;
       }
       const odds = await sportradarService.getRealTimeOdds(eventId);
       res.json({ success: true, data: odds });
@@ -22,13 +23,14 @@ class IntegrationsController {
     }
   }
 
-  async getSportradarLiveEvents(req: AuthRequest, res: Response, next: NextFunction) {
+  async getSportradarLiveEvents(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!sportradarService) {
-        return res.status(503).json({
+        res.status(503).json({
           success: false,
           error: { message: 'Sportradar service not configured' },
         });
+        return;
       }
       const { sportId } = req.query;
       const events = await sportradarService.getLiveEvents(sportId as string);
@@ -38,14 +40,15 @@ class IntegrationsController {
     }
   }
 
-  async checkIntegrity(req: AuthRequest, res: Response, next: NextFunction) {
+  async checkIntegrity(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const { eventId, betPatterns } = req.body;
       if (!sportradarService) {
-        return res.status(503).json({
+        res.status(503).json({
           success: false,
           error: { message: 'Sportradar service not configured' },
         });
+        return;
       }
       const alerts = await sportradarService.checkIntegrity(eventId, betPatterns);
       res.json({ success: true, data: alerts });
@@ -75,15 +78,16 @@ class IntegrationsController {
     }
   }
 
-  async getPlayerMetrics(req: AuthRequest, res: Response, next: NextFunction) {
+  async getPlayerMetrics(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const { eventId, playerId } = req.params;
       const metrics = await playerDataService.getPlayerMetrics(eventId, playerId);
       if (!metrics) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           error: { message: 'Player metrics not found' },
         });
+        return;
       }
       res.json({ success: true, data: metrics });
     } catch (error) {

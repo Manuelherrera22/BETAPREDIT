@@ -4,7 +4,7 @@ import { AppError } from './errorHandler';
 
 export const rateLimiter = async (
   req: Request,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ) => {
   try {

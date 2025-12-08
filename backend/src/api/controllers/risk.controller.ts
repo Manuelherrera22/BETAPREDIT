@@ -3,7 +3,7 @@ import { riskService } from '../../services/risk.service';
 import { AuthRequest } from '../../middleware/auth';
 
 class RiskController {
-  async getRiskDashboard(req: AuthRequest, res: Response, next: NextFunction) {
+  async getRiskDashboard(_req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const dashboard = await riskService.getRiskDashboard();
       res.json({ success: true, data: dashboard });
