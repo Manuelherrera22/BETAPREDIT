@@ -122,7 +122,42 @@ export default function AuthCallback() {
       }
 
       // No token or code
-      toast.error('No se recibió el token de autenticación');
+      console.error('❌ No token or code received in callback');
+      console.error('Search params:', {
+        token: searchParams.get('token'),
+        code: searchParams.get('code'),
+        error: searchParams.get('error'),
+        allParams: Object.fromEntries(searchParams.entries()),
+      });
+      
+      // Check if this is a Supabase callback that might have been handled
+      if (isSupabaseConfigured() && supabase) {
+        // Try to get current session from Supabase
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          console.log('✅ Found existing Supabase session');
+          // User is already authenticated via Supabase
+          // Try to sync with backend
+          try {
+            const response = await api.post('/auth/supabase/sync', {
+              supabaseUserId: session.user.id,
+              email: session.user.email,
+              metadata: session.user.user_metadata,
+            });
+            if (response.data?.success && response.data?.data) {
+              const { user, accessToken } = response.data.data;
+              login(user, accessToken);
+              toast.success('¡Bienvenido! Sesión restaurada');
+              navigate('/dashboard');
+              return;
+            }
+          } catch (err) {
+            console.error('Error syncing existing session:', err);
+          }
+        }
+      }
+      
+      toast.error('No se recibió el token de autenticación. Por favor, intenta de nuevo.');
       navigate('/login');
     };
 
