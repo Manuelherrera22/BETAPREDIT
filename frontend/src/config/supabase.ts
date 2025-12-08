@@ -8,21 +8,23 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Log configuration status (only in development or if missing)
-if (import.meta.env.DEV) {
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('⚠️  Supabase not configured. VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY required.');
-    console.warn('Current env:', {
-      hasUrl: !!supabaseUrl,
-      hasKey: !!supabaseAnonKey,
-      url: supabaseUrl ? supabaseUrl.substring(0, 30) + '...' : 'missing',
-    });
-  } else {
-    console.log('✅ Supabase configured:', {
-      url: supabaseUrl.substring(0, 30) + '...',
-      hasKey: !!supabaseAnonKey,
-    });
-  }
+// Log configuration status (ALWAYS, not just in dev)
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('❌ Supabase not configured!');
+  console.error('Missing variables:', {
+    VITE_SUPABASE_URL: !supabaseUrl ? 'MISSING' : 'OK',
+    VITE_SUPABASE_ANON_KEY: !supabaseAnonKey ? 'MISSING' : 'OK',
+  });
+  console.error('Current env values:', {
+    url: supabaseUrl || 'undefined',
+    key: supabaseAnonKey ? supabaseAnonKey.substring(0, 20) + '...' : 'undefined',
+  });
+} else {
+  console.log('✅ Supabase configured:', {
+    url: supabaseUrl.substring(0, 30) + '...',
+    hasKey: !!supabaseAnonKey,
+    keyLength: supabaseAnonKey.length,
+  });
 }
 
 export const supabase = supabaseUrl && supabaseAnonKey

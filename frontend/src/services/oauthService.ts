@@ -15,11 +15,18 @@ class OAuthService {
   async getGoogleAuthUrl(): Promise<string> {
     // Check if Supabase is configured
     const supabaseConfigured = isSupabaseConfigured();
-    console.log('Supabase configured:', supabaseConfigured);
-    console.log('Supabase client:', supabase ? 'exists' : 'null');
+    const hasSupabaseClient = !!supabase;
     
-    // Try Supabase Auth first
+    console.log('🔍 OAuth Service - Configuration Check:', {
+      supabaseConfigured,
+      hasSupabaseClient,
+      supabaseUrl: import.meta.env.VITE_SUPABASE_URL ? 'SET' : 'MISSING',
+      supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY ? 'SET' : 'MISSING',
+    });
+    
+    // CRITICAL: If Supabase is configured, we MUST use it, no fallback
     if (supabaseConfigured && supabase) {
+      console.log('✅ Using Supabase Auth (no backend needed)');
       try {
         // Use current origin (works for both localhost and production)
         const frontendUrl = window.location.origin;
@@ -67,20 +74,21 @@ class OAuthService {
           stack: error.stack,
         });
         
-        // If Supabase is configured, don't fallback to backend
+        // If Supabase is configured, NEVER fallback to backend
         // Show the error to the user
-        throw new Error(`Error con Supabase Auth: ${error.message || 'No se pudo generar la URL de autenticación'}`);
+        console.error('❌ Supabase OAuth failed, but Supabase IS configured');
+        console.error('This should NOT happen. Check Supabase dashboard configuration.');
+        throw new Error(`Error con Supabase Auth: ${error.message || 'No se pudo generar la URL de autenticación. Verifica la configuración en Supabase Dashboard.'}`);
       }
     }
     
-    // If Supabase is not configured, log it
-    if (!supabaseConfigured) {
-      console.warn('⚠️ Supabase not configured, falling back to backend API');
-      console.warn('Missing:', {
-        url: !import.meta.env.VITE_SUPABASE_URL,
-        key: !import.meta.env.VITE_SUPABASE_ANON_KEY,
-      });
-    }
+    // If we reach here, Supabase is NOT configured
+    console.error('❌ Supabase NOT configured!');
+    console.error('Missing environment variables:', {
+      VITE_SUPABASE_URL: !import.meta.env.VITE_SUPABASE_URL,
+      VITE_SUPABASE_ANON_KEY: !import.meta.env.VITE_SUPABASE_ANON_KEY,
+    });
+    console.error('⚠️ Falling back to backend API (this should not happen in production)');
 
     // Fallback to backend API (only if Supabase is not configured)
     try {
