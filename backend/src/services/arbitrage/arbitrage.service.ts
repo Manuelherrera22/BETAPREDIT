@@ -75,27 +75,41 @@ class ArbitrageService {
     try {
       const theOddsAPI = getTheOddsAPIService();
       if (!theOddsAPI) {
-        throw new AppError('The Odds API service not configured', 503);
+        logger.warn('The Odds API service not configured');
+        return [];
       }
 
       // Get event from database
-      const event = await prisma.event.findUnique({
-        where: { id: eventId },
-        include: {
-          sport: true,
-        },
-      });
+      let event;
+      try {
+        event = await prisma.event.findUnique({
+          where: { id: eventId },
+          include: {
+            sport: true,
+          },
+        });
+      } catch (dbError: any) {
+        logger.warn(`Database error fetching event ${eventId}:`, dbError.message);
+        return [];
+      }
 
-      if (!event) {
-        throw new AppError('Event not found', 404);
+      if (!event || !event.sport) {
+        logger.warn(`Event ${eventId} not found or missing sport`);
+        return [];
       }
 
       // Get odds comparison from The Odds API
-      const comparison = await theOddsAPI.compareOdds(
-        event.sport.slug,
-        event.externalId || event.id,
-        marketType
-      );
+      let comparison;
+      try {
+        comparison = await theOddsAPI.compareOdds(
+          event.sport.slug,
+          event.externalId || event.id,
+          marketType
+        );
+      } catch (apiError: any) {
+        logger.warn(`Error fetching odds comparison for event ${eventId}:`, apiError.message);
+        return [];
+      }
 
       if (!comparison || !comparison.comparisons) {
         return [];
@@ -180,11 +194,9 @@ class ArbitrageService {
       logger.info(`Detected ${opportunities.length} arbitrage opportunities for event ${eventId}`);
       return opportunities;
     } catch (error: any) {
-      if (error instanceof AppError) {
-        throw error;
-      }
       logger.error('Error detecting arbitrage:', error);
-      throw new AppError('Failed to detect arbitrage opportunities', 500);
+      // Return empty array instead of throwing error
+      return [];
     }
   }
 
