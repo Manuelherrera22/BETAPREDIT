@@ -40,23 +40,37 @@ try {
     $disconnect: async () => {},
     user: {
       findUnique: async (args: any) => {
+        let foundUser = null;
         if (args.where.email) {
           // Buscar por email
           for (const user of mockData.users.values()) {
             if (user.email === args.where.email) {
-              return user;
+              foundUser = user;
+              break;
             }
           }
         } else if (args.where.id) {
           // Buscar por id
-          return mockData.users.get(args.where.id) || null;
+          foundUser = mockData.users.get(args.where.id) || null;
         }
-        return null;
+        
+        // Si hay un select, filtrar los campos
+        if (foundUser && args.select) {
+          const selectedUser: any = {};
+          for (const key of Object.keys(args.select)) {
+            if (args.select[key] && foundUser[key as keyof typeof foundUser] !== undefined) {
+              selectedUser[key] = foundUser[key as keyof typeof foundUser];
+            }
+          }
+          return selectedUser;
+        }
+        
+        return foundUser;
       },
       findFirst: async () => null,
       create: async (args: any) => {
         const userId = crypto.randomUUID ? crypto.randomUUID() : `user-${Date.now()}`;
-        const user = {
+        const fullUser = {
           id: userId,
           email: args.data.email,
           passwordHash: args.data.passwordHash,
@@ -65,8 +79,20 @@ try {
           role: args.data.role || 'user',
           createdAt: new Date(),
         };
-        mockData.users.set(userId, user);
-        return user;
+        mockData.users.set(userId, fullUser);
+        
+        // Si hay un select, filtrar los campos
+        if (args.select) {
+          const selectedUser: any = {};
+          for (const key of Object.keys(args.select)) {
+            if (args.select[key] && fullUser[key as keyof typeof fullUser] !== undefined) {
+              selectedUser[key] = fullUser[key as keyof typeof fullUser];
+            }
+          }
+          return selectedUser;
+        }
+        
+        return fullUser;
       },
       update: async (args: any) => {
         const user = mockData.users.get(args.where.id);
