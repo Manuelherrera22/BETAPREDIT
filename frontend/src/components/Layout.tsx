@@ -1,6 +1,7 @@
 import { ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
+import QuickAddBet from './QuickAddBet'
 
 interface LayoutProps {
   children: ReactNode
@@ -51,6 +52,13 @@ export default function Layout({ children }: LayoutProps) {
                   Comparar Cuotas
                 </Link>
                 <Link
+                  to="/arbitrage"
+                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-300 hover:text-white"
+                >
+                  Arbitraje
+                  <span className="ml-1 px-1.5 py-0.5 bg-green-500 text-white text-xs rounded-full">Nuevo</span>
+                </Link>
+                <Link
                   to="/statistics"
                   className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-300 hover:text-white"
                 >
@@ -62,6 +70,12 @@ export default function Layout({ children }: LayoutProps) {
                 >
                   Alertas
                   <span className="ml-1 px-1.5 py-0.5 bg-accent-500 text-white text-xs rounded-full">3</span>
+                </Link>
+                <Link
+                  to="/referrals"
+                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-300 hover:text-white"
+                >
+                  Referidos
                 </Link>
               </div>
             </div>
@@ -86,6 +100,9 @@ export default function Layout({ children }: LayoutProps) {
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         {children}
       </main>
+
+      {/* Quick Add Bet Button */}
+      <QuickAddBet />
     </div>
   )
 }

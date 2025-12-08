@@ -13,7 +13,7 @@ datasource db {
 model User {
   id           String    @id @default(cuid())
   email        String    @unique
-  passwordHash String
+  passwordHash String?  // Optional for OAuth users
   firstName    String?
   lastName     String?
   phone        String?
@@ -23,6 +23,12 @@ model User {
   kycStatus    KYCStatus @default(PENDING)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+
+  // OAuth fields
+  googleId      String?  @unique
+  provider      String?  // 'google', 'email', etc.
+  avatar        String?  // Profile picture URL from OAuth
+  oauthData     Json?    // Additional OAuth data
 
   // New fields
   timezone              String?          @default("UTC")
@@ -41,6 +47,13 @@ model User {
   winRate         Float     @default(0)
   lastStatsUpdate DateTime?
 
+  // Referral system
+  referralCode   String?  @unique // Unique referral code for this user
+  referredBy     String?  // User ID who referred this user
+  referralCount  Int      @default(0) // How many users this user has referred
+  activeReferrals Int     @default(0) // Active (subscribed) referrals
+  referralRewards Json?   // { freeMonths: 0, discount: 0, premiumAccess: false }
+
   // Relations
   bets           Bet[]
   sessions       Session[]
@@ -51,10 +64,19 @@ model User {
   valueBetAlerts ValueBetAlert[]
   notifications  Notification[]
   userStatistics UserStatistics[]
+  subscription   Subscription?
+  payments       Payment[]
+  referrals      User[]  @relation("UserReferrals") // Users referred by this user
+  referrer       User?   @relation("UserReferrals", fields: [referredBy], references: [id])
+  referralRecords Referral[] @relation("Referrer") // Referrals made by this user
+  referredRecord  Referral?   @relation("Referred") // Referral record for this user
+  betTemplates   BetTemplate[] // Bet templates created by user
 
   @@index([email])
   @@index([role])
   @@index([subscriptionTier])
+  @@index([referralCode])
+  @@index([referredBy])
 }
 
 enum UserRole {
@@ -443,6 +465,77 @@ enum AddressType {
 }
 
 // ============================================
+// PAYMENT AND SUBSCRIPTION MODELS
+// ============================================
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String             @unique
+  stripeCustomerId     String?            @unique
+  stripeSubscriptionId String?            @unique
+  stripePriceId        String?
+  tier                 SubscriptionTier   @default(FREE)
+  status               SubscriptionStatus @default(ACTIVE)
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean            @default(false)
+  cancelledAt          DateTime?
+  metadata             Json?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments Payment[]
+
+  @@index([userId])
+  @@index([stripeCustomerId])
+  @@index([stripeSubscriptionId])
+  @@index([status])
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  PAST_DUE
+  UNPAID
+  TRIALING
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+  userId          String
+  subscriptionId  String?
+  stripePaymentId String?       @unique
+  stripeInvoiceId String?       @unique
+  amount          Float
+  currency        String        @default("EUR")
+  status          PaymentStatus @default(PENDING)
+  paymentMethod   String?
+  description     String?
+  metadata        Json?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id])
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  @@index([userId])
+  @@index([subscriptionId])
+  @@index([stripePaymentId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+// ============================================
 // NEW MODELS FOR PERFECT DATA MODEL
 // ============================================
 
@@ -493,6 +586,33 @@ model ExternalBet {
   @@index([status])
   @@index([betPlacedAt])
   @@index([registeredAt])
+}
+
+// Template for frequently used bets
+model BetTemplate {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String   // Template name (e.g., "My Football Strategy")
+  description String?  // Optional description
+  
+  // Template data
+  platform    String   // Default platform
+  marketType  String   // Default market type
+  defaultStake Float?  // Default stake amount
+  tags        String[] // Tags for organization
+  
+  // Usage tracking
+  useCount    Int      @default(0)
+  lastUsedAt  DateTime?
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([name])
 }
 
 enum ExternalBetStatus {
@@ -701,6 +821,36 @@ model UserStatistics {
 
   @@index([userId, period, periodStart])
   @@index([period])
+}
+
+// Referral system
+model Referral {
+  id              String   @id @default(cuid())
+  referrerId      String   // User who referred
+  referredUserId  String   @unique // User who was referred
+  referralCode    String   // Code used for referral
+  status          ReferralStatus @default(PENDING)
+  rewardGranted   Boolean  @default(false)
+  rewardType      String?  // 'free_month', 'discount', 'premium_access'
+  rewardValue     Float?   // Value of reward (e.g., discount percentage)
+  convertedAt     DateTime? // When referred user became active (subscribed)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  referrer        User     @relation("Referrer", fields: [referrerId], references: [id])
+  referredUser    User     @relation("Referred", fields: [referredUserId], references: [id])
+
+  @@index([referrerId])
+  @@index([referredUserId])
+  @@index([referralCode])
+  @@index([status])
+}
+
+enum ReferralStatus {
+  PENDING      // User registered but not active
+  ACTIVE       // User has active subscription
+  REWARDED     // Reward already granted
+  EXPIRED      // Referral expired
 }
 
 // Model for notifications

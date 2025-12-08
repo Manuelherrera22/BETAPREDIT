@@ -18,7 +18,10 @@ let prisma: any;
 
 // Check if DATABASE_URL is set and valid, otherwise use mock
 const DATABASE_URL = process.env.DATABASE_URL;
-const useRealDB = DATABASE_URL && DATABASE_URL.includes('postgresql://') && !DATABASE_URL.includes('changeme');
+const useRealDB = DATABASE_URL && 
+  DATABASE_URL.includes('postgresql://') && 
+  !DATABASE_URL.includes('changeme') &&
+  (DATABASE_URL.includes('supabase.co') || DATABASE_URL.includes('localhost'));
 
 // Function to create mock Prisma
 function createMockPrisma() {
@@ -251,21 +254,16 @@ function createMockPrisma() {
       return results;
     },
     $connect: async () => {},
-    $disconnect: async () => {},
   };
 }
 
-// Initialize Prisma - Always use mock for now to avoid connection issues
-logger.info('Using mock database for development');
-prisma = createMockPrisma();
-
-// Uncomment below to use real database when available
-/*
+// Initialize Prisma - Use real database if available, otherwise use mock
 if (useRealDB) {
   try {
+    logger.info('Connecting to Supabase database...');
     prisma = new PrismaClient({
       log: process.env.NODE_ENV === 'development' 
-        ? ['query', 'info', 'warn', 'error']
+        ? ['warn', 'error']
         : ['error'],
     });
 
@@ -280,19 +278,24 @@ if (useRealDB) {
     });
     
     // Test connection asynchronously
-    prisma.$connect().catch(() => {
-      logger.warn('Database connection failed, using mock data');
-      prisma = createMockPrisma();
-    });
-  } catch (error) {
-    logger.warn('Database not available, using mock data');
+    prisma.$connect()
+      .then(() => {
+        logger.info('✅ Connected to Supabase database successfully');
+      })
+      .catch((error: any) => {
+        logger.warn('⚠️ Database connection failed, using mock data:', error.message);
+        prisma = createMockPrisma();
+      });
+  } catch (error: any) {
+    logger.warn('⚠️ Database not available, using mock data:', error.message);
     prisma = createMockPrisma();
   }
 } else {
-  logger.info('Using mock database (no DATABASE_URL or using default)');
+  logger.info('Using mock database (no valid DATABASE_URL found)');
+  logger.info('To use Supabase, set DATABASE_URL in .env with format:');
+  logger.info('postgresql://postgres:[PASSWORD]@db.[PROJECT_ID].supabase.co:5432/postgres');
   prisma = createMockPrisma();
 }
-*/
 
 export { prisma };
 

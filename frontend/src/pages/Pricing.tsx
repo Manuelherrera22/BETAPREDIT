@@ -1,7 +1,45 @@
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../store/authStore';
 import GradientText from '../components/GradientText';
+import { paymentsService } from '../services/paymentsService';
 
 export default function Pricing() {
+  const { isAuthenticated } = useAuthStore();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState<string | null>(null);
+
+  // Stripe Price IDs - Estos los obtienes de tu dashboard de Stripe
+  // Por ahora usamos placeholders que debes reemplazar con los reales
+  const priceIds: Record<string, string> = {
+    BASIC: process.env.VITE_STRIPE_PRICE_ID_BASIC || 'price_basic_placeholder',
+    PRO: process.env.VITE_STRIPE_PRICE_ID_PRO || 'price_pro_placeholder',
+    PREMIUM: process.env.VITE_STRIPE_PRICE_ID_PREMIUM || 'price_premium_placeholder',
+  };
+
+  const handleSubscribe = async (planName: string, priceId?: string) => {
+    if (!isAuthenticated) {
+      navigate('/register');
+      return;
+    }
+
+    if (planName === 'Básico' || !priceId) {
+      // Free plan - just redirect to dashboard
+      navigate('/dashboard');
+      return;
+    }
+
+    setLoading(planName);
+    try {
+      const session = await paymentsService.createCheckoutSession(priceId);
+      // Redirect to Stripe Checkout
+      window.location.href = session.url;
+    } catch (error: any) {
+      console.error('Error creating checkout session:', error);
+      alert('Error al iniciar el pago. Por favor intenta de nuevo.');
+      setLoading(null);
+    }
+  };
   const plans = [
     {
       name: 'Básico',
@@ -151,12 +189,23 @@ export default function Pricing() {
                 ))}
               </ul>
 
-              <Link
-                to={plan.price === 'Gratis' ? '/register' : '/register'}
-                className={`block w-full text-center py-3 rounded-lg font-bold text-white transition-colors ${colors.button}`}
+              <button
+                onClick={() => {
+                  if (plan.name === 'Pro') {
+                    handleSubscribe(plan.name, priceIds.PRO);
+                  } else if (plan.name === 'Premium') {
+                    handleSubscribe(plan.name, priceIds.PREMIUM);
+                  } else {
+                    handleSubscribe(plan.name);
+                  }
+                }}
+                disabled={loading === plan.name}
+                className={`block w-full text-center py-3 rounded-lg font-bold text-white transition-colors ${colors.button} ${
+                  loading === plan.name ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
-                {plan.cta}
-              </Link>
+                {loading === plan.name ? 'Procesando...' : plan.cta}
+              </button>
             </div>
           );
         })}

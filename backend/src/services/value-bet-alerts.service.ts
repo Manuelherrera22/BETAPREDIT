@@ -1,6 +1,9 @@
 import { prisma } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
+import { webSocketService } from './websocket.service';
+// import { emailService } from './email.service'; // Not used directly, handled by notifications service
+import { notificationsService } from './notifications.service';
 
 interface CreateValueBetAlertData {
   userId?: string;
@@ -95,6 +98,40 @@ class ValueBetAlertsService {
       });
 
       logger.info(`Value bet alert created: ${alert.id} for event ${data.eventId}`);
+
+      // Send WebSocket notification
+      if (data.userId) {
+        webSocketService.emitValueBetAlert(data.userId, {
+          id: alert.id,
+          eventId: alert.eventId,
+          selection: alert.selection,
+          bookmakerOdds: alert.bookmakerOdds,
+          bookmakerPlatform: alert.bookmakerPlatform,
+          valuePercentage: alert.valuePercentage,
+          predictedProbability: alert.predictedProbability,
+          event: alert.event,
+        });
+      }
+
+      // Create in-app notification
+      if (data.userId) {
+        try {
+          await notificationsService.createNotification({
+            userId: data.userId,
+            type: 'VALUE_BET_DETECTED',
+            title: 'Value Bet Detectado',
+            message: `${alert.event?.homeTeam || 'Equipo 1'} vs ${alert.event?.awayTeam || 'Equipo 2'} - ${alert.selection} @ ${alert.bookmakerOdds} (${alert.bookmakerPlatform}) - Valor: +${alert.valuePercentage.toFixed(1)}%`,
+            data: {
+              alertId: alert.id,
+              eventId: alert.eventId,
+              valuePercentage: alert.valuePercentage,
+            },
+          });
+        } catch (error) {
+          logger.error('Error creating notification for value bet alert:', error);
+        }
+      }
+
       return alert;
     } catch (error: any) {
       if (error instanceof AppError) {
@@ -249,13 +286,13 @@ class ValueBetAlertsService {
 
     const stats = {
       totalAlerts: alerts.length,
-      activeAlerts: alerts.filter((a) => a.status === 'ACTIVE').length,
-      takenAlerts: alerts.filter((a) => a.status === 'TAKEN').length,
-      expiredAlerts: alerts.filter((a) => a.status === 'EXPIRED').length,
+      activeAlerts: alerts.filter((a: any) => a.status === 'ACTIVE').length,
+      takenAlerts: alerts.filter((a: any) => a.status === 'TAKEN').length,
+      expiredAlerts: alerts.filter((a: any) => a.status === 'EXPIRED').length,
       averageValue: alerts.length > 0
-        ? alerts.reduce((sum, a) => sum + a.valuePercentage, 0) / alerts.length
+        ? alerts.reduce((sum: number, a: any) => sum + a.valuePercentage, 0) / alerts.length
         : 0,
-      betsPlaced: alerts.filter((a) => a.betPlaced).length,
+      betsPlaced: alerts.filter((a: any) => a.betPlaced).length,
     };
 
     return stats;

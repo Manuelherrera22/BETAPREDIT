@@ -68,7 +68,7 @@ try {
 
   redisClient = new Redis(redisConfig);
   
-  redisClient.on('error', (error: Error) => {
+  redisClient.on('error', (_error: Error) => {
     logger.warn('Redis not available, using in-memory cache');
     redisClient = new RedisMock();
   });

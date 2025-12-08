@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger';
+import { Sentry } from '../config/sentry';
 
 export class AppError extends Error {
   statusCode: number;
@@ -37,6 +38,20 @@ export const errorHandler = (
     errorName: err.name,
     errorDetails: err,
   });
+
+  // Send to Sentry
+  if (process.env.SENTRY_DSN) {
+    Sentry.captureException(err, {
+      tags: {
+        path: req.path,
+        method: req.method,
+      },
+      extra: {
+        statusCode,
+        body: req.body,
+      },
+    });
+  }
 
   res.status(statusCode).json({
     success: false,

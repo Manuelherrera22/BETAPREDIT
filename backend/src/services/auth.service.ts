@@ -10,11 +10,13 @@ class AuthService {
   private readonly JWT_EXPIRES_IN = '15m';
   private readonly REFRESH_TOKEN_EXPIRES_IN = '7d';
 
+
   async register(userData: {
     email: string;
     password: string;
     firstName?: string;
     lastName?: string;
+    referralCode?: string;
   }) {
     // Check if user exists
     const existing = await prisma.user.findUnique({
@@ -52,6 +54,26 @@ class AuthService {
         userId: user.id,
       },
     });
+
+    // Process referral if code provided
+    if (userData.referralCode) {
+      try {
+        const { referralService } = await import('./referrals/referral.service');
+        await referralService.processReferral(user.id, userData.referralCode);
+      } catch (error) {
+        logger.warn('Error processing referral during registration:', error);
+        // Don't fail registration if referral fails
+      }
+    }
+
+    // Generate referral code for new user
+    try {
+      const { referralService } = await import('./referrals/referral.service');
+      await referralService.generateReferralCode(user.id);
+    } catch (error) {
+      logger.warn('Error generating referral code for new user:', error);
+      // Don't fail registration if referral code generation fails
+    }
 
     logger.info(`User registered: ${user.email}`);
 
@@ -269,7 +291,7 @@ class AuthService {
     });
   }
 
-  async verifyEmail(token: string) {
+  async verifyEmail(_token: string) {
     // In a real implementation, you'd verify the token
     // For now, we'll just mark as verified
     throw new AppError('Email verification not implemented', 501);
@@ -291,12 +313,12 @@ class AuthService {
     logger.info(`Password reset requested for ${email}, token: ${resetToken}`);
   }
 
-  async resetPassword(token: string, newPassword: string) {
+  async resetPassword(_token: string, _newPassword: string) {
     // In a real implementation, verify token and reset password
     throw new AppError('Password reset not implemented', 501);
   }
 
-  private generateTokens(user: { id: string; email: string; role: string }) {
+  generateTokens(user: { id: string; email: string; role: string }) {
     try {
       if (!user || !user.id || !user.email) {
         throw new Error('Invalid user data for token generation');

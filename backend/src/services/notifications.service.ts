@@ -1,6 +1,8 @@
 import { prisma } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
+import { emailService } from './email.service';
+import { webSocketService } from './websocket.service';
 
 interface CreateNotificationData {
   userId: string;
@@ -38,6 +40,37 @@ class NotificationsService {
       });
 
       logger.info(`Notification created: ${notification.id} for user ${data.userId}`);
+
+      // Send via WebSocket if user is connected
+      webSocketService.emitNotification(data.userId, {
+        id: notification.id,
+        type: notification.type,
+        title: notification.title,
+        message: notification.message,
+        data: notification.data,
+      });
+
+      // Send email if notification type requires it
+      if (notification.user?.email && this.shouldSendEmail(notification.type)) {
+        try {
+          await emailService.sendEmail({
+            to: notification.user.email,
+            subject: notification.title,
+            html: this.getEmailTemplate(notification),
+          });
+          // Update sentVia
+          await prisma.notification.update({
+            where: { id: notification.id },
+            data: {
+              sentVia: ['in_app', 'email'],
+              sentAt: new Date(),
+            },
+          });
+        } catch (error) {
+          logger.error('Error sending notification email:', error);
+        }
+      }
+
       return notification;
     } catch (error: any) {
       logger.error('Error creating notification:', error);
@@ -206,6 +239,46 @@ class NotificationsService {
 
     logger.info(`Cleaned up ${result.count} expired notifications`);
     return result.count;
+  }
+
+  /**
+   * Check if notification type should trigger email
+   */
+  private shouldSendEmail(type: string): boolean {
+    const emailTypes = ['VALUE_BET_DETECTED', 'BET_SETTLED', 'SYSTEM_ALERT'];
+    return emailTypes.includes(type);
+  }
+
+  /**
+   * Get email template for notification
+   */
+  private getEmailTemplate(notification: any): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+          .content { background: #f9f9f9; padding: 20px; border-radius: 0 0 8px 8px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>${notification.title}</h1>
+          </div>
+          <div class="content">
+            <p>${notification.message}</p>
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/notifications" style="display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin-top: 15px;">
+              Ver Notificación
+            </a>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
   }
 }
 

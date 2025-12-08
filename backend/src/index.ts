@@ -15,9 +15,25 @@ import { createDirectories } from './utils/createDirectories';
 // Load environment variables FIRST
 dotenv.config();
 
+// Initialize Sentry (before other imports)
+import { initSentry } from './config/sentry';
+initSentry();
+
 // Initialize The Odds API service after dotenv.config()
 import { initializeTheOddsAPIService } from './services/integrations/the-odds-api.service';
 initializeTheOddsAPIService();
+
+// Initialize API-Football service after dotenv.config()
+import { initializeAPIFootballService } from './services/integrations/api-football.service';
+initializeAPIFootballService();
+
+// Initialize Stripe service after dotenv.config()
+import { initializeStripeService } from './services/payments/stripe.service';
+initializeStripeService();
+
+// Initialize Google OAuth service after dotenv.config()
+import { initializeGoogleOAuthService } from './services/oauth/google.service';
+initializeGoogleOAuthService();
 
 // Create necessary directories
 createDirectories();
@@ -36,6 +52,16 @@ import notificationsRoutes from './api/routes/notifications.routes';
 import userStatisticsRoutes from './api/routes/user-statistics.routes';
 import kalshiRoutes from './api/routes/kalshi.routes';
 import theOddsAPIRoutes from './api/routes/the-odds-api.routes';
+import apiFootballRoutes from './api/routes/api-football.routes';
+import paymentsRoutes from './api/routes/payments.routes';
+import arbitrageRoutes from './api/routes/arbitrage.routes';
+import oauthRoutes from './api/routes/oauth.routes';
+import referralsRoutes from './api/routes/referrals.routes';
+import twoFactorRoutes from './api/routes/2fa.routes';
+
+// Swagger
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './config/swagger';
 
 const app = express();
 const httpServer = createServer(app);
@@ -60,6 +86,12 @@ app.use(compression());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(rateLimiter);
+
+// Swagger Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'BETAPREDIT API Documentation',
+}));
 
 // Health check
 app.get('/health', async (_req, res) => {
@@ -91,7 +123,7 @@ app.get('/health', async (_req, res) => {
 // Test endpoint for debugging
 app.post('/api/test/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email } = req.body;
     logger.info('Test login attempt:', { email });
     
     // Simple test response
@@ -123,19 +155,67 @@ app.use('/api/notifications', notificationsRoutes);
 app.use('/api/statistics', userStatisticsRoutes);
 app.use('/api/kalshi', kalshiRoutes);
 app.use('/api/the-odds-api', theOddsAPIRoutes);
+app.use('/api/api-football', apiFootballRoutes);
+app.use('/api/payments', paymentsRoutes);
+app.use('/api/arbitrage', arbitrageRoutes);
+app.use('/api/oauth', oauthRoutes);
+app.use('/api/referrals', referralsRoutes);
+app.use('/api/2fa', twoFactorRoutes);
 
 // WebSocket connection handler
 io.on('connection', (socket) => {
   logger.info(`Client connected: ${socket.id}`);
 
+  // Subscribe to odds updates for a specific event
   socket.on('subscribe:odds', (eventId: string) => {
     socket.join(`odds:${eventId}`);
     logger.info(`Client ${socket.id} subscribed to odds for event ${eventId}`);
   });
 
+  // Subscribe to live events
   socket.on('subscribe:events', () => {
     socket.join('events:live');
     logger.info(`Client ${socket.id} subscribed to live events`);
+  });
+
+  // Subscribe to value bet alerts
+  socket.on('subscribe:value-bets', (userId?: string) => {
+    if (userId) {
+      socket.join(`value-bets:${userId}`);
+      logger.info(`Client ${socket.id} subscribed to value bets for user ${userId}`);
+    } else {
+      socket.join('value-bets:all');
+      logger.info(`Client ${socket.id} subscribed to all value bets`);
+    }
+  });
+
+  // Subscribe to notifications
+  socket.on('subscribe:notifications', (userId: string) => {
+    socket.join(`notifications:${userId}`);
+    logger.info(`Client ${socket.id} subscribed to notifications for user ${userId}`);
+  });
+
+  // Subscribe to specific sport
+  socket.on('subscribe:sport', (sport: string) => {
+    socket.join(`sport:${sport}`);
+    logger.info(`Client ${socket.id} subscribed to sport ${sport}`);
+  });
+
+  // Subscribe to arbitrage opportunities
+  socket.on('subscribe:arbitrage', (options?: { sport?: string; minProfitMargin?: number }) => {
+    if (options?.sport) {
+      socket.join(`arbitrage:${options.sport}`);
+      logger.info(`Client ${socket.id} subscribed to arbitrage for sport ${options.sport}`);
+    } else {
+      socket.join('arbitrage:all');
+      logger.info(`Client ${socket.id} subscribed to all arbitrage opportunities`);
+    }
+  });
+
+  // Unsubscribe from a channel
+  socket.on('unsubscribe', (channel: string) => {
+    socket.leave(channel);
+    logger.info(`Client ${socket.id} unsubscribed from ${channel}`);
   });
 
   socket.on('disconnect', () => {
@@ -146,8 +226,12 @@ io.on('connection', (socket) => {
 // Make io available to routes
 app.set('io', io);
 
+// Initialize WebSocket service
+import { webSocketService } from './services/websocket.service';
+webSocketService.initialize(io);
+
 // 404 handler
-app.use((req, res, next) => {
+app.use((req, res) => {
   res.status(404).json({
     success: false,
     error: { message: `Route ${req.path} not found` },

@@ -7,8 +7,13 @@ import ValueBetCalculator from '../components/ValueBetCalculator'
 import StatsCard from '../components/StatsCard'
 import { useLiveEvents, useMockAlerts, generateMockEvents } from '../hooks/useMockData'
 import { useState, useEffect } from 'react'
+import OnboardingTour from '../components/OnboardingTour'
+import { useOnboarding } from '../hooks/useOnboarding'
+import QuickValueBetDemo from '../components/QuickValueBetDemo'
+import SocialProof from '../components/SocialProof'
 
 export default function Home() {
+  const { shouldShow, completeOnboarding } = useOnboarding()
   // Usar datos mock para el demo
   const mockLiveEvents = useLiveEvents()
   const mockAlerts = useMockAlerts()
@@ -81,13 +86,22 @@ export default function Home() {
   }
 
   return (
-    <div className="px-4 py-6">
+    <>
+      {shouldShow && <OnboardingTour onComplete={completeOnboarding} />}
+      <div className="px-4 py-6">
       <div className="mb-8">
         <h1 className="text-4xl font-black text-white mb-2">
           Dashboard
         </h1>
         <p className="text-gray-400">Bienvenido a tu panel de análisis predictivo</p>
       </div>
+
+      {/* Quick Value Bet Demo for New Users */}
+      {shouldShow && (
+        <div className="mb-8">
+          <QuickValueBetDemo />
+        </div>
+      )}
 
       {/* Quick Stats - Dinámicos */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -174,6 +188,13 @@ export default function Home() {
       <div className="mb-8">
         <ValueBetCalculator />
       </div>
+
+      {/* Social Proof - Show after onboarding or for returning users */}
+      {!shouldShow && (
+        <div className="mb-8">
+          <SocialProof />
+        </div>
+      )}
 
       <h2 className="text-2xl font-bold text-white mb-6">
         Eventos
@@ -266,6 +287,7 @@ export default function Home() {
         </div>
       </div>
     </div>
+    </>
   )
 }
 

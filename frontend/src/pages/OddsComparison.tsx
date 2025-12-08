@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import OddsComparisonTable from '../components/OddsComparisonTable';
 import { theOddsApiService, type OddsEvent, type OddsComparison } from '../services/theOddsApiService';
+import { useWebSocket } from '../hooks/useWebSocket';
 
 export default function OddsComparison() {
   const [sports, setSports] = useState<Array<{ key: string; title: string }>>([]);
@@ -11,6 +12,12 @@ export default function OddsComparison() {
   const [loading, setLoading] = useState(true);
   const [oddsComparisons, setOddsComparisons] = useState<Record<string, OddsComparison>>({});
   const [loadingComparisons, setLoadingComparisons] = useState(false);
+
+  // WebSocket para actualizaciones en tiempo real
+  const { isConnected, lastMessage, subscribe, unsubscribe } = useWebSocket({
+    autoConnect: true,
+    channels: [],
+  });
 
   // Cargar deportes disponibles
   useEffect(() => {
@@ -77,10 +84,38 @@ export default function OddsComparison() {
     };
 
     loadComparison();
-    // Actualizar cada 30 segundos
+    // Actualizar cada 30 segundos (fallback si WebSocket falla)
     const interval = setInterval(loadComparison, 30000);
     return () => clearInterval(interval);
   }, [selectedEvent, selectedSport]);
+
+  // Suscribirse a actualizaciones de cuotas cuando cambia el evento
+  useEffect(() => {
+    if (selectedEvent && isConnected) {
+      subscribe(`odds:${selectedEvent}`);
+      return () => {
+        unsubscribe(`odds:${selectedEvent}`);
+      };
+    }
+  }, [selectedEvent, isConnected, subscribe, unsubscribe]);
+
+  // Actualizar cuotas cuando llega mensaje por WebSocket
+  useEffect(() => {
+    if (lastMessage?.type === 'odds:update' && lastMessage.data.eventId === selectedEvent) {
+      // Recargar comparación cuando llega actualización
+      const loadComparison = async () => {
+        try {
+          const comparisonData = await theOddsApiService.compareOdds(selectedSport, selectedEvent, 'h2h');
+          if (comparisonData && comparisonData.comparisons) {
+            setOddsComparisons(comparisonData.comparisons);
+          }
+        } catch (error) {
+          console.error('Error loading comparison:', error);
+        }
+      };
+      loadComparison();
+    }
+  }, [lastMessage, selectedEvent, selectedSport]);
 
   // Filtrar eventos por búsqueda
   const filteredEvents = events.filter(event =>
@@ -111,7 +146,8 @@ export default function OddsComparison() {
       const drawOdd = drawComp?.allOdds.find(o => o.bookmaker === bookmaker)?.odds || null;
 
       // Calcular valor promedio (simplificado)
-      const avgOdds = [homeOdd, awayOdd, drawOdd].filter(Boolean).reduce((sum, odd) => sum + (odd || 0), 0) / [homeOdd, awayOdd, drawOdd].filter(Boolean).length;
+      const validOdds = [homeOdd, awayOdd, drawOdd].filter((odd): odd is number => odd !== null && odd !== undefined);
+      const avgOdds = validOdds.length > 0 ? validOdds.reduce((sum, odd) => sum + odd, 0) / validOdds.length : 0;
       const value = homeOdd ? ((homeOdd - avgOdds) / avgOdds) * 100 : 0;
 
       return {
@@ -202,14 +238,23 @@ export default function OddsComparison() {
         </div>
       )}
 
-      {/* Live Indicator */}
+      {/* WebSocket Status */}
       {!loadingComparisons && currentEvent && (
-        <div className="mb-4 flex items-center gap-2 text-sm">
-          <span className="relative">
-            <span className="w-2 h-2 bg-accent-400 rounded-full animate-pulse"></span>
-            <span className="absolute top-0 left-0 w-2 h-2 bg-accent-400 rounded-full animate-ping opacity-75"></span>
-          </span>
-          <span className="text-gray-400">Actualizando cuotas en tiempo real</span>
+        <div className="mb-4 flex items-center gap-4 text-sm">
+          {isConnected ? (
+            <div className="flex items-center gap-2">
+              <span className="relative">
+                <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                <span className="absolute top-0 left-0 w-2 h-2 bg-green-400 rounded-full animate-ping opacity-75"></span>
+              </span>
+              <span className="text-green-400">Conectado en tiempo real</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 bg-gray-500 rounded-full"></span>
+              <span className="text-gray-500">Desconectado (usando polling)</span>
+            </div>
+          )}
         </div>
       )}
 

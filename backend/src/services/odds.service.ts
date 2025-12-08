@@ -71,7 +71,7 @@ class OddsService {
       });
 
       // Group by eventId
-      odds.forEach((odd) => {
+      odds.forEach((odd: any) => {
         if (!oddsMap[odd.eventId]) {
           oddsMap[odd.eventId] = [];
         }

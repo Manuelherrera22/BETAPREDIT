@@ -195,11 +195,11 @@ class UserStatisticsService {
       ).length;
 
       const valueBetsStaked = valueBetAlerts
-        .filter((a) => a.externalBet)
-        .reduce((sum, a) => sum + (a.externalBet?.stake || 0), 0);
+        .filter((a: any) => a.externalBet)
+        .reduce((sum: number, a: any) => sum + (a.externalBet?.stake || 0), 0);
       const valueBetsWonAmount = valueBetAlerts
-        .filter((a) => a.externalBet?.status === 'WON')
-        .reduce((sum, a) => sum + (a.externalBet?.actualWin || 0), 0);
+        .filter((a: any) => a.externalBet?.status === 'WON')
+        .reduce((sum: number, a: any) => sum + (a.externalBet?.actualWin || 0), 0);
       const valueBetsROI =
         valueBetsStaked > 0
           ? ((valueBetsWonAmount - valueBetsStaked) / valueBetsStaked) * 100

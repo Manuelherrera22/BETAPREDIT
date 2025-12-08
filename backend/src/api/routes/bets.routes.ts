@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { authenticate } from '../../middleware/auth';
 import { betsController } from '../controllers/bets.controller';
+import { validate } from '../../middleware/validate';
+import { placeBetSchema } from '../../validators/bet.validator';
 
 const router = Router();
 
@@ -8,7 +10,7 @@ const router = Router();
 router.use(authenticate);
 
 // Place a bet
-router.post('/', betsController.placeBet);
+router.post('/', validate(placeBetSchema), betsController.placeBet);
 
 // Get user's bets
 router.get('/my-bets', betsController.getMyBets);

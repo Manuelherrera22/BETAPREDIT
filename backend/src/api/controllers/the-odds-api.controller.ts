@@ -3,7 +3,7 @@ import { getTheOddsAPIService } from '../../services/integrations/the-odds-api.s
 import { AppError } from '../../middleware/errorHandler';
 
 class TheOddsAPIController {
-  async getSports(req: Request, res: Response, next: NextFunction) {
+  async getSports(_req: Request, res: Response, next: NextFunction) {
     try {
       const theOddsAPI = getTheOddsAPIService();
       if (!theOddsAPI) {

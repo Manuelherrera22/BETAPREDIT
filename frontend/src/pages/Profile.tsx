@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuthStore } from '../store/authStore';
+import SubscriptionTab from '../components/SubscriptionTab';
 
 export default function Profile() {
   const { user } = useAuthStore();
@@ -153,32 +154,7 @@ export default function Profile() {
         )}
 
         {activeTab === 'subscription' && (
-          <div className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-8 border border-primary-500/20">
-            <h2 className="text-2xl font-black text-white mb-6">Suscripción</h2>
-            <div className="space-y-6">
-              <div className="bg-primary-500/10 rounded-xl p-6 border border-primary-500/30">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="text-xl font-black text-white mb-1">Plan Básico</h3>
-                    <p className="text-gray-400">Gratis</p>
-                  </div>
-                  <span className="px-4 py-2 bg-primary-500/30 text-primary-300 rounded-lg font-semibold">
-                    Activo
-                  </span>
-                </div>
-                <p className="text-gray-300 mb-4">
-                  Actualmente estás en el plan gratuito. Actualiza para desbloquear todas las funcionalidades.
-                </p>
-                <button className="px-6 py-3 bg-accent-500 hover:bg-accent-600 text-white rounded-lg font-bold transition-colors">
-                  Actualizar a Pro
-                </button>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-white mb-4">Historial de Pagos</h3>
-                <div className="text-gray-400 text-sm">No hay pagos registrados</div>
-              </div>
-            </div>
-          </div>
+          <SubscriptionTab />
         )}
       </div>
     </div>

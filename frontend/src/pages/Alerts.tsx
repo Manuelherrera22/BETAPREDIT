@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { valueBetAlertsService, type ValueBetAlert } from '../services/valueBetAlertsService';
-import { notificationsService, type Notification } from '../services/notificationsService';
+import { valueBetAlertsService } from '../services/valueBetAlertsService';
+import { notificationsService } from '../services/notificationsService';
+import { useWebSocket } from '../hooks/useWebSocket';
+import { useAuthStore } from '../store/authStore';
 
 interface Alert {
   id: string;
@@ -19,8 +21,15 @@ interface Alert {
 
 export default function Alerts() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [_loading, setLoading] = useState(true);
+  const [_error, setError] = useState<string | null>(null);
+  const userId = useAuthStore((state) => state.user?.id);
+
+  // WebSocket para alertas en tiempo real
+  const { isConnected, lastMessage, subscribe, unsubscribe } = useWebSocket({
+    autoConnect: true,
+    channels: userId ? [`value-bets:${userId}`, `notifications:${userId}`] : [],
+  });
 
   // Cargar alertas y notificaciones
   useEffect(() => {
@@ -54,7 +63,7 @@ export default function Alerts() {
           type: (notif.type === 'VALUE_BET_DETECTED' ? 'value_bet' :
                  notif.type === 'ODDS_CHANGED' ? 'odds_change' :
                  notif.type === 'PREDICTION_READY' ? 'prediction' :
-                 'new_event') as const,
+                 'new_event') as 'value_bet' | 'odds_change' | 'prediction' | 'new_event',
           title: notif.title,
           message: notif.message,
           timestamp: notif.createdAt,
@@ -91,10 +100,58 @@ export default function Alerts() {
     };
 
     loadAlerts();
-    // Actualizar cada 30 segundos
+    // Actualizar cada 30 segundos (fallback si WebSocket falla)
     const interval = setInterval(loadAlerts, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // Suscribirse a WebSocket cuando el usuario está disponible
+  useEffect(() => {
+    if (userId && isConnected) {
+      subscribe(`value-bets:${userId}`);
+      subscribe(`notifications:${userId}`);
+      return () => {
+        unsubscribe(`value-bets:${userId}`);
+        unsubscribe(`notifications:${userId}`);
+      };
+    }
+  }, [userId, isConnected, subscribe, unsubscribe]);
+
+  // Actualizar alertas cuando llega mensaje por WebSocket
+  useEffect(() => {
+    if (lastMessage?.type === 'value-bet:alert') {
+      const alertData = lastMessage.data;
+      const newAlert: Alert = {
+        id: alertData.id,
+        type: 'value_bet',
+        title: 'Value Bet Detectado',
+        message: `${alertData.event?.homeTeam || 'Equipo 1'} vs ${alertData.event?.awayTeam || 'Equipo 2'} - ${alertData.selection} @ ${alertData.bookmakerOdds} (${alertData.bookmakerPlatform})`,
+        event: alertData.event ? `${alertData.event.homeTeam} vs ${alertData.event.awayTeam}` : undefined,
+        value: alertData.valuePercentage,
+        timestamp: alertData.timestamp || new Date().toISOString(),
+        read: false,
+        priority: alertData.valuePercentage > 10 ? 'high' : alertData.valuePercentage > 5 ? 'medium' : 'low',
+        source: 'value_bet_alert',
+      };
+      setAlerts((prev) => [newAlert, ...prev]);
+    } else if (lastMessage?.type === 'notification:new') {
+      const notifData = lastMessage.data;
+      const newAlert: Alert = {
+        id: notifData.id,
+        type: (notifData.type === 'VALUE_BET_DETECTED' ? 'value_bet' :
+               notifData.type === 'ODDS_CHANGED' ? 'odds_change' :
+               notifData.type === 'PREDICTION_READY' ? 'prediction' :
+               'new_event') as any,
+        title: notifData.title,
+        message: notifData.message,
+        timestamp: notifData.timestamp || new Date().toISOString(),
+        read: false,
+        priority: notifData.type === 'VALUE_BET_DETECTED' ? 'high' : 'medium',
+        source: 'notification',
+      };
+      setAlerts((prev) => [newAlert, ...prev]);
+    }
+  }, [lastMessage]);
 
   const [filters, setFilters] = useState<{
     type: string;
@@ -225,6 +282,23 @@ export default function Alerts() {
             )}
           </div>
           <p className="text-gray-400">Mantente informado de value bets y cambios importantes</p>
+        </div>
+        {/* WebSocket Status */}
+        <div className="flex items-center gap-2">
+          {isConnected ? (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="relative">
+                <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                <span className="absolute top-0 left-0 w-2 h-2 bg-green-400 rounded-full animate-ping opacity-75"></span>
+              </span>
+              <span className="text-green-400">Tiempo real</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="w-2 h-2 bg-gray-500 rounded-full"></span>
+              <span className="text-gray-500">Polling</span>
+            </div>
+          )}
         </div>
         {unreadCount > 0 && (
           <button

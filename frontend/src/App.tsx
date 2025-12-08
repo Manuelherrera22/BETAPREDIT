@@ -17,6 +17,10 @@ import FAQ from './pages/FAQ'
 import Profile from './pages/Profile'
 import BankrollAnalysis from './pages/BankrollAnalysis'
 import PredictionHistory from './pages/PredictionHistory'
+import Arbitrage from './pages/Arbitrage'
+import AuthCallback from './pages/AuthCallback'
+import Referrals from './pages/Referrals'
+import TwoFactorAuth from './pages/TwoFactorAuth'
 import { useAuthStore } from './store/authStore'
 
 function App() {
@@ -101,6 +105,18 @@ function App() {
           }
         />
         <Route
+          path="/arbitrage"
+          element={
+            isAuthenticated ? (
+              <Layout>
+                <Arbitrage />
+              </Layout>
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+        <Route
           path="/statistics"
           element={
             isAuthenticated ? (
@@ -160,8 +176,33 @@ function App() {
             )
           }
         />
+        <Route
+          path="/referrals"
+          element={
+            isAuthenticated ? (
+              <Layout>
+                <Referrals />
+              </Layout>
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+        <Route
+          path="/2fa"
+          element={
+            isAuthenticated ? (
+              <Layout>
+                <TwoFactorAuth />
+              </Layout>
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/faq" element={<FAQ />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
       </Routes>
       <Toaster position="top-right" />
     </>

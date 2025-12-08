@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import StatsCard from '../components/StatsCard';
 import SimpleChart from '../components/SimpleChart';
 import ValueBetsHeatmap from '../components/ValueBetsHeatmap';
+import PerformanceHeatmap from '../components/PerformanceHeatmap';
+import TrendAnalysis from '../components/TrendAnalysis';
+import BenchmarkComparison from '../components/BenchmarkComparison';
 import { userStatisticsService, type UserStatistics } from '../services/userStatisticsService';
 
 export default function Statistics() {
@@ -288,6 +291,62 @@ export default function Statistics() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Advanced Analytics Section */}
+      <div className="mt-8 space-y-6">
+        {/* Trend Analysis */}
+        <TrendAnalysis
+          data={statsByPeriod.map((stat, index) => ({
+            period: timeRange === 'week' 
+              ? `Sem ${index + 1}`
+              : timeRange === 'month'
+              ? ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][index] || `Mes ${index + 1}`
+              : `Año ${new Date(stat.periodStart).getFullYear()}`,
+            roi: stat.roi || 0,
+            winRate: stat.winRate || 0,
+            betCount: stat.totalBets || 0,
+            trend: 'stable' as const,
+          }))}
+          currentRoi={currentStats.roi}
+          currentWinRate={currentStats.winRate}
+        />
+
+        {/* Benchmark Comparison */}
+        <BenchmarkComparison
+          data={[
+            {
+              metric: 'ROI',
+              userValue: currentStats.roi,
+              averageValue: 5.2, // Platform average (mock data - should come from API)
+              top10Value: 18.5,
+              unit: '%',
+            },
+            {
+              metric: 'Win Rate',
+              userValue: currentStats.winRate,
+              averageValue: 52.3,
+              top10Value: 68.7,
+              unit: '%',
+            },
+            {
+              metric: 'Value Bets Encontrados',
+              userValue: currentStats.valueBetsFound || 0,
+              averageValue: 12,
+              top10Value: 45,
+            },
+          ]}
+        />
+
+        {/* Performance Heatmap (mock data for now) */}
+        <PerformanceHeatmap
+          data={[
+            { sport: 'Fútbol', timeOfDay: '12-18', dayOfWeek: 'Sáb', roi: 12.5, winRate: 65, betCount: 15 },
+            { sport: 'Fútbol', timeOfDay: '18-24', dayOfWeek: 'Dom', roi: 15.2, winRate: 70, betCount: 20 },
+            { sport: 'Basketball', timeOfDay: '18-24', dayOfWeek: 'Jue', roi: 8.3, winRate: 58, betCount: 12 },
+            { sport: 'Tennis', timeOfDay: '12-18', dayOfWeek: 'Mar', roi: 10.1, winRate: 62, betCount: 8 },
+          ]}
+        />
       </div>
     </div>
   );

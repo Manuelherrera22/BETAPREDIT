@@ -241,27 +241,27 @@ class ExternalBetsService {
 
     const stats = {
       totalBets: bets.length,
-      totalWins: bets.filter((b) => b.status === 'WON').length,
-      totalLosses: bets.filter((b) => b.status === 'LOST').length,
-      totalVoids: bets.filter((b) => b.status === 'VOID').length,
-      totalStaked: bets.reduce((sum, b) => sum + b.stake, 0),
+      totalWins: bets.filter((b: any) => b.status === 'WON').length,
+      totalLosses: bets.filter((b: any) => b.status === 'LOST').length,
+      totalVoids: bets.filter((b: any) => b.status === 'VOID').length,
+      totalStaked: bets.reduce((sum: number, b: any) => sum + b.stake, 0),
       totalWon: bets
-        .filter((b) => b.status === 'WON' && b.actualWin)
-        .reduce((sum, b) => sum + (b.actualWin || 0), 0),
+        .filter((b: any) => b.status === 'WON' && b.actualWin)
+        .reduce((sum: number, b: any) => sum + (b.actualWin || 0), 0),
       totalLost: bets
-        .filter((b) => b.status === 'LOST')
-        .reduce((sum, b) => sum + b.stake, 0),
+        .filter((b: any) => b.status === 'LOST')
+        .reduce((sum: number, b: any) => sum + b.stake, 0),
       winRate:
         bets.length > 0
-          ? (bets.filter((b) => b.status === 'WON').length / bets.length) * 100
+          ? (bets.filter((b: any) => b.status === 'WON').length / bets.length) * 100
           : 0,
       roi:
         bets.length > 0
           ? ((bets
-              .filter((b) => b.status === 'WON' && b.actualWin)
-              .reduce((sum, b) => sum + (b.actualWin || 0), 0) -
-              bets.reduce((sum, b) => sum + b.stake, 0)) /
-              bets.reduce((sum, b) => sum + b.stake, 0)) *
+              .filter((b: any) => b.status === 'WON' && b.actualWin)
+              .reduce((sum: number, b: any) => sum + (b.actualWin || 0), 0) -
+              bets.reduce((sum: number, b: any) => sum + b.stake, 0)) /
+              bets.reduce((sum: number, b: any) => sum + b.stake, 0)) *
             100
           : 0,
       byPlatform: {} as Record<string, any>,
@@ -270,15 +270,15 @@ class ExternalBetsService {
     // Calculate stats by platform
     const platforms = [...new Set(bets.map((b) => b.platform))];
     platforms.forEach((platform) => {
-      const platformBets = bets.filter((b) => b.platform === platform);
-      stats.byPlatform[platform] = {
+      const platformBets = bets.filter((b: any) => b.platform === platform);
+      (stats.byPlatform as any)[platform as string] = {
         totalBets: platformBets.length,
-        wins: platformBets.filter((b) => b.status === 'WON').length,
-        losses: platformBets.filter((b) => b.status === 'LOST').length,
-        totalStaked: platformBets.reduce((sum, b) => sum + b.stake, 0),
+        wins: platformBets.filter((b: any) => b.status === 'WON').length,
+        losses: platformBets.filter((b: any) => b.status === 'LOST').length,
+        totalStaked: platformBets.reduce((sum: number, b: any) => sum + b.stake, 0),
         totalWon: platformBets
-          .filter((b) => b.status === 'WON' && b.actualWin)
-          .reduce((sum, b) => sum + (b.actualWin || 0), 0),
+          .filter((b: any) => b.status === 'WON' && b.actualWin)
+          .reduce((sum: number, b: any) => sum + (b.actualWin || 0), 0),
       };
     });
 

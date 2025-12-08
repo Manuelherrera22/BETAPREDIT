@@ -3,7 +3,7 @@ import { getKalshiService } from '../../services/integrations/kalshi.service';
 import { AppError } from '../../middleware/errorHandler';
 
 class KalshiController {
-  async getExchangeStatus(req: Request, res: Response, next: NextFunction) {
+  async getExchangeStatus(_req: Request, res: Response, next: NextFunction) {
     try {
       const kalshi = getKalshiService();
       if (!kalshi) {
@@ -17,7 +17,7 @@ class KalshiController {
     }
   }
 
-  async getSeries(req: Request, res: Response, next: NextFunction) {
+  async getSeries(_req: Request, res: Response, next: NextFunction) {
     try {
       const kalshi = getKalshiService();
       if (!kalshi) {
