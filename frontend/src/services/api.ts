@@ -2,7 +2,11 @@ import axios from 'axios'
 import { useAuthStore } from '../store/authStore'
 
 // Use environment variable for API URL, fallback to relative path
-const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:3000/api' : '/api');
+// In development, always use localhost:3000 if VITE_API_URL is not set
+const API_BASE_URL = import.meta.env.VITE_API_URL || 
+  (import.meta.env.DEV ? 'http://localhost:3000/api' : '/api');
+
+console.log('API Base URL:', API_BASE_URL);
 
 const api = axios.create({
   baseURL: API_BASE_URL,
