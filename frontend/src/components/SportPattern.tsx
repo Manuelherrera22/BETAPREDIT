@@ -6,8 +6,8 @@ export default function SportPattern() {
         className="absolute inset-0 opacity-[0.03]"
         style={{
           backgroundImage: `
-            linear-gradient(rgba(239, 68, 68, 0.1) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(239, 68, 68, 0.1) 1px, transparent 1px)
+            linear-gradient(rgba(99, 102, 241, 0.08) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(99, 102, 241, 0.08) 1px, transparent 1px)
           `,
           backgroundSize: '50px 50px',
         }}

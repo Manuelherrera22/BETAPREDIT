@@ -59,66 +59,163 @@ class AuthService {
   }
 
   async login(email: string, password: string) {
-    // Modo DEMO: Permitir acceso con cualquier credencial
-    const DEMO_MODE = process.env.DEMO_MODE === 'true' || process.env.NODE_ENV !== 'production';
-    
-    if (DEMO_MODE) {
-      // Buscar o crear usuario en modo demo
-      let user = await prisma.user.findUnique({
+    try {
+      // Modo DEMO: Permitir acceso con cualquier credencial
+      const DEMO_MODE = process.env.DEMO_MODE === 'true' || process.env.NODE_ENV !== 'production';
+      
+      if (DEMO_MODE) {
+        // Buscar o crear usuario en modo demo
+        let user: any = null;
+        
+        try {
+          user = await prisma.user.findUnique({
+            where: { email },
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              role: true,
+              createdAt: true,
+              passwordHash: true,
+            },
+          });
+        } catch (findError: any) {
+          logger.error('Error finding user:', findError);
+          throw new AppError('Error finding user', 500);
+        }
+
+        if (!user) {
+          // Crear usuario automáticamente en modo demo
+          try {
+            const passwordHash = await bcrypt.hash(password, 12);
+            user = await prisma.user.create({
+              data: {
+                email,
+                passwordHash,
+                firstName: email.split('@')[0],
+                lastName: '',
+                role: 'USER',
+              },
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                role: true,
+                createdAt: true,
+                passwordHash: true,
+              },
+            });
+
+            // Crear RG settings si no existen (opcional, no crítico)
+            try {
+              const existingRG = await prisma.responsibleGaming.findUnique({
+                where: { userId: user.id },
+              });
+              if (!existingRG) {
+                await prisma.responsibleGaming.create({
+                  data: { userId: user.id },
+                });
+              }
+            } catch (rgError) {
+              logger.warn('Error creating RG settings:', rgError);
+              // No es crítico, continuar
+            }
+
+            logger.info(`Demo user auto-created: ${user.email}`);
+          } catch (createError: any) {
+            logger.error('Error creating user:', createError);
+            throw new AppError('Error creating user', 500);
+          }
+        }
+
+        // Asegurar que el usuario tenga todos los campos necesarios
+        if (!user || !user.id || !user.email) {
+          logger.error('Invalid user data:', user);
+          throw new AppError('Invalid user data', 500);
+        }
+        
+        // Asegurar que role existe
+        const userRole = user.role || 'USER';
+        
+        // Generate tokens
+        const tokens = this.generateTokens({
+          id: user.id,
+          email: user.email,
+          role: userRole,
+        });
+
+        // Create or update session (opcional, no crítico)
+        try {
+          const existingSession = await prisma.session.findFirst({
+            where: { userId: user.id },
+          });
+
+          if (existingSession) {
+            await prisma.session.update({
+              where: { id: existingSession.id },
+              data: {
+                token: tokens.accessToken,
+                refreshToken: tokens.refreshToken,
+                expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+              },
+            });
+          } else {
+            await prisma.session.create({
+              data: {
+                userId: user.id,
+                token: tokens.accessToken,
+                refreshToken: tokens.refreshToken,
+                expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+              },
+            });
+          }
+        } catch (sessionError: any) {
+          logger.warn('Error creating/updating session:', sessionError);
+          // Continuar aunque falle la sesión, el login puede funcionar sin ella
+        }
+
+        return {
+          user: {
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName || null,
+            lastName: user.lastName || null,
+            role: userRole,
+          },
+          ...tokens,
+        };
+      }
+
+      // Modo PRODUCCIÓN: Validación normal
+      const user = await prisma.user.findUnique({
         where: { email },
       });
 
       if (!user) {
-        // Crear usuario automáticamente en modo demo
-        const passwordHash = await bcrypt.hash(password, 12);
-        user = await prisma.user.create({
-          data: {
-            email,
-            passwordHash,
-            firstName: email.split('@')[0],
-            lastName: '',
-            role: 'user',
-          },
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            role: true,
-            createdAt: true,
-            passwordHash: true,
-          },
-        });
-
-        // Crear RG settings si no existen
-        await prisma.responsibleGaming.upsert({
-          where: { userId: user.id },
-          create: { userId: user.id },
-          update: {},
-        });
-
-        logger.info(`Demo user auto-created: ${user.email}`);
+        throw new AppError('Invalid credentials', 401);
       }
 
-      // En modo demo, aceptar cualquier contraseña
-      // (pero aún validamos que el usuario exista)
-      
-      // Generate tokens
-      const tokens = this.generateTokens(user);
+      const valid = await bcrypt.compare(password, user.passwordHash);
+      if (!valid) {
+        throw new AppError('Invalid credentials', 401);
+      }
 
-      // Create or update session
-      await prisma.session.upsert({
-        where: { userId: user.id },
-        create: {
+      // Generate tokens
+      const tokens = this.generateTokens({
+        id: user.id,
+        email: user.email,
+        role: user.role || 'USER',
+      });
+
+      // Create session
+      await prisma.session.create({
+        data: {
           userId: user.id,
           token: tokens.accessToken,
           refreshToken: tokens.refreshToken,
           expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-        },
-        update: {
-          token: tokens.accessToken,
-          refreshToken: tokens.refreshToken,
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         },
       });
 
@@ -132,45 +229,13 @@ class AuthService {
         },
         ...tokens,
       };
+    } catch (error: any) {
+      logger.error('Login error:', error);
+      if (error instanceof AppError) {
+        throw error;
+      }
+      throw new AppError(error.message || 'Login failed', 500);
     }
-
-    // Modo PRODUCCIÓN: Validación normal
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (!user) {
-      throw new AppError('Invalid credentials', 401);
-    }
-
-    const valid = await bcrypt.compare(password, user.passwordHash);
-    if (!valid) {
-      throw new AppError('Invalid credentials', 401);
-    }
-
-    // Generate tokens
-    const tokens = this.generateTokens(user);
-
-    // Create session
-    await prisma.session.create({
-      data: {
-        userId: user.id,
-        token: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-      },
-    });
-
-    return {
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role,
-      },
-      ...tokens,
-    };
   }
 
   async refreshToken(refreshToken: string) {
@@ -232,21 +297,30 @@ class AuthService {
   }
 
   private generateTokens(user: { id: string; email: string; role: string }) {
-    const payload = {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-    };
+    try {
+      if (!user || !user.id || !user.email) {
+        throw new Error('Invalid user data for token generation');
+      }
 
-    const accessToken = jwt.sign(payload, this.JWT_SECRET, {
-      expiresIn: this.JWT_EXPIRES_IN,
-    });
+      const payload = {
+        id: user.id,
+        email: user.email,
+        role: user.role || 'USER',
+      };
 
-    const refreshToken = jwt.sign(payload, this.JWT_SECRET, {
-      expiresIn: this.REFRESH_TOKEN_EXPIRES_IN,
-    });
+      const accessToken = jwt.sign(payload, this.JWT_SECRET, {
+        expiresIn: this.JWT_EXPIRES_IN,
+      });
 
-    return { accessToken, refreshToken };
+      const refreshToken = jwt.sign(payload, this.JWT_SECRET, {
+        expiresIn: this.REFRESH_TOKEN_EXPIRES_IN,
+      });
+
+      return { accessToken, refreshToken };
+    } catch (error: any) {
+      logger.error('Error generating tokens:', error);
+      throw new AppError('Failed to generate tokens', 500);
+    }
   }
 }
 

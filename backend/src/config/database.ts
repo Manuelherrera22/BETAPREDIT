@@ -16,26 +16,13 @@ const mockData: {
 // Try to use real Prisma, fallback to simple mock if DB not available
 let prisma: any;
 
-try {
-  prisma = new PrismaClient({
-    log: process.env.NODE_ENV === 'development' 
-      ? ['query', 'info', 'warn', 'error']
-      : ['error'],
-  });
+// Check if DATABASE_URL is set and valid, otherwise use mock
+const DATABASE_URL = process.env.DATABASE_URL;
+const useRealDB = DATABASE_URL && DATABASE_URL.includes('postgresql://') && !DATABASE_URL.includes('changeme');
 
-  // Connection event handlers
-  prisma.$on('error' as never, (e: Error) => {
-    logger.error('Prisma error:', e);
-  });
-
-  // Graceful disconnect on process termination
-  process.on('beforeExit', async () => {
-    await prisma.$disconnect();
-  });
-} catch (error) {
-  logger.warn('Database not available, using mock data');
-  // Use simple mock if Prisma fails
-  prisma = {
+// Function to create mock Prisma
+function createMockPrisma() {
+  return {
     $queryRaw: async () => [{ '?column?': 1 }],
     $disconnect: async () => {},
     user: {
@@ -70,14 +57,16 @@ try {
       findFirst: async () => null,
       create: async (args: any) => {
         const userId = crypto.randomUUID ? crypto.randomUUID() : `user-${Date.now()}`;
-        const fullUser = {
+        const fullUser: any = {
           id: userId,
           email: args.data.email,
           passwordHash: args.data.passwordHash,
           firstName: args.data.firstName || args.data.email.split('@')[0] || null,
           lastName: args.data.lastName || null,
-          role: args.data.role || 'user',
+          role: args.data.role || 'USER',
           createdAt: new Date(),
+          verified: false,
+          kycStatus: 'PENDING',
         };
         mockData.users.set(userId, fullUser);
         
@@ -85,9 +74,13 @@ try {
         if (args.select) {
           const selectedUser: any = {};
           for (const key of Object.keys(args.select)) {
-            if (args.select[key] && fullUser[key as keyof typeof fullUser] !== undefined) {
-              selectedUser[key] = fullUser[key as keyof typeof fullUser];
+            if (args.select[key] && fullUser[key] !== undefined) {
+              selectedUser[key] = fullUser[key];
             }
+          }
+          // Asegurar que siempre devolvemos los campos requeridos
+          if (args.select.role && !selectedUser.role) {
+            selectedUser.role = fullUser.role || 'USER';
           }
           return selectedUser;
         }
@@ -166,13 +159,23 @@ try {
     },
     session: {
       findUnique: async (args: any) => {
-        if (args.where.refreshToken) {
+        if (args.where.id) {
+          for (const session of mockData.sessions.values()) {
+            if (session.id === args.where.id) {
+              return session;
+            }
+          }
+        } else if (args.where.refreshToken) {
           for (const session of mockData.sessions.values()) {
             if (session.refreshToken === args.where.refreshToken) {
               return session;
             }
           }
-        } else if (args.where.userId) {
+        }
+        return null;
+      },
+      findFirst: async (args: any) => {
+        if (args.where.userId) {
           return mockData.sessions.get(args.where.userId) || null;
         }
         return null;
@@ -189,12 +192,22 @@ try {
         return session;
       },
       update: async (args: any) => {
-        const session = mockData.sessions.get(args.where.userId);
+        let session = null;
+        if (args.where.id) {
+          for (const s of mockData.sessions.values()) {
+            if (s.id === args.where.id) {
+              session = s;
+              break;
+            }
+          }
+        } else if (args.where.userId) {
+          session = mockData.sessions.get(args.where.userId);
+        }
         if (session) {
           Object.assign(session, args.data);
           return session;
         }
-        return { id: '1', userId: args.where.userId, ...args.data };
+        throw new Error('Session not found');
       },
       upsert: async (args: any) => {
         const userId = args.where.userId;
@@ -237,8 +250,49 @@ try {
       }
       return results;
     },
+    $connect: async () => {},
+    $disconnect: async () => {},
   };
 }
+
+// Initialize Prisma - Always use mock for now to avoid connection issues
+logger.info('Using mock database for development');
+prisma = createMockPrisma();
+
+// Uncomment below to use real database when available
+/*
+if (useRealDB) {
+  try {
+    prisma = new PrismaClient({
+      log: process.env.NODE_ENV === 'development' 
+        ? ['query', 'info', 'warn', 'error']
+        : ['error'],
+    });
+
+    // Connection event handlers
+    prisma.$on('error' as never, (e: Error) => {
+      logger.error('Prisma error:', e);
+    });
+
+    // Graceful disconnect on process termination
+    process.on('beforeExit', async () => {
+      await prisma.$disconnect();
+    });
+    
+    // Test connection asynchronously
+    prisma.$connect().catch(() => {
+      logger.warn('Database connection failed, using mock data');
+      prisma = createMockPrisma();
+    });
+  } catch (error) {
+    logger.warn('Database not available, using mock data');
+    prisma = createMockPrisma();
+  }
+} else {
+  logger.info('Using mock database (no DATABASE_URL or using default)');
+  prisma = createMockPrisma();
+}
+*/
 
 export { prisma };
 

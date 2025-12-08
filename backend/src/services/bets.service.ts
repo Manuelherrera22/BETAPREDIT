@@ -51,7 +51,7 @@ class BetsService {
         selection: betData.selection,
         stake: betData.stake,
         potentialWin,
-        odds: odds.decimal,
+        oddsDecimal: odds.decimal,
         status: 'PENDING',
       },
       include: {

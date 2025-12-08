@@ -11,34 +11,63 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  passwordHash  String
-  firstName     String?
-  lastName      String?
-  phone         String?
-  dateOfBirth   DateTime?
-  verified      Boolean  @default(false)
-  role          UserRole @default(USER)
-  kycStatus     KYCStatus @default(PENDING)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  firstName    String?
+  lastName     String?
+  phone        String?
+  dateOfBirth  DateTime?
+  verified     Boolean   @default(false)
+  role         UserRole  @default(USER)
+  kycStatus    KYCStatus @default(PENDING)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // New fields
+  timezone              String?          @default("UTC")
+  preferredCurrency     String           @default("USD")
+  subscriptionTier      SubscriptionTier @default(FREE)
+  subscriptionExpiresAt DateTime?
+  alertPreferences      Json? // { valueBetMin: 5, sports: [...], platforms: [...] }
+
+  // Cached statistics
+  totalBets       Int       @default(0)
+  totalWins       Int       @default(0)
+  totalLosses     Int       @default(0)
+  totalStaked     Float     @default(0)
+  totalWon        Float     @default(0)
+  roi             Float     @default(0)
+  winRate         Float     @default(0)
+  lastStatsUpdate DateTime?
 
   // Relations
-  bets          Bet[]
-  sessions      Session[]
-  rgSettings    ResponsibleGaming?
-  transactions  Transaction[]
-  addresses     Address[]
+  bets           Bet[]
+  sessions       Session[]
+  rgSettings     ResponsibleGaming?
+  transactions   Transaction[]
+  addresses      Address[]
+  externalBets   ExternalBet[]
+  valueBetAlerts ValueBetAlert[]
+  notifications  Notification[]
+  userStatistics UserStatistics[]
 
   @@index([email])
   @@index([role])
+  @@index([subscriptionTier])
 }
 
 enum UserRole {
   USER
   TRADER
   ADMIN
+}
+
+enum SubscriptionTier {
+  FREE
+  BASIC
+  PREMIUM
+  PRO
 }
 
 enum KYCStatus {
@@ -49,42 +78,46 @@ enum KYCStatus {
 }
 
 model Sport {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  slug        String   @unique
-  icon        String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  icon      String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  events      Event[]
-  markets     Market[]
+  events  Event[]
+  markets Market[]
 
   @@index([slug])
 }
 
 model Event {
-  id              String      @id @default(cuid())
-  externalId      String?     @unique
-  sportId         String
-  name            String
-  startTime       DateTime
-  status          EventStatus @default(SCHEDULED)
-  homeTeam        String
-  awayTeam        String
-  homeScore       Int?        @default(0)
-  awayScore       Int?        @default(0)
-  metadata        Json?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id         String      @id @default(cuid())
+  externalId String?     @unique
+  sportId    String
+  name       String
+  startTime  DateTime
+  status     EventStatus @default(SCHEDULED)
+  homeTeam   String
+  awayTeam   String
+  homeScore  Int?        @default(0)
+  awayScore  Int?        @default(0)
+  metadata   Json?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
 
-  sport           Sport       @relation(fields: [sportId], references: [id])
-  markets         Market[]
-  odds            Odds[]
-  bets            Bet[]
-  oddsHistory     OddsHistory[]
-  playerTracking  PlayerTrackingData[]
-  matchMetrics    MatchMetrics?
+  sport          Sport                @relation(fields: [sportId], references: [id])
+  markets        Market[]
+  odds           Odds[]
+  bets           Bet[]
+  oddsHistory    OddsHistory[]
+  playerTracking PlayerTrackingData[]
+  matchMetrics   MatchMetrics?
+  ExternalBet    ExternalBet[]
+  ValueBetAlert  ValueBetAlert[]
+  OddsComparison OddsComparison[]
+  Prediction     Prediction[]
 
   @@index([sportId])
   @@index([status])
@@ -101,21 +134,24 @@ enum EventStatus {
 }
 
 model Market {
-  id          String      @id @default(cuid())
+  id          String     @id @default(cuid())
   eventId     String
   sportId     String
   type        MarketType
   name        String
-  isActive    Boolean     @default(true)
-  isSuspended Boolean     @default(false)
+  isActive    Boolean    @default(true)
+  isSuspended Boolean    @default(false)
   metadata    Json?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
-  event       Event       @relation(fields: [eventId], references: [id])
-  sport       Sport       @relation(fields: [sportId], references: [id])
-  odds        Odds[]
-  bets        Bet[]
+  event           Event            @relation(fields: [eventId], references: [id])
+  sport           Sport            @relation(fields: [sportId], references: [id])
+  odds            Odds[]
+  bets            Bet[]
+  valueBetAlerts  ValueBetAlert[]
+  oddsComparisons OddsComparison[]
+  predictions     Prediction[]
 
   @@index([eventId])
   @@index([type])
@@ -136,19 +172,19 @@ model Odds {
   id          String   @id @default(cuid())
   eventId     String
   marketId    String
-  selection   String   // e.g., "home", "away", "draw", "over 2.5"
+  selection   String // e.g., "home", "away", "draw", "over 2.5"
   decimal     Float
   american    Int?
   fractional  String?
-  probability Float    // Calculated probability
+  probability Float // Calculated probability
   source      String   @default("SYSTEM") // SYSTEM, ML_MODEL, MANUAL, SPORTRADAR
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  event       Event    @relation(fields: [eventId], references: [id])
-  market      Market   @relation(fields: [marketId], references: [id])
-  bets        Bet[]
+  event  Event  @relation(fields: [eventId], references: [id])
+  market Market @relation(fields: [marketId], references: [id])
+  bets   Bet[]
 
   @@index([eventId])
   @@index([marketId])
@@ -156,14 +192,14 @@ model Odds {
 }
 
 model OddsHistory {
-  id          String   @id @default(cuid())
-  eventId     String
-  marketId    String
-  selection   String
-  decimal     Float
-  timestamp   DateTime @default(now())
+  id        String   @id @default(cuid())
+  eventId   String
+  marketId  String
+  selection String
+  decimal   Float
+  timestamp DateTime @default(now())
 
-  event       Event    @relation(fields: [eventId], references: [id])
+  event Event @relation(fields: [eventId], references: [id])
 
   @@index([eventId])
   @@index([timestamp])
@@ -171,19 +207,19 @@ model OddsHistory {
 
 // Player-level granular data (from ShotTracker, KINEXON, etc.)
 model PlayerTrackingData {
-  id          String   @id @default(cuid())
-  eventId     String
-  playerId    String
-  playerName  String
-  positionX   Float
-  positionY   Float
-  positionZ   Float?
-  velocity    Float
+  id           String   @id @default(cuid())
+  eventId      String
+  playerId     String
+  playerName   String
+  positionX    Float
+  positionY    Float
+  positionZ    Float?
+  velocity     Float
   acceleration Float
-  timestamp   DateTime @default(now())
-  metadata    Json?    // Additional tracking data
+  timestamp    DateTime @default(now())
+  metadata     Json? // Additional tracking data
 
-  event       Event    @relation(fields: [eventId], references: [id])
+  event Event @relation(fields: [eventId], references: [id])
 
   @@index([eventId])
   @@index([playerId])
@@ -192,41 +228,41 @@ model PlayerTrackingData {
 
 // Aggregated match metrics from player tracking
 model MatchMetrics {
-  id              String   @id @default(cuid())
-  eventId         String   @unique
-  playerMetrics   Json     // Map of playerId -> PlayerMetrics
-  teamMetrics     Json     // Team-level aggregated data
-  ballMetrics     Json     // Ball tracking metrics
-  timestamp       DateTime @default(now())
+  id            String   @id @default(cuid())
+  eventId       String   @unique
+  playerMetrics Json // Map of playerId -> PlayerMetrics
+  teamMetrics   Json // Team-level aggregated data
+  ballMetrics   Json // Ball tracking metrics
+  timestamp     DateTime @default(now())
 
-  event           Event    @relation(fields: [eventId], references: [id])
+  event Event @relation(fields: [eventId], references: [id])
 
   @@index([eventId])
   @@index([timestamp])
 }
 
 model Bet {
-  id          String     @id @default(cuid())
-  userId      String
-  eventId     String
-  marketId    String
-  oddsId      String
-  type        BetType
-  selection   String
-  stake       Float
+  id           String     @id @default(cuid())
+  userId       String
+  eventId      String
+  marketId     String
+  oddsId       String
+  type         BetType
+  selection    String
+  stake        Float
   potentialWin Float
-  odds        Float
-  status      BetStatus  @default(PENDING)
-  result      BetResult?
-  settledAt   DateTime?
-  metadata    Json?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  oddsDecimal  Float
+  status       BetStatus  @default(PENDING)
+  result       BetResult?
+  settledAt    DateTime?
+  metadata     Json?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
-  user        User       @relation(fields: [userId], references: [id])
-  event       Event      @relation(fields: [eventId], references: [id])
-  market      Market     @relation(fields: [marketId], references: [id])
-  odds        Odds       @relation(fields: [oddsId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+  event  Event  @relation(fields: [eventId], references: [id])
+  market Market @relation(fields: [marketId], references: [id])
+  odds   Odds   @relation(fields: [oddsId], references: [id])
 
   @@index([userId])
   @@index([eventId])
@@ -258,33 +294,33 @@ enum BetResult {
 }
 
 model ResponsibleGaming {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  depositLimit    Float?
-  depositPeriod   String?  // daily, weekly, monthly
-  lossLimit       Float?
-  lossPeriod      String?
-  sessionLimit    Int?     // minutes
-  selfExcluded    Boolean  @default(false)
+  id                 String    @id @default(cuid())
+  userId             String    @unique
+  depositLimit       Float?
+  depositPeriod      String? // daily, weekly, monthly
+  lossLimit          Float?
+  lossPeriod         String?
+  sessionLimit       Int? // minutes
+  selfExcluded       Boolean   @default(false)
   selfExclusionUntil DateTime?
-  alerts          Json?    // Array of alerts
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  alerts             Json? // Array of alerts
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-  user            User     @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
   @@index([userId])
 }
 
 model RiskExposure {
-  id          String   @id @default(cuid())
-  eventId     String
-  marketId    String
-  selection   String
-  totalStake Float    @default(0)
-  potentialLiability Float @default(0)
-  betCount    Int     @default(0)
-  updatedAt   DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  eventId            String
+  marketId           String
+  selection          String
+  totalStake         Float    @default(0)
+  potentialLiability Float    @default(0)
+  betCount           Int      @default(0)
+  updatedAt          DateTime @updatedAt
 
   @@unique([eventId, marketId, selection])
   @@index([eventId])
@@ -297,12 +333,12 @@ model FraudAlert {
   description String
   userId      String?
   eventId     String?
-  betId      String?
+  betId       String?
   source      String        @default("SYSTEM") // SYSTEM, SPORTRADAR_UFDS, ML_MODEL
   metadata    Json?
-  resolved   Boolean       @default(false)
-  resolvedAt DateTime?
-  createdAt  DateTime      @default(now())
+  resolved    Boolean       @default(false)
+  resolvedAt  DateTime?
+  createdAt   DateTime      @default(now())
 
   @@index([type])
   @@index([severity])
@@ -328,19 +364,19 @@ enum AlertSeverity {
 }
 
 model Transaction {
-  id          String            @id @default(cuid())
-  userId      String
-  type        TransactionType
-  amount      Float
-  currency    String            @default("USD")
-  status      TransactionStatus @default(PENDING)
-  method      String?
-  reference   String?           @unique
-  metadata    Json?
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  id        String            @id @default(cuid())
+  userId    String
+  type      TransactionType
+  amount    Float
+  currency  String            @default("USD")
+  status    TransactionStatus @default(PENDING)
+  method    String?
+  reference String?           @unique
+  metadata  Json?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
 
-  user        User              @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([type])
@@ -366,16 +402,16 @@ enum TransactionStatus {
 }
 
 model Session {
-  id          String   @id @default(cuid())
-  userId      String
-  token       String   @unique
-  refreshToken String? @unique
-  ipAddress   String?
-  userAgent   String?
-  expiresAt   DateTime
-  createdAt   DateTime @default(now())
+  id           String   @id @default(cuid())
+  userId       String
+  token        String   @unique
+  refreshToken String?  @unique
+  ipAddress    String?
+  userAgent    String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
 
-  user        User     @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([token])
@@ -383,19 +419,19 @@ model Session {
 }
 
 model Address {
-  id          String   @id @default(cuid())
-  userId      String
-  type        AddressType
-  street      String
-  city        String
-  state       String?
-  zipCode     String
-  country     String
-  isDefault   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String      @id @default(cuid())
+  userId    String
+  type      AddressType
+  street    String
+  city      String
+  state     String?
+  zipCode   String
+  country   String
+  isDefault Boolean     @default(false)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
 
-  user        User     @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
   @@index([userId])
 }
@@ -404,4 +440,305 @@ enum AddressType {
   BILLING
   SHIPPING
   KYC
+}
+
+// ============================================
+// NEW MODELS FOR PERFECT DATA MODEL
+// ============================================
+
+// Model for tracking bets placed on external platforms
+model ExternalBet {
+  id              String  @id @default(cuid())
+  userId          String
+  eventId         String?
+  externalEventId String? // ID del evento en la plataforma externa
+
+  // Información de la plataforma externa
+  platform      String // "Bet365", "Betfair", "Pinnacle", etc.
+  platformBetId String? // ID de la apuesta en la plataforma externa
+  platformUrl   String? // Link al ticket de apuesta
+
+  // Detalles de la apuesta
+  marketType String // "Match Winner", "Over/Under", etc.
+  selection  String // "Home", "Away", "Over 2.5", etc.
+  odds       Float
+  stake      Float
+  currency   String @default("USD")
+
+  // Estado y resultado
+  status    ExternalBetStatus @default(PENDING)
+  result    BetResult?
+  actualWin Float? // Ganancia real si ganó
+  settledAt DateTime?
+
+  // Metadata
+  notes    String? // Notas del usuario
+  tags     String[] // Tags personalizados
+  metadata Json? // Datos adicionales
+
+  // Timestamps
+  betPlacedAt  DateTime // Cuándo se hizo la apuesta (en la plataforma externa)
+  registeredAt DateTime @default(now()) // Cuándo se registró en BETAPREDIT
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relaciones
+  user          User           @relation(fields: [userId], references: [id])
+  event         Event?         @relation(fields: [eventId], references: [id])
+  valueBetAlert ValueBetAlert? // Si fue detectado como value bet antes de apostar (one-to-one)
+
+  @@index([userId])
+  @@index([eventId])
+  @@index([platform])
+  @@index([status])
+  @@index([betPlacedAt])
+  @@index([registeredAt])
+}
+
+enum ExternalBetStatus {
+  PENDING // Apuesta registrada, evento no ha terminado
+  WON
+  LOST
+  VOID
+  CANCELLED
+  PARTIAL_WIN // Para apuestas múltiples
+}
+
+// Model for value bet alerts
+model ValueBetAlert {
+  id        String  @id @default(cuid())
+  userId    String? // null = alerta pública/general
+  eventId   String
+  marketId  String
+  selection String
+
+  // Cálculo de valor
+  bookmakerOdds        Float // Mejor cuota disponible
+  bookmakerPlatform    String // Plataforma con mejor cuota
+  predictedProbability Float // Probabilidad calculada por IA
+  expectedValue        Float // EV calculado
+  valuePercentage      Float // % de valor (ej: +12.5%)
+  confidence           Float // Confianza del modelo (0-1)
+
+  // Estado
+  status        ValueBetStatus @default(ACTIVE)
+  notifiedAt    DateTime?
+  clickedAt     DateTime? // Si el usuario hizo clic
+  betPlaced     Boolean        @default(false) // Si el usuario registró una apuesta
+  externalBetId String?        @unique // Si se registró la apuesta (one-to-one)
+
+  // Metadata
+  factors   Json? // Factores que influyeron (lesiones, forma, etc.)
+  createdAt DateTime @default(now())
+  expiresAt DateTime // Cuándo expira la oportunidad
+
+  // Relaciones
+  event       Event        @relation(fields: [eventId], references: [id])
+  market      Market       @relation(fields: [marketId], references: [id])
+  user        User?        @relation(fields: [userId], references: [id])
+  externalBet ExternalBet? @relation(fields: [externalBetId], references: [id])
+
+  @@index([userId])
+  @@index([eventId])
+  @@index([status])
+  @@index([valuePercentage])
+  @@index([expiresAt])
+  @@index([createdAt])
+}
+
+enum ValueBetStatus {
+  ACTIVE // Oportunidad activa
+  EXPIRED // Oportunidad expiró
+  TAKEN // Usuario tomó la oportunidad
+  INVALID // Ya no es válida (cuota cambió)
+}
+
+// Model for comparing odds across multiple platforms
+model OddsComparison {
+  id        String @id @default(cuid())
+  eventId   String
+  marketId  String
+  selection String
+
+  // Cuotas de múltiples plataformas
+  oddsByPlatform Json // { "Bet365": 2.10, "Betfair": 2.15, ... }
+
+  // Análisis
+  bestOdds      Float // Mejor cuota disponible
+  bestPlatform  String // Plataforma con mejor cuota
+  averageOdds   Float // Promedio de cuotas
+  maxDifference Float // Diferencia máxima entre plataformas
+
+  // Timestamps
+  lastUpdated DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  // Relaciones
+  event  Event  @relation(fields: [eventId], references: [id])
+  market Market @relation(fields: [marketId], references: [id])
+
+  @@unique([eventId, marketId, selection])
+  @@index([eventId])
+  @@index([lastUpdated])
+}
+
+// Model for odds providers
+model OddsProvider {
+  id              String    @id @default(cuid())
+  name            String    @unique // "Bet365", "Betfair", etc.
+  slug            String    @unique
+  apiEndpoint     String? // URL de API si está disponible
+  apiKey          String? // Encriptado
+  isActive        Boolean   @default(true)
+  updateFrequency Int       @default(60) // Segundos entre actualizaciones
+  lastSync        DateTime?
+  metadata        Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([isActive])
+}
+
+// Model for predictions with accuracy tracking
+model Prediction {
+  id        String @id @default(cuid())
+  eventId   String
+  marketId  String
+  selection String
+
+  // Predicción
+  predictedProbability Float // Probabilidad predicha
+  confidence           Float // Confianza del modelo
+  modelVersion         String // Versión del modelo usado
+  factors              Json // Factores considerados
+
+  // Resultado real (se actualiza cuando el evento termina)
+  actualResult String? // "WON", "LOST", etc.
+  wasCorrect   Boolean?
+  accuracy     Float? // Diferencia entre predicho y real
+
+  // Metadata
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  eventFinishedAt DateTime?
+
+  // Relaciones
+  event  Event  @relation(fields: [eventId], references: [id])
+  market Market @relation(fields: [marketId], references: [id])
+
+  @@index([eventId])
+  @@index([wasCorrect])
+  @@index([createdAt])
+}
+
+// Model for tracking ML model performance
+model ModelPerformance {
+  id           String @id @default(cuid())
+  modelVersion String
+  modelType    String // "ML", "STATISTICAL", "HYBRID"
+
+  // Métricas
+  totalPredictions   Int   @default(0)
+  correctPredictions Int   @default(0)
+  accuracy           Float // Precisión general
+  accuracyBySport    Json // { "Football": 0.65, "Basketball": 0.72, ... }
+  accuracyByMarket   Json // { "MATCH_WINNER": 0.68, "OVER_UNDER": 0.71, ... }
+
+  // Calibración
+  calibrationScore Float? // Qué tan bien calibrado está el modelo
+  brierScore       Float? // Brier score
+
+  // Timestamps
+  lastUpdated DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@unique([modelVersion])
+  @@index([modelVersion])
+  @@index([accuracy])
+}
+
+// Model for aggregated user statistics
+model UserStatistics {
+  id          String    @id @default(cuid())
+  userId      String
+  period      String // "daily", "weekly", "monthly", "all_time"
+  periodStart DateTime
+  periodEnd   DateTime?
+
+  // Métricas
+  totalBets   Int   @default(0)
+  totalWins   Int   @default(0)
+  totalLosses Int   @default(0)
+  totalVoids  Int   @default(0)
+  totalStaked Float @default(0)
+  totalWon    Float @default(0)
+  totalLost   Float @default(0)
+  netProfit   Float @default(0)
+  roi         Float @default(0)
+  winRate     Float @default(0)
+
+  // Por deporte
+  statsBySport Json // { "Football": { bets: 10, wins: 7, roi: 15.2 }, ... }
+
+  // Por plataforma
+  statsByPlatform Json // { "Bet365": { bets: 5, wins: 4, roi: 12.1 }, ... }
+
+  // Por tipo de mercado
+  statsByMarket Json // { "MATCH_WINNER": { bets: 8, wins: 6, ... }, ... }
+
+  // Value bets
+  valueBetsFound Int   @default(0)
+  valueBetsTaken Int   @default(0)
+  valueBetsWon   Int   @default(0)
+  valueBetsROI   Float @default(0)
+
+  // Timestamps
+  lastUpdated DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, period, periodStart])
+  @@index([period])
+}
+
+// Model for notifications
+model Notification {
+  id      String           @id @default(cuid())
+  userId  String
+  type    NotificationType
+  title   String
+  message String
+  data    Json? // Datos adicionales (eventId, alertId, etc.)
+
+  // Estado
+  read      Boolean   @default(false)
+  readAt    DateTime?
+  clicked   Boolean   @default(false)
+  clickedAt DateTime?
+
+  // Delivery
+  sentVia String[] // ["push", "email", "in_app"]
+  sentAt  DateTime?
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([read])
+  @@index([type])
+  @@index([createdAt])
+}
+
+enum NotificationType {
+  VALUE_BET_DETECTED
+  ODDS_CHANGED
+  PREDICTION_READY
+  BET_SETTLED
+  STATS_UPDATE
+  SYSTEM_ALERT
 }

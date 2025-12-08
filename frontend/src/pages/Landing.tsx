@@ -16,12 +16,12 @@ export default function Landing() {
   const { isAuthenticated } = useAuthStore();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-navy-950 via-navy-900 to-slate-950 relative overflow-hidden">
       <SportPattern />
       <AnimatedBackground />
       
       {/* Navigation */}
-      <nav className="bg-slate-950/90 backdrop-blur-md border-b border-primary-900/50 sticky top-0 z-50 shadow-xl shadow-primary-950/50">
+      <nav className="bg-navy-950/95 backdrop-blur-xl border-b border-primary-800/30 sticky top-0 z-50 shadow-2xl shadow-primary-950/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 sm:h-20">
             <Logo size="md" />
@@ -29,7 +29,7 @@ export default function Landing() {
               {isAuthenticated ? (
                 <Link
                   to="/dashboard"
-                  className="px-3 py-1.5 sm:px-6 sm:py-2.5 bg-gradient-to-r from-primary-600 to-blue-600 text-white rounded-lg hover:from-primary-700 hover:to-blue-700 transition-all duration-300 shadow-lg shadow-primary-500/30 hover:shadow-primary-500/50 text-sm sm:text-base font-medium"
+                  className="px-3 py-1.5 sm:px-6 sm:py-2.5 bg-gradient-to-r from-primary-600 to-accent-600 text-white rounded-lg hover:from-primary-700 hover:to-accent-700 transition-all duration-300 shadow-lg shadow-primary-500/30 hover:shadow-primary-500/50 text-sm sm:text-base font-medium"
                 >
                   <span className="hidden sm:inline">Ir al Dashboard</span>
                   <span className="sm:hidden">Dashboard</span>
@@ -45,7 +45,7 @@ export default function Landing() {
                   </Link>
                   <Link
                     to="/register"
-                    className="px-3 py-1.5 sm:px-6 sm:py-2.5 bg-gradient-to-r from-primary-600 to-blue-600 text-white rounded-lg hover:from-primary-700 hover:to-blue-700 transition-all duration-300 shadow-lg shadow-primary-500/30 hover:shadow-primary-500/50 text-sm sm:text-base font-medium"
+                    className="px-3 py-1.5 sm:px-6 sm:py-2.5 bg-gradient-to-r from-primary-600 to-accent-600 text-white rounded-lg hover:from-primary-700 hover:to-accent-700 transition-all duration-300 shadow-lg shadow-primary-500/30 hover:shadow-primary-500/50 text-sm sm:text-base font-medium"
                   >
                     Registrarse
                   </Link>
@@ -60,29 +60,29 @@ export default function Landing() {
       <section className="relative overflow-hidden pt-20 sm:pt-28 md:pt-32 pb-20 sm:pb-32 md:pb-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <div className="inline-flex items-center gap-2 sm:gap-3 mb-6 sm:mb-8 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-primary-500/15 via-accent-500/15 to-gold-500/15 border border-primary-500/20 rounded-full backdrop-blur-md shadow-lg">
+            <div className="inline-flex items-center gap-2 sm:gap-3 mb-6 sm:mb-8 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-primary-500/10 via-accent-500/10 to-gold-500/10 border border-primary-500/20 rounded-full backdrop-blur-xl shadow-xl">
               <div className="relative">
                 <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-accent-400 rounded-full animate-pulse"></div>
                 <div className="absolute top-0 left-0 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-accent-400 rounded-full animate-ping opacity-75"></div>
               </div>
-              <span className="text-primary-200 text-xs sm:text-sm font-bold tracking-wider uppercase">
+              <span className="text-primary-300 text-xs sm:text-sm font-semibold tracking-wider uppercase">
                 <span className="hidden sm:inline">Sistema de Análisis Predictivo</span>
                 <span className="sm:hidden">Análisis Predictivo</span>
               </span>
             </div>
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black text-white mb-6 sm:mb-8 leading-[1.1] tracking-tight px-2">
               <span className="block drop-shadow-2xl">Aumenta tu Win Rate</span>
-              <GradientText gradient="from-primary-400 via-accent-500 to-gold-400" className="block mt-2 sm:mt-3 drop-shadow-2xl">
+              <GradientText gradient="from-primary-300 via-accent-400 to-gold-300" className="block mt-2 sm:mt-3 drop-shadow-2xl">
                 con Análisis Predictivo
               </GradientText>
             </h1>
-            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-200 mb-6 sm:mb-8 max-w-4xl mx-auto leading-relaxed px-4">
-              Encuentra <span className="text-gold-300 font-bold drop-shadow-lg">value bets que otros no ven</span>,{' '}
-              <span className="text-accent-300 font-bold drop-shadow-lg">aumenta tu ROI hasta +23%</span> y{' '}
-              <span className="text-primary-300 font-bold drop-shadow-lg">toma decisiones informadas</span> en cualquier plataforma de apuestas.
+            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-300 mb-6 sm:mb-8 max-w-4xl mx-auto leading-relaxed px-4">
+              Encuentra <span className="text-gold-400 font-semibold drop-shadow-lg">value bets que otros no ven</span>,{' '}
+              <span className="text-accent-400 font-semibold drop-shadow-lg">aumenta tu ROI hasta +23%</span> y{' '}
+              <span className="text-primary-300 font-semibold drop-shadow-lg">toma decisiones informadas</span> en cualquier plataforma de apuestas.
             </p>
             <div className="mb-12 sm:mb-16 max-w-3xl mx-auto px-4">
-              <div className="bg-gradient-to-r from-accent-500/20 via-gold-500/20 to-primary-500/20 border border-accent-400/30 rounded-2xl p-4 sm:p-6 backdrop-blur-sm shadow-xl">
+              <div className="bg-gradient-to-r from-primary-500/10 via-accent-500/10 to-gold-500/10 border border-primary-500/20 rounded-2xl p-4 sm:p-6 backdrop-blur-xl shadow-2xl">
                 <div className="text-center mb-3 sm:mb-4">
                   <p className="text-xs sm:text-sm text-gray-300 font-semibold uppercase tracking-wider">Resultados Reales de Usuarios</p>
                 </div>
@@ -95,7 +95,7 @@ export default function Landing() {
                   <div className="hidden sm:block w-px h-12 bg-primary-500/30"></div>
                   <div className="w-full sm:w-auto h-px sm:h-auto sm:w-px bg-primary-500/30 sm:bg-transparent"></div>
                   <div className="text-center w-full sm:w-auto">
-                    <div className="text-3xl sm:text-4xl font-black text-gold-400 mb-1">+23%</div>
+                    <div className="text-3xl sm:text-4xl font-black text-gold-500 mb-1">+23%</div>
                     <div className="text-xs sm:text-sm text-gray-300">ROI Mensual</div>
                     <div className="text-xs text-gray-500 mt-1">vs -8% promedio</div>
                   </div>
@@ -148,7 +148,7 @@ export default function Landing() {
                   </Link>
                   <Link
                     to="/login"
-                    className="w-full sm:w-auto px-8 sm:px-12 py-4 sm:py-5 bg-dark-900/60 backdrop-blur-md border-2 border-primary-500/40 text-white rounded-2xl hover:border-primary-400/60 hover:bg-dark-800/60 transition-all duration-300 text-base sm:text-lg font-bold shadow-lg text-center"
+                    className="w-full sm:w-auto px-8 sm:px-12 py-4 sm:py-5 bg-gradient-to-r from-primary-600/20 to-accent-600/20 backdrop-blur-md border-2 border-primary-500/50 text-white rounded-2xl hover:from-primary-600/30 hover:to-accent-600/30 hover:border-primary-400/70 transition-all duration-300 text-base sm:text-lg font-bold shadow-lg shadow-primary-500/20 text-center"
                   >
                     Iniciar Sesión
                   </Link>
@@ -731,7 +731,7 @@ export default function Landing() {
               </Link>
               <Link
                 to="/login"
-                className="w-full sm:w-auto px-8 sm:px-12 md:px-14 py-4 sm:py-5 md:py-6 bg-white/15 backdrop-blur-lg border-2 border-white/50 text-white rounded-2xl sm:rounded-3xl hover:bg-white/25 hover:border-white/70 transition-all duration-300 text-base sm:text-lg md:text-xl font-black shadow-xl text-center"
+                className="w-full sm:w-auto px-8 sm:px-12 md:px-14 py-4 sm:py-5 md:py-6 bg-gradient-to-r from-primary-600/20 to-accent-600/20 backdrop-blur-lg border-2 border-primary-500/50 text-white rounded-2xl sm:rounded-3xl hover:from-primary-600/30 hover:to-accent-600/30 hover:border-primary-400/70 transition-all duration-300 text-base sm:text-lg md:text-xl font-black shadow-xl shadow-primary-500/20 text-center"
               >
                 Iniciar Sesión
               </Link>

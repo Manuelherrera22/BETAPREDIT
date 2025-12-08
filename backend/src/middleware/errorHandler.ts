@@ -14,12 +14,17 @@ export class AppError extends Error {
 }
 
 export const errorHandler = (
-  err: AppError,
+  err: any,
   req: Request,
   res: Response,
   _next: NextFunction
 ) => {
-  const statusCode = err.statusCode || 500;
+  // Si el error ya tiene una respuesta, no hacer nada
+  if (res.headersSent) {
+    return _next(err);
+  }
+
+  const statusCode = err.statusCode || err.status || 500;
   const message = err.message || 'Internal Server Error';
 
   logger.error('Error:', {
@@ -28,13 +33,19 @@ export const errorHandler = (
     stack: err.stack,
     path: req.path,
     method: req.method,
+    body: req.body,
+    errorName: err.name,
+    errorDetails: err,
   });
 
   res.status(statusCode).json({
     success: false,
     error: {
       message,
-      ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+      ...(process.env.NODE_ENV === 'development' && { 
+        stack: err.stack,
+        details: err.toString(),
+      }),
     },
   });
 };

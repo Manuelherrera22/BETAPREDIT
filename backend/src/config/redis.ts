@@ -91,35 +91,62 @@ redisClient.on('close', () => {
 
 // Helper functions for common operations
 export const redisHelpers = {
+  // Generic get method
+  async get(key: string): Promise<string | null> {
+    try {
+      return await redisClient.get(key);
+    } catch (error) {
+      logger.debug(`Redis get error for key ${key}, returning null`);
+      return null;
+    }
+  },
+
+  // Generic set method with TTL
+  async set(key: string, value: string, ttlSeconds: number): Promise<void> {
+    try {
+      await redisClient.setex(key, ttlSeconds, value);
+    } catch (error) {
+      logger.debug(`Redis set error for key ${key}, ignoring`);
+    }
+  },
+
   // Cache odds with TTL
   async cacheOdds(eventId: string, odds: any, ttl: number = 60) {
     const key = `odds:${eventId}`;
-    await redisClient.setex(key, ttl, JSON.stringify(odds));
+    await this.set(key, JSON.stringify(odds), ttl);
   },
 
   // Get cached odds
   async getCachedOdds(eventId: string) {
     const key = `odds:${eventId}`;
-    const data = await redisClient.get(key);
+    const data = await this.get(key);
     return data ? JSON.parse(data) : null;
   },
 
   // Publish odds update
   async publishOddsUpdate(eventId: string, odds: any) {
-    await redisClient.publish(`odds:${eventId}`, JSON.stringify(odds));
+    try {
+      await redisClient.publish(`odds:${eventId}`, JSON.stringify(odds));
+    } catch (error) {
+      logger.debug('Redis publish error, ignoring');
+    }
+  },
+
+  // Rate limiting
+  async checkRateLimit(key: string, limit: number, window: number): Promise<boolean> {
+    try {
+      const current = await redisClient.incr(key);
+      if (current === 1) {
+        await redisClient.expire(key, window);
+      }
+      return current <= limit;
+    } catch (error) {
+      logger.debug('Redis rate limit error, allowing request');
+      return true; // Allow request if Redis fails
+    }
   },
 };
 
 // Export redisClient
 export { redisClient };
-
-  // Rate limiting
-  async checkRateLimit(key: string, limit: number, window: number): Promise<boolean> {
-    const current = await redisClient.incr(key);
-    if (current === 1) {
-      await redisClient.expire(key, window);
-    }
-    return current <= limit;
-  },
-};
 

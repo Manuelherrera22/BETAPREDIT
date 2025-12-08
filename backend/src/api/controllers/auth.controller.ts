@@ -12,12 +12,23 @@ class AuthController {
     }
   }
 
-  async login(req: Request, res: Response, next: NextFunction) {
+  async login(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { email, password } = req.body;
+      
+      if (!email || !password) {
+        res.status(400).json({
+          success: false,
+          error: { message: 'Email and password are required' },
+        });
+        return;
+      }
+      
       const result = await authService.login(email, password);
       res.json({ success: true, data: result });
-    } catch (error) {
+    } catch (error: any) {
+      // Log error for debugging
+      console.error('Login error:', error);
       next(error);
     }
   }

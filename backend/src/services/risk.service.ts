@@ -160,11 +160,11 @@ class RiskService {
     }
 
     // Pattern 2: Large bet on unlikely outcome
-    if (bet.stake > 1000 && bet.odds > 10) {
+    if (bet.stake > 1000 && bet.oddsDecimal > 10) {
       await this.createFraudAlert({
         type: 'MATCH_FIXING',
         severity: 'HIGH',
-        description: `Large bet (${bet.stake}) on high odds (${bet.odds})`,
+        description: `Large bet (${bet.stake}) on high odds (${bet.oddsDecimal})`,
         userId,
         betId: bet.id,
         eventId: bet.eventId,

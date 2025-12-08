@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { valueBetAlertsService, type ValueBetAlert } from '../services/valueBetAlertsService';
+import { notificationsService, type Notification } from '../services/notificationsService';
 
 interface Alert {
   id: string;
@@ -12,61 +14,85 @@ interface Alert {
   timestamp: string;
   read: boolean;
   priority?: 'high' | 'medium' | 'low';
+  source?: 'value_bet_alert' | 'notification';
 }
 
 export default function Alerts() {
-  const [alerts, setAlerts] = useState<Alert[]>([
-    {
-      id: '1',
-      type: 'value_bet',
-      title: 'Value Bet Detectado',
-      message: 'Real Madrid vs Barcelona - Cuota 2.15 con +12% de valor',
-      event: 'Real Madrid vs Barcelona',
-      value: 12,
-      timestamp: new Date().toISOString(),
-      read: false,
-      priority: 'high',
-    },
-    {
-      id: '2',
-      type: 'odds_change',
-      title: 'Cambio de Cuotas',
-      message: 'Lakers vs Warriors - Mejor cuota cambió de 1.85 a 1.92',
-      event: 'Lakers vs Warriors',
-      timestamp: new Date(Date.now() - 5 * 60000).toISOString(),
-      read: false,
-      priority: 'medium',
-    },
-    {
-      id: '3',
-      type: 'prediction',
-      title: 'Nueva Predicción',
-      message: 'Nadal vs Djokovic - Probabilidad actualizada: 58% para Nadal',
-      event: 'Nadal vs Djokovic',
-      timestamp: new Date(Date.now() - 15 * 60000).toISOString(),
-      read: true,
-      priority: 'low',
-    },
-    {
-      id: '4',
-      type: 'value_bet',
-      title: 'Value Bet Detectado',
-      message: 'Manchester City vs Liverpool - Cuota 2.30 con +8% de valor',
-      event: 'Manchester City vs Liverpool',
-      value: 8,
-      timestamp: new Date(Date.now() - 2 * 60000).toISOString(),
-      read: false,
-      priority: 'high',
-    },
-  ]);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Actualizar timestamps relativos
+  // Cargar alertas y notificaciones
   useEffect(() => {
-    const interval = setInterval(() => {
-      // Forzar re-render para actualizar timestamps
-      setAlerts(prev => [...prev]);
-    }, 30000);
+    const loadAlerts = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // Cargar value bet alerts
+        const valueBetAlerts = await valueBetAlertsService.getMyAlerts({ status: 'ACTIVE' });
+        
+        // Cargar notificaciones
+        const notifications = await notificationsService.getMyNotifications({ read: false, limit: 50 });
 
+        // Convertir value bet alerts a formato de alerta
+        const valueBetAlertsFormatted: Alert[] = valueBetAlerts.map(alert => ({
+          id: alert.id,
+          type: 'value_bet' as const,
+          title: 'Value Bet Detectado',
+          message: `${alert.event?.homeTeam || 'Equipo 1'} vs ${alert.event?.awayTeam || 'Equipo 2'} - ${alert.selection} @ ${alert.bookmakerOdds.toFixed(2)} (${alert.bookmakerPlatform})`,
+          event: alert.event ? `${alert.event.homeTeam} vs ${alert.event.awayTeam}` : undefined,
+          value: alert.valuePercentage,
+          timestamp: alert.createdAt,
+          read: alert.status !== 'ACTIVE',
+          priority: alert.valuePercentage > 10 ? 'high' : alert.valuePercentage > 5 ? 'medium' : 'low',
+          source: 'value_bet_alert' as const,
+        }));
+
+        // Convertir notificaciones a formato de alerta
+        const notificationsFormatted: Alert[] = notifications.map(notif => ({
+          id: notif.id,
+          type: (notif.type === 'VALUE_BET_DETECTED' ? 'value_bet' :
+                 notif.type === 'ODDS_CHANGED' ? 'odds_change' :
+                 notif.type === 'PREDICTION_READY' ? 'prediction' :
+                 'new_event') as const,
+          title: notif.title,
+          message: notif.message,
+          timestamp: notif.createdAt,
+          read: notif.read,
+          priority: notif.type === 'VALUE_BET_DETECTED' ? 'high' : 'medium',
+          source: 'notification' as const,
+        }));
+
+        // Combinar y ordenar por timestamp
+        const allAlerts = [...valueBetAlertsFormatted, ...notificationsFormatted]
+          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+        setAlerts(allAlerts);
+      } catch (err: any) {
+        console.error('Error loading alerts:', err);
+        setError('Error al cargar las alertas. Usando datos de ejemplo.');
+        // Fallback a datos mock si hay error
+        setAlerts([
+          {
+            id: '1',
+            type: 'value_bet',
+            title: 'Value Bet Detectado',
+            message: 'Real Madrid vs Barcelona - Cuota 2.15 con +12% de valor',
+            event: 'Real Madrid vs Barcelona',
+            value: 12,
+            timestamp: new Date().toISOString(),
+            read: false,
+            priority: 'high',
+          },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAlerts();
+    // Actualizar cada 30 segundos
+    const interval = setInterval(loadAlerts, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -78,16 +104,47 @@ export default function Alerts() {
     read: 'all',
   });
 
-  const markAsRead = (id: string) => {
-    setAlerts(alerts.map(alert => (alert.id === id ? { ...alert, read: true } : alert)));
+  const markAsRead = async (id: string) => {
+    const alert = alerts.find(a => a.id === id);
+    if (!alert) return;
+
+    try {
+      if (alert.source === 'value_bet_alert') {
+        await valueBetAlertsService.markAsClicked(id);
+      } else if (alert.source === 'notification') {
+        await notificationsService.markAsRead(id);
+      }
+      setAlerts(alerts.map(a => (a.id === id ? { ...a, read: true } : a)));
+    } catch (error) {
+      console.error('Error marking alert as read:', error);
+      // Actualizar UI de todas formas
+      setAlerts(alerts.map(a => (a.id === id ? { ...a, read: true } : a)));
+    }
   };
 
-  const markAllAsRead = () => {
-    setAlerts(alerts.map(alert => ({ ...alert, read: true })));
+  const markAllAsRead = async () => {
+    try {
+      await notificationsService.markAllAsRead();
+      setAlerts(alerts.map(alert => ({ ...alert, read: true })));
+    } catch (error) {
+      console.error('Error marking all as read:', error);
+      setAlerts(alerts.map(alert => ({ ...alert, read: true })));
+    }
   };
 
-  const deleteAlert = (id: string) => {
-    setAlerts(alerts.filter(alert => alert.id !== id));
+  const deleteAlert = async (id: string) => {
+    const alert = alerts.find(a => a.id === id);
+    if (!alert) return;
+
+    try {
+      if (alert.source === 'notification') {
+        await notificationsService.deleteNotification(id);
+      }
+      setAlerts(alerts.filter(a => a.id !== id));
+    } catch (error) {
+      console.error('Error deleting alert:', error);
+      setAlerts(alerts.filter(a => a.id !== id));
+    }
   };
 
   const filteredAlerts = alerts.filter(alert => {

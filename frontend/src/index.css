@@ -96,12 +96,12 @@ html {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, #dc2626, #991b1b);
+  background: linear-gradient(to bottom, #6366f1, #4f46e5);
   border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(to bottom, #ef4444, #dc2626);
+  background: linear-gradient(to bottom, #818cf8, #6366f1);
 }
 
 /* Additional animations */
@@ -121,11 +121,11 @@ html {
 @keyframes glow {
   0%, 100% {
     opacity: 1;
-    box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
   }
   50% {
     opacity: 0.8;
-    box-shadow: 0 0 40px rgba(239, 68, 68, 0.5);
+    box-shadow: 0 0 40px rgba(99, 102, 241, 0.5);
   }
 }
 

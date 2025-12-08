@@ -2,54 +2,124 @@ import { useState, useEffect } from 'react';
 import StatsCard from '../components/StatsCard';
 import SimpleChart from '../components/SimpleChart';
 import ValueBetsHeatmap from '../components/ValueBetsHeatmap';
+import { userStatisticsService, type UserStatistics } from '../services/userStatisticsService';
 
 export default function Statistics() {
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('month');
-  
-  // Mock data dinámico - En producción vendría de la API
-  const [monthlyData, setMonthlyData] = useState([
-    { label: 'Ene', value: 12 },
-    { label: 'Feb', value: 18 },
-    { label: 'Mar', value: 15 },
-    { label: 'Abr', value: 23 },
-    { label: 'May', value: 19 },
-    { label: 'Jun', value: 27 },
-  ]);
+  const [loading, setLoading] = useState(true);
+  const [statistics, setStatistics] = useState<UserStatistics | null>(null);
+  const [statsByPeriod, setStatsByPeriod] = useState<UserStatistics[]>([]);
+  const [statsBySport, setStatsBySport] = useState<any>({});
+  const [statsByPlatform, setStatsByPlatform] = useState<any>({});
 
-  const [winRateData, setWinRateData] = useState([
-    { label: 'Sem 1', value: 65 },
-    { label: 'Sem 2', value: 72 },
-    { label: 'Sem 3', value: 68 },
-    { label: 'Sem 4', value: 75 },
-  ]);
-
-  // Heatmap data
-  const heatmapData = [
-    { sport: 'Fútbol', league: 'La Liga', value: 12.5, count: 45 },
-    { sport: 'Fútbol', league: 'Premier League', value: 10.2, count: 38 },
-    { sport: 'Fútbol', league: 'Champions League', value: 8.7, count: 22 },
-    { sport: 'Basketball', league: 'NBA', value: 9.3, count: 28 },
-    { sport: 'Basketball', league: 'EuroLeague', value: 7.1, count: 15 },
-    { sport: 'Tenis', league: 'ATP Masters', value: 11.8, count: 18 },
-    { sport: 'Tenis', league: 'WTA', value: 6.5, count: 12 },
-  ];
-
-  // Simular actualizaciones de datos
+  // Cargar estadísticas
   useEffect(() => {
-    const interval = setInterval(() => {
-      setMonthlyData(prev => prev.map(item => ({
-        ...item,
-        value: item.value + (Math.random() - 0.5) * 0.5
-      })));
-      
-      setWinRateData(prev => prev.map(item => ({
-        ...item,
-        value: Math.min(100, Math.max(50, item.value + (Math.random() - 0.5) * 1))
-      })));
-    }, 15000);
+    const loadStatistics = async () => {
+      setLoading(true);
+      try {
+        // Cargar estadísticas actuales
+        const currentStats = await userStatisticsService.getMyStatistics(timeRange);
+        setStatistics(currentStats);
 
+        // Cargar estadísticas por período para gráficos
+        const periodStats = await userStatisticsService.getStatisticsByPeriod(timeRange);
+        setStatsByPeriod(periodStats);
+
+        // Cargar breakdowns
+        const sportStats = await userStatisticsService.getStatisticsBySport(timeRange);
+        setStatsBySport(sportStats || {});
+
+        const platformStats = await userStatisticsService.getStatisticsByPlatform(timeRange);
+        setStatsByPlatform(platformStats || {});
+      } catch (error) {
+        console.error('Error loading statistics:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadStatistics();
+    // Actualizar cada 60 segundos
+    const interval = setInterval(loadStatistics, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [timeRange]);
+
+  // Preparar datos para gráficos
+  const monthlyData = statsByPeriod.length > 0
+    ? statsByPeriod.map((stat, index) => ({
+        label: timeRange === 'week' 
+          ? `Sem ${index + 1}`
+          : timeRange === 'month'
+          ? ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][index] || `Mes ${index + 1}`
+          : `Año ${new Date(stat.periodStart).getFullYear()}`,
+        value: stat.roi || 0,
+      }))
+    : [
+        { label: 'Ene', value: 12 },
+        { label: 'Feb', value: 18 },
+        { label: 'Mar', value: 15 },
+        { label: 'Abr', value: 23 },
+        { label: 'May', value: 19 },
+        { label: 'Jun', value: 27 },
+      ];
+
+  const winRateData = statsByPeriod.length > 0
+    ? statsByPeriod.map((stat, index) => ({
+        label: timeRange === 'week' ? `Sem ${index + 1}` : `Período ${index + 1}`,
+        value: stat.winRate || 0,
+      }))
+    : [
+        { label: 'Sem 1', value: 65 },
+        { label: 'Sem 2', value: 72 },
+        { label: 'Sem 3', value: 68 },
+        { label: 'Sem 4', value: 75 },
+      ];
+
+  // Preparar heatmap data desde statsBySport
+  const heatmapData = Object.entries(statsBySport).length > 0
+    ? Object.entries(statsBySport).map(([sport, data]: [string, any]) => ({
+        sport,
+        league: data.league || sport,
+        value: data.averageValue || data.roi || 0,
+        count: data.totalBets || 0,
+      }))
+    : [
+        { sport: 'Fútbol', league: 'La Liga', value: 12.5, count: 45 },
+        { sport: 'Fútbol', league: 'Premier League', value: 10.2, count: 38 },
+        { sport: 'Basketball', league: 'NBA', value: 9.3, count: 28 },
+      ];
+
+  // Calcular porcentajes por deporte
+  const totalBetsBySport = Object.values(statsBySport).reduce(
+    (sum: number, data: any) => sum + (data.totalBets || 0),
+    0
+  );
+
+  const sportPercentages = Object.entries(statsBySport).map(([sport, data]: [string, any]) => ({
+    sport,
+    percentage: totalBetsBySport > 0 ? ((data.totalBets || 0) / totalBetsBySport) * 100 : 0,
+  }));
+
+  if (loading && !statistics) {
+    return (
+      <div className="px-4 py-6">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-white">Cargando estadísticas...</div>
+        </div>
+      </div>
+    );
+  }
+
+  const currentStats = statistics || {
+    winRate: 0,
+    roi: 0,
+    valueBetsFound: 0,
+    totalBets: 0,
+    totalWins: 0,
+    totalLosses: 0,
+    netProfit: 0,
+    totalStaked: 0,
+  };
 
   return (
     <div className="px-4 py-6">
@@ -79,9 +149,9 @@ export default function Statistics() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatsCard
           title="Win Rate Actual"
-          value="75%"
-          change="+12% vs mes anterior"
-          trend="up"
+          value={`${currentStats.winRate.toFixed(1)}%`}
+          change={statistics ? "Datos en tiempo real" : "Sin datos disponibles"}
+          trend={currentStats.winRate > 50 ? "up" : "down"}
           icon={
             <svg className="w-6 h-6 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -90,9 +160,9 @@ export default function Statistics() {
         />
         <StatsCard
           title="ROI Mensual"
-          value="+23%"
-          change="+5% vs mes anterior"
-          trend="up"
+          value={`${currentStats.roi >= 0 ? '+' : ''}${currentStats.roi.toFixed(1)}%`}
+          change={statistics ? "Datos en tiempo real" : "Sin datos disponibles"}
+          trend={currentStats.roi > 0 ? "up" : "down"}
           icon={
             <svg className="w-6 h-6 text-accent-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -101,9 +171,9 @@ export default function Statistics() {
         />
         <StatsCard
           title="Value Bets Encontrados"
-          value="156"
-          subtitle="Este mes"
-          change="+32 vs mes anterior"
+          value={currentStats.valueBetsFound?.toString() || "0"}
+          subtitle={timeRange === 'week' ? 'Esta semana' : timeRange === 'month' ? 'Este mes' : 'Este año'}
+          change={statistics ? "Datos en tiempo real" : "Sin datos disponibles"}
           trend="up"
           icon={
             <svg className="w-6 h-6 text-gold-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -113,9 +183,9 @@ export default function Statistics() {
         />
         <StatsCard
           title="Bankroll Actual"
-          value="€2,450"
-          change="+18% este mes"
-          trend="up"
+          value={`€${(currentStats.totalStaked + currentStats.netProfit).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`}
+          change={currentStats.netProfit >= 0 ? `+${currentStats.netProfit.toFixed(2)}` : currentStats.netProfit.toFixed(2)}
+          trend={currentStats.netProfit > 0 ? "up" : "down"}
           icon={
             <svg className="w-6 h-6 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -128,15 +198,19 @@ export default function Statistics() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-6 border border-primary-500/20 hover:border-primary-400/40 transition-all">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-black text-white">ROI Mensual</h3>
-            <span className="text-xs text-gray-400">Actualizado en tiempo real</span>
+            <h3 className="text-xl font-black text-white">ROI {timeRange === 'week' ? 'Semanal' : timeRange === 'month' ? 'Mensual' : 'Anual'}</h3>
+            <span className="text-xs text-gray-400">
+              {statistics ? 'Actualizado en tiempo real' : 'Datos de ejemplo'}
+            </span>
           </div>
           <SimpleChart data={monthlyData} color="accent" animated={true} />
         </div>
         <div className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-6 border border-primary-500/20 hover:border-primary-400/40 transition-all">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-black text-white">Win Rate Semanal</h3>
-            <span className="text-xs text-gray-400">Tendencia alcista</span>
+            <h3 className="text-xl font-black text-white">Win Rate {timeRange === 'week' ? 'Semanal' : 'Mensual'}</h3>
+            <span className="text-xs text-gray-400">
+              {statistics ? 'Datos reales' : 'Datos de ejemplo'}
+            </span>
           </div>
           <SimpleChart data={winRateData} color="primary" animated={true} />
         </div>
@@ -152,81 +226,65 @@ export default function Statistics() {
         <div className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-6 border border-primary-500/20">
           <h3 className="text-lg font-semibold text-white mb-4">Distribución por Deporte</h3>
           <div className="space-y-3">
-            <div className="group">
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-gray-400 group-hover:text-white transition-colors">Fútbol</span>
-                <span className="text-white font-semibold">45%</span>
-              </div>
-              <div className="w-full bg-dark-800 rounded-full h-2 overflow-hidden">
-                <div 
-                  className="bg-gradient-to-r from-primary-500 to-primary-400 h-2 rounded-full transition-all duration-500 group-hover:shadow-lg group-hover:shadow-primary-500/50" 
-                  style={{ width: '45%' }}
-                ></div>
-              </div>
-            </div>
-            <div className="group">
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-gray-400 group-hover:text-white transition-colors">Basketball</span>
-                <span className="text-white font-semibold">30%</span>
-              </div>
-              <div className="w-full bg-dark-800 rounded-full h-2 overflow-hidden">
-                <div 
-                  className="bg-gradient-to-r from-accent-500 to-accent-400 h-2 rounded-full transition-all duration-500 group-hover:shadow-lg group-hover:shadow-accent-500/50" 
-                  style={{ width: '30%' }}
-                ></div>
-              </div>
-            </div>
-            <div className="group">
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-gray-400 group-hover:text-white transition-colors">Tenis</span>
-                <span className="text-white font-semibold">25%</span>
-              </div>
-              <div className="w-full bg-dark-800 rounded-full h-2 overflow-hidden">
-                <div 
-                  className="bg-gradient-to-r from-gold-500 to-gold-400 h-2 rounded-full transition-all duration-500 group-hover:shadow-lg group-hover:shadow-gold-500/50" 
-                  style={{ width: '25%' }}
-                ></div>
-              </div>
-            </div>
+            {sportPercentages.length > 0 ? (
+              sportPercentages.slice(0, 3).map(({ sport, percentage }) => (
+                <div key={sport} className="group">
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-gray-400 group-hover:text-white transition-colors">{sport}</span>
+                    <span className="text-white font-semibold">{percentage.toFixed(0)}%</span>
+                  </div>
+                  <div className="w-full bg-dark-800 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-gradient-to-r from-primary-500 to-primary-400 h-2 rounded-full transition-all duration-500 group-hover:shadow-lg group-hover:shadow-primary-500/50"
+                      style={{ width: `${percentage}%` }}
+                    ></div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-500 text-sm">No hay datos disponibles</p>
+            )}
           </div>
         </div>
 
         <div className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-6 border border-primary-500/20">
           <h3 className="text-lg font-semibold text-white mb-4">Rendimiento por Plataforma</h3>
           <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-400">Bet365</span>
-              <span className="text-accent-400 font-bold">+18% ROI</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-400">Betfair</span>
-              <span className="text-accent-400 font-bold">+25% ROI</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-400">Pinnacle</span>
-              <span className="text-accent-400 font-bold">+20% ROI</span>
-            </div>
+            {Object.entries(statsByPlatform).length > 0 ? (
+              Object.entries(statsByPlatform).slice(0, 3).map(([platform, data]: [string, any]) => (
+                <div key={platform} className="flex justify-between items-center">
+                  <span className="text-gray-400">{platform}</span>
+                  <span className={`font-bold ${(data.roi || 0) > 0 ? 'text-accent-400' : 'text-red-400'}`}>
+                    {data.roi >= 0 ? '+' : ''}{data.roi?.toFixed(1) || 0}% ROI
+                  </span>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-500 text-sm">No hay datos disponibles</p>
+            )}
           </div>
         </div>
 
         <div className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-6 border border-primary-500/20">
-          <h3 className="text-lg font-semibold text-white mb-4">Resumen del Mes</h3>
+          <h3 className="text-lg font-semibold text-white mb-4">Resumen del {timeRange === 'week' ? 'Período' : timeRange === 'month' ? 'Mes' : 'Año'}</h3>
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-400">Apuestas Totales</span>
-              <span className="text-white font-semibold">234</span>
+              <span className="text-white font-semibold">{currentStats.totalBets || 0}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">Ganadas</span>
-              <span className="text-accent-400 font-semibold">176</span>
+              <span className="text-accent-400 font-semibold">{currentStats.totalWins || 0}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">Perdidas</span>
-              <span className="text-red-400 font-semibold">58</span>
+              <span className="text-red-400 font-semibold">{currentStats.totalLosses || 0}</span>
             </div>
             <div className="flex justify-between pt-2 border-t border-primary-500/20">
               <span className="text-gray-400">Ganancia Neta</span>
-              <span className="text-gold-400 font-bold text-lg">+€563.50</span>
+              <span className={`font-bold text-lg ${currentStats.netProfit >= 0 ? 'text-gold-400' : 'text-red-400'}`}>
+                {currentStats.netProfit >= 0 ? '+' : ''}€{currentStats.netProfit.toFixed(2)}
+              </span>
             </div>
           </div>
         </div>
@@ -234,4 +292,3 @@ export default function Statistics() {
     </div>
   );
 }
-

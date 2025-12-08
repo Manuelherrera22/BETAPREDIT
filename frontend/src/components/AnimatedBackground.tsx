@@ -29,9 +29,9 @@ export default function AnimatedBackground() {
     }> = [];
 
     const colors = {
-      primary: 'rgba(239, 68, 68, 0.15)', // Red
-      accent: 'rgba(34, 197, 94, 0.15)',  // Green
-      gold: 'rgba(245, 158, 11, 0.15)',   // Gold
+      primary: 'rgba(99, 102, 241, 0.12)', // Elegant indigo
+      accent: 'rgba(14, 165, 233, 0.12)',  // Elegant sky blue
+      gold: 'rgba(139, 92, 246, 0.12)',   // Elegant violet
     };
 
     for (let i = 0; i < 80; i++) {
@@ -90,11 +90,11 @@ export default function AnimatedBackground() {
             ctx.lineTo(other.x, other.y);
             
             // Use color based on particle types
-            let lineColor = 'rgba(239, 68, 68, ' + opacity + ')';
+            let lineColor = 'rgba(99, 102, 241, ' + opacity + ')';
             if (particle.type === 'accent' || other.type === 'accent') {
-              lineColor = 'rgba(34, 197, 94, ' + opacity + ')';
+              lineColor = 'rgba(14, 165, 233, ' + opacity + ')';
             } else if (particle.type === 'gold' || other.type === 'gold') {
-              lineColor = 'rgba(245, 158, 11, ' + opacity + ')';
+              lineColor = 'rgba(139, 92, 246, ' + opacity + ')';
             }
             
             ctx.strokeStyle = lineColor;

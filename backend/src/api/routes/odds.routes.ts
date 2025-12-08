@@ -16,5 +16,8 @@ router.get('/live/:eventId', authenticate, oddsController.getLiveOdds);
 // Get odds history for analysis
 router.get('/history/:eventId', authenticate, oddsController.getOddsHistory);
 
+// Fetch and compare odds from The Odds API
+router.post('/compare/:sport/:eventId', authenticate, oddsController.compareOddsFromAPI);
+
 export default router;
 

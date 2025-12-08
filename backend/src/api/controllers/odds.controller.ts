@@ -1,5 +1,6 @@
 import { Response, NextFunction } from 'express';
 import { oddsService } from '../../services/odds.service';
+import { oddsComparisonService } from '../../services/odds-comparison.service';
 import { AppError } from '../../middleware/errorHandler';
 import { AuthRequest } from '../../middleware/auth';
 
@@ -47,6 +48,24 @@ class OddsController {
         limit: limit ? parseInt(limit as string) : 100,
       });
       res.json({ success: true, data: history });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async compareOddsFromAPI(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { sport, eventId } = req.params;
+      const { market } = req.query;
+
+      // Fetch from The Odds API and update database
+      const comparisons = await oddsComparisonService.fetchAndUpdateComparison(
+        sport,
+        eventId,
+        (market as string) || 'h2h'
+      );
+
+      res.json({ success: true, data: comparisons });
     } catch (error) {
       next(error);
     }

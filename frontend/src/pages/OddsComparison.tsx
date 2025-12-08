@@ -1,256 +1,129 @@
 import { useState, useEffect } from 'react';
 import OddsComparisonTable from '../components/OddsComparisonTable';
+import { theOddsApiService, type OddsEvent, type OddsComparison } from '../services/theOddsApiService';
 
 export default function OddsComparison() {
-  const [selectedEvent, setSelectedEvent] = useState<string>('1');
+  const [sports, setSports] = useState<Array<{ key: string; title: string }>>([]);
+  const [selectedSport, setSelectedSport] = useState<string>('soccer_epl');
+  const [events, setEvents] = useState<OddsEvent[]>([]);
+  const [selectedEvent, setSelectedEvent] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [oddsComparisons, setOddsComparisons] = useState<Record<string, OddsComparison>>({});
+  const [loadingComparisons, setLoadingComparisons] = useState(false);
 
-  // Mock data mejorado - En producción vendría de la API
-  const events = [
-    {
-      id: '1',
-      homeTeam: 'Real Madrid',
-      awayTeam: 'Barcelona',
-      sport: 'Fútbol',
-      league: 'La Liga',
-    },
-    {
-      id: '2',
-      homeTeam: 'Lakers',
-      awayTeam: 'Warriors',
-      sport: 'Basketball',
-      league: 'NBA',
-    },
-    {
-      id: '3',
-      homeTeam: 'Nadal',
-      awayTeam: 'Djokovic',
-      sport: 'Tenis',
-      league: 'ATP Masters',
-    },
-    {
-      id: '4',
-      homeTeam: 'Manchester City',
-      awayTeam: 'Liverpool',
-      sport: 'Fútbol',
-      league: 'Premier League',
-    },
-    {
-      id: '5',
-      homeTeam: 'Celtics',
-      awayTeam: 'Heat',
-      sport: 'Basketball',
-      league: 'NBA',
-    },
-    {
-      id: '6',
-      homeTeam: 'PSG',
-      awayTeam: 'Bayern Munich',
-      sport: 'Fútbol',
-      league: 'Champions League',
-    },
-  ];
-
-  // Filtrar eventos por búsqueda
-  const filteredEvents = events.filter(event => 
-    event.homeTeam.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    event.awayTeam.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    event.league.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // Estado para cuotas dinámicas que se actualizan
-  const [oddsData, setOddsData] = useState({
-    '1': [
-      {
-        platform: 'Bet365',
-        home: 2.10,
-        draw: 3.50,
-        away: 2.80,
-        value: 5.2,
-        lastUpdated: new Date().toISOString(),
-      },
-      {
-        platform: 'Betfair',
-        home: 2.15,
-        draw: 3.45,
-        away: 2.75,
-        value: 8.5,
-        lastUpdated: new Date().toISOString(),
-      },
-      {
-        platform: 'William Hill',
-        home: 2.05,
-        draw: 3.60,
-        away: 2.90,
-        value: -2.1,
-        lastUpdated: new Date().toISOString(),
-      },
-      {
-        platform: 'Pinnacle',
-        home: 2.12,
-        draw: 3.48,
-        away: 2.82,
-        value: 6.8,
-        lastUpdated: new Date().toISOString(),
-      },
-      {
-        platform: 'Unibet',
-        home: 2.08,
-        draw: 3.52,
-        away: 2.78,
-        value: 4.1,
-        lastUpdated: new Date().toISOString(),
-      },
-    ],
-    '2': [
-      {
-        platform: 'Bet365',
-        home: 1.85,
-        away: 1.95,
-        value: 3.2,
-        lastUpdated: new Date().toISOString(),
-      },
-      {
-        platform: 'Betfair',
-        home: 1.88,
-        away: 1.92,
-        value: 5.1,
-        lastUpdated: new Date().toISOString(),
-      },
-      {
-        platform: 'Pinnacle',
-        home: 1.87,
-        away: 1.94,
-        value: 4.3,
-        lastUpdated: new Date().toISOString(),
-      },
-    ],
-    '3': [
-      {
-        platform: 'Bet365',
-        home: 2.20,
-        away: 1.70,
-        value: 7.2,
-        lastUpdated: new Date().toISOString(),
-      },
-      {
-        platform: 'Betfair',
-        home: 2.25,
-        away: 1.68,
-        value: 9.5,
-        lastUpdated: new Date().toISOString(),
-      },
-    ],
-    '4': [
-      {
-        platform: 'Bet365',
-        home: 2.30,
-        draw: 3.40,
-        away: 2.70,
-        value: 6.8,
-        lastUpdated: new Date().toISOString(),
-      },
-      {
-        platform: 'Betfair',
-        home: 2.35,
-        draw: 3.35,
-        away: 2.65,
-        value: 8.2,
-        lastUpdated: new Date().toISOString(),
-      },
-      {
-        platform: 'Pinnacle',
-        home: 2.28,
-        draw: 3.38,
-        away: 2.72,
-        value: 5.5,
-        lastUpdated: new Date().toISOString(),
-      },
-    ],
-    '5': [
-      {
-        platform: 'Bet365',
-        home: 1.90,
-        away: 1.90,
-        value: 2.1,
-        lastUpdated: new Date().toISOString(),
-      },
-      {
-        platform: 'Betfair',
-        home: 1.92,
-        away: 1.88,
-        value: 4.3,
-        lastUpdated: new Date().toISOString(),
-      },
-    ],
-    '6': [
-      {
-        platform: 'Bet365',
-        home: 2.15,
-        draw: 3.50,
-        away: 2.85,
-        value: 5.8,
-        lastUpdated: new Date().toISOString(),
-      },
-      {
-        platform: 'Betfair',
-        home: 2.18,
-        draw: 3.45,
-        away: 2.80,
-        value: 7.2,
-        lastUpdated: new Date().toISOString(),
-      },
-      {
-        platform: 'Pinnacle',
-        home: 2.12,
-        draw: 3.52,
-        away: 2.88,
-        value: 4.5,
-        lastUpdated: new Date().toISOString(),
-      },
-    ],
-  });
-
-  // Simular actualizaciones de cuotas cada 8 segundos
+  // Cargar deportes disponibles
   useEffect(() => {
-    const interval = setInterval(() => {
-      setOddsData(prev => {
-        const newData: typeof prev = { ...prev };
-        Object.keys(newData).forEach(eventId => {
-          const eventOdds = newData[eventId as keyof typeof newData];
-          newData[eventId as keyof typeof newData] = eventOdds.map((odd: any) => {
-            // Pequeñas variaciones en las cuotas (±0.03)
-            const homeVariation = (Math.random() - 0.5) * 0.06;
-            const awayVariation = (Math.random() - 0.5) * 0.06;
-            const drawVariation = odd.draw ? (Math.random() - 0.5) * 0.06 : 0;
-            
-            const newHome = Math.max(1.01, Math.min(10, odd.home + homeVariation));
-            const newAway = Math.max(1.01, Math.min(10, odd.away + awayVariation));
-            const newDraw = odd.draw ? Math.max(1.01, Math.min(10, odd.draw + drawVariation)) : undefined;
-            
-            // Recalcular valor basado en nuevas cuotas
-            const avgOdds = newDraw ? (newHome + newDraw + newAway) / 3 : (newHome + newAway) / 2;
-            const newValue = ((newHome - avgOdds) / avgOdds) * 100;
-            
-            return {
-              ...odd,
-              home: Math.round(newHome * 100) / 100,
-              away: Math.round(newAway * 100) / 100,
-              ...(newDraw !== undefined && { draw: Math.round(newDraw * 100) / 100 }),
-              value: Math.round(newValue * 10) / 10,
-              lastUpdated: new Date().toISOString(),
-            };
-          }) as any;
-        });
-        return newData;
-      });
-    }, 8000);
-
-    return () => clearInterval(interval);
+    const loadSports = async () => {
+      try {
+        const sportsData = await theOddsApiService.getSports();
+        setSports(sportsData.filter(s => s.active));
+        if (sportsData.length > 0 && !selectedSport) {
+          const soccer = sportsData.find(s => s.key === 'soccer_epl' || s.key === 'soccer');
+          setSelectedSport(soccer?.key || sportsData[0].key);
+        }
+      } catch (error) {
+        console.error('Error loading sports:', error);
+      }
+    };
+    loadSports();
   }, []);
 
-  const currentEvent = events.find(e => e.id === selectedEvent) || events[0];
-  const currentOdds = oddsData[selectedEvent as keyof typeof oddsData] || oddsData['1'];
+  // Cargar eventos del deporte seleccionado
+  useEffect(() => {
+    if (!selectedSport) return;
+
+    const loadEvents = async () => {
+      setLoading(true);
+      try {
+        const eventsData = await theOddsApiService.getOdds(selectedSport, {
+          regions: ['us', 'uk', 'eu'],
+          markets: ['h2h'],
+          oddsFormat: 'decimal',
+        });
+        setEvents(eventsData);
+        if (eventsData.length > 0 && !selectedEvent) {
+          setSelectedEvent(eventsData[0].id);
+        }
+      } catch (error) {
+        console.error('Error loading events:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadEvents();
+    // Actualizar cada 60 segundos
+    const interval = setInterval(loadEvents, 60000);
+    return () => clearInterval(interval);
+  }, [selectedSport]);
+
+  // Cargar comparación de cuotas cuando se selecciona un evento
+  useEffect(() => {
+    if (!selectedEvent || !selectedSport) return;
+
+    const loadComparison = async () => {
+      setLoadingComparisons(true);
+      try {
+        const comparisonData = await theOddsApiService.compareOdds(selectedSport, selectedEvent, 'h2h');
+        if (comparisonData && comparisonData.comparisons) {
+          setOddsComparisons(comparisonData.comparisons);
+        }
+      } catch (error) {
+        console.error('Error loading comparison:', error);
+      } finally {
+        setLoadingComparisons(false);
+      }
+    };
+
+    loadComparison();
+    // Actualizar cada 30 segundos
+    const interval = setInterval(loadComparison, 30000);
+    return () => clearInterval(interval);
+  }, [selectedEvent, selectedSport]);
+
+  // Filtrar eventos por búsqueda
+  const filteredEvents = events.filter(event =>
+    event.home_team.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    event.away_team.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    event.sport_title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Convertir comparaciones a formato de tabla
+  const currentEvent = events.find(e => e.id === selectedEvent);
+  const oddsData = currentEvent ? (() => {
+    const comparisons = oddsComparisons;
+    const bookmakers = new Set<string>();
+    
+    // Recopilar todos los bookmakers
+    Object.values(comparisons).forEach(comp => {
+      comp.allOdds.forEach(odd => bookmakers.add(odd.bookmaker));
+    });
+
+    // Crear estructura de datos para la tabla
+    return Array.from(bookmakers).map(bookmaker => {
+      const homeComp = comparisons[currentEvent.home_team];
+      const awayComp = comparisons[currentEvent.away_team];
+      const drawComp = comparisons['Draw'] || comparisons['draw'];
+
+      const homeOdd = homeComp?.allOdds.find(o => o.bookmaker === bookmaker)?.odds || null;
+      const awayOdd = awayComp?.allOdds.find(o => o.bookmaker === bookmaker)?.odds || null;
+      const drawOdd = drawComp?.allOdds.find(o => o.bookmaker === bookmaker)?.odds || null;
+
+      // Calcular valor promedio (simplificado)
+      const avgOdds = [homeOdd, awayOdd, drawOdd].filter(Boolean).reduce((sum, odd) => sum + (odd || 0), 0) / [homeOdd, awayOdd, drawOdd].filter(Boolean).length;
+      const value = homeOdd ? ((homeOdd - avgOdds) / avgOdds) * 100 : 0;
+
+      return {
+        platform: bookmaker,
+        home: homeOdd || 0,
+        away: awayOdd || 0,
+        ...(drawOdd && { draw: drawOdd }),
+        value: Math.round(value * 10) / 10,
+        lastUpdated: new Date().toISOString(),
+      };
+    }).filter(odd => odd.home > 0 && odd.away > 0);
+  })() : [];
 
   return (
     <div className="px-4 py-6">
@@ -259,6 +132,27 @@ export default function OddsComparison() {
         <p className="text-gray-400">
           Compara cuotas de múltiples plataformas y encuentra el mejor valor
         </p>
+      </div>
+
+      {/* Sport Selector */}
+      <div className="mb-6">
+        <label className="block text-sm font-semibold text-gray-400 mb-2">
+          Seleccionar Deporte
+        </label>
+        <select
+          value={selectedSport}
+          onChange={(e) => {
+            setSelectedSport(e.target.value);
+            setSelectedEvent('');
+          }}
+          className="w-full md:w-auto px-4 py-3 bg-dark-800 border border-primary-500/30 rounded-lg text-white focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-500/20"
+        >
+          {sports.map((sport) => (
+            <option key={sport.key} value={sport.key}>
+              {sport.title}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Search and Event Selector */}
@@ -282,28 +176,59 @@ export default function OddsComparison() {
           <select
             value={selectedEvent}
             onChange={(e) => setSelectedEvent(e.target.value)}
-            className="w-full px-4 py-3 bg-dark-800 border border-primary-500/30 rounded-lg text-white focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-500/20"
+            disabled={loading || filteredEvents.length === 0}
+            className="w-full px-4 py-3 bg-dark-800 border border-primary-500/30 rounded-lg text-white focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {filteredEvents.map((event) => (
-              <option key={event.id} value={event.id}>
-                {event.homeTeam} vs {event.awayTeam} - {event.league}
-              </option>
-            ))}
+            {loading ? (
+              <option>Cargando eventos...</option>
+            ) : filteredEvents.length === 0 ? (
+              <option>No hay eventos disponibles</option>
+            ) : (
+              filteredEvents.map((event) => (
+                <option key={event.id} value={event.id}>
+                  {event.home_team} vs {event.away_team} - {event.sport_title}
+                </option>
+              ))
+            )}
           </select>
         </div>
       </div>
 
+      {/* Loading State */}
+      {loadingComparisons && (
+        <div className="mb-4 flex items-center gap-2 text-sm text-gray-400">
+          <div className="w-4 h-4 border-2 border-primary-400 border-t-transparent rounded-full animate-spin"></div>
+          <span>Cargando comparación de cuotas...</span>
+        </div>
+      )}
+
       {/* Live Indicator */}
-      <div className="mb-4 flex items-center gap-2 text-sm">
-        <span className="relative">
-          <span className="w-2 h-2 bg-accent-400 rounded-full animate-pulse"></span>
-          <span className="absolute top-0 left-0 w-2 h-2 bg-accent-400 rounded-full animate-ping opacity-75"></span>
-        </span>
-        <span className="text-gray-400">Actualizando cuotas en tiempo real</span>
-      </div>
+      {!loadingComparisons && currentEvent && (
+        <div className="mb-4 flex items-center gap-2 text-sm">
+          <span className="relative">
+            <span className="w-2 h-2 bg-accent-400 rounded-full animate-pulse"></span>
+            <span className="absolute top-0 left-0 w-2 h-2 bg-accent-400 rounded-full animate-ping opacity-75"></span>
+          </span>
+          <span className="text-gray-400">Actualizando cuotas en tiempo real</span>
+        </div>
+      )}
 
       {/* Comparison Table */}
-      <OddsComparisonTable event={currentEvent} odds={currentOdds} />
+      {currentEvent && oddsData.length > 0 ? (
+        <OddsComparisonTable
+          event={{
+            id: currentEvent.id,
+            homeTeam: currentEvent.home_team,
+            awayTeam: currentEvent.away_team,
+            sport: currentEvent.sport_title,
+          }}
+          odds={oddsData}
+        />
+      ) : currentEvent && !loadingComparisons ? (
+        <div className="bg-dark-800 rounded-xl p-8 text-center border border-primary-500/20">
+          <p className="text-gray-400">No hay cuotas disponibles para este evento</p>
+        </div>
+      ) : null}
 
       {/* Info Section */}
       <div className="mt-6 bg-primary-500/10 rounded-xl p-4 border border-primary-500/20">
@@ -312,10 +237,10 @@ export default function OddsComparison() {
           <li>• Las cuotas marcadas con ⭐ son las mejores disponibles</li>
           <li>• El valor positivo indica un value bet potencial</li>
           <li>• Compara siempre antes de apostar para maximizar ganancias</li>
-          <li>• Las cuotas se actualizan en tiempo real</li>
+          <li>• Las cuotas se actualizan automáticamente cada 30 segundos</li>
+          <li>• Datos en tiempo real de múltiples casas de apuestas</li>
         </ul>
       </div>
     </div>
   );
 }
-
