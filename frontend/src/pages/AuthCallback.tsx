@@ -18,10 +18,20 @@ export default function AuthCallback() {
 
   useEffect(() => {
     const handleCallback = async () => {
+      // Get all URL parameters
       const token = searchParams.get('token');
       const code = searchParams.get('code');
       const provider = searchParams.get('provider');
       const error = searchParams.get('error');
+      
+      // Log all parameters for debugging
+      console.log('🔍 AuthCallback - URL parameters:', {
+        token: token ? token.substring(0, 20) + '...' : null,
+        code: code ? code.substring(0, 20) + '...' : null,
+        provider,
+        error,
+        allParams: Object.fromEntries(searchParams.entries()),
+      });
 
       if (error) {
         let errorMessage = 'Error al autenticar con ' + (provider || 'OAuth');
@@ -121,42 +131,85 @@ export default function AuthCallback() {
         return;
       }
 
-      // No token or code
-      console.error('❌ No token or code received in callback');
-      console.error('Search params:', {
+      // No token or code - Check for existing Supabase session
+      console.log('ℹ️ No token or code in URL, checking for existing Supabase session...');
+      console.log('Search params:', {
         token: searchParams.get('token'),
         code: searchParams.get('code'),
         error: searchParams.get('error'),
         allParams: Object.fromEntries(searchParams.entries()),
       });
       
-      // Check if this is a Supabase callback that might have been handled
+      // Check if this is a Supabase callback that might have been handled automatically
       if (isSupabaseConfigured() && supabase) {
         // Try to get current session from Supabase
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          console.log('✅ Found existing Supabase session');
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('❌ Error getting Supabase session:', sessionError);
+        }
+        
+        if (session && session.user) {
+          console.log('✅ Found existing Supabase session:', {
+            userId: session.user.id,
+            email: session.user.email,
+          });
+          
           // User is already authenticated via Supabase
-          // Try to sync with backend
+          // Try to sync with backend first
           try {
+            console.log('🔄 Attempting to sync with backend...');
             const response = await api.post('/auth/supabase/sync', {
               supabaseUserId: session.user.id,
               email: session.user.email,
               metadata: session.user.user_metadata,
             });
+            
             if (response.data?.success && response.data?.data) {
               const { user, accessToken } = response.data.data;
+              console.log('✅ User synced with backend successfully');
               login(user, accessToken);
               toast.success('¡Bienvenido! Sesión restaurada');
               navigate('/dashboard');
               return;
             }
-          } catch (err) {
-            console.error('Error syncing existing session:', err);
+          } catch (err: any) {
+            console.warn('⚠️ Backend sync failed, using Supabase session directly:', {
+              message: err.message,
+              status: err.response?.status,
+              url: err.config?.url,
+            });
+            
+            // Backend not available - use Supabase session directly
+            const user = {
+              id: session.user.id,
+              email: session.user.email!,
+              firstName: session.user.user_metadata?.first_name || 
+                         session.user.user_metadata?.full_name?.split(' ')[0] || null,
+              lastName: session.user.user_metadata?.last_name || 
+                        session.user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || null,
+              role: 'USER' as const,
+            };
+            
+            // Use Supabase access token
+            const supabaseToken = session.access_token;
+            if (supabaseToken) {
+              console.log('✅ Using Supabase session directly (backend unavailable)');
+              login(user, supabaseToken);
+              toast.success('¡Bienvenido! Inicio de sesión exitoso');
+              navigate('/dashboard');
+              return;
+            } else {
+              console.error('❌ No access token in Supabase session');
+            }
           }
+        } else {
+          console.log('ℹ️ No existing Supabase session found');
         }
       }
       
+      // If we reach here, there's no session and no token/code
+      console.error('❌ No authentication data available');
       toast.error('No se recibió el token de autenticación. Por favor, intenta de nuevo.');
       navigate('/login');
     };
