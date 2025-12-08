@@ -11,8 +11,13 @@ class OAuthService {
    */
   async getGoogleAuthUrl(): Promise<string> {
     try {
+      console.log('Requesting OAuth URL from:', api.defaults.baseURL + '/oauth/google');
       const response = await api.get('/oauth/google');
       console.log('OAuth response:', response.data);
+      
+      if (!response || !response.data) {
+        throw new Error('No se recibió respuesta del servidor');
+      }
       
       if (response.data?.success && response.data?.data?.authUrl) {
         return response.data.data.authUrl;
@@ -23,6 +28,12 @@ class OAuthService {
         throw new Error(response.data.error.message || 'Error del servidor');
       }
       
+      // Check if response structure is unexpected
+      if (!response.data?.data) {
+        console.error('Unexpected response structure:', response.data);
+        throw new Error('La respuesta del servidor no tiene el formato esperado');
+      }
+      
       throw new Error('Respuesta inválida del servidor');
     } catch (error: any) {
       console.error('Error getting Google OAuth URL:', error);
@@ -31,7 +42,25 @@ class OAuthService {
         response: error.response?.data,
         status: error.response?.status,
         statusText: error.response?.statusText,
+        code: error.code,
+        config: {
+          url: error.config?.url,
+          baseURL: error.config?.baseURL,
+          method: error.config?.method,
+        },
       });
+      
+      // No response at all (network error, backend down, CORS)
+      if (!error.response) {
+        const apiUrl = api.defaults.baseURL || 'el servidor';
+        if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+          throw new Error(`No se pudo conectar con el servidor (${apiUrl}). Verifica que el backend esté corriendo.`);
+        }
+        if (error.code === 'ERR_CANCELED') {
+          throw new Error('La petición fue cancelada');
+        }
+        throw new Error(`No se pudo conectar con el servidor. Verifica que el backend esté corriendo en ${apiUrl}`);
+      }
       
       // Handle specific error cases
       if (error.response?.status === 503) {
@@ -53,11 +82,6 @@ class OAuthService {
       
       if (error.response?.data?.message) {
         throw new Error(error.response.data.message);
-      }
-      
-      // Network errors
-      if (error.message === 'Network Error' || error.code === 'ERR_NETWORK') {
-        throw new Error('No se pudo conectar con el servidor. Verifica tu conexión a internet.');
       }
       
       // Default error
