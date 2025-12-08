@@ -1,15 +1,51 @@
 /**
  * OAuth Service
  * Handles OAuth authentication flows
+ * Uses Supabase Auth if available, falls back to backend API
  */
 
 import api from './api';
+import { supabase, isSupabaseConfigured } from '../config/supabase';
 
 class OAuthService {
   /**
    * Get Google OAuth URL
+   * Uses Supabase Auth if configured, otherwise uses backend API
    */
   async getGoogleAuthUrl(): Promise<string> {
+    // Try Supabase Auth first
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        const frontendUrl = window.location.origin;
+        const callbackUrl = `${frontendUrl}/auth/callback`;
+
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: callbackUrl,
+            queryParams: {
+              access_type: 'offline',
+              prompt: 'consent',
+            },
+          },
+        });
+
+        if (error) {
+          console.error('Supabase OAuth error:', error);
+          throw error;
+        }
+
+        if (data.url) {
+          console.log('Using Supabase Auth for OAuth');
+          return data.url;
+        }
+      } catch (error: any) {
+        console.warn('Supabase OAuth failed, falling back to backend:', error);
+        // Fall through to backend implementation
+      }
+    }
+
+    // Fallback to backend API
     try {
       console.log('Requesting OAuth URL from:', api.defaults.baseURL + '/oauth/google');
       const response = await api.get('/oauth/google');

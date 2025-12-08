@@ -26,5 +26,8 @@ router.post('/forgot-password', authController.forgotPassword);
 // Reset password
 router.post('/reset-password', authController.resetPassword);
 
+// Sync Supabase user with our database
+router.post('/supabase/sync', authController.syncSupabaseUser);
+
 export default router;
 

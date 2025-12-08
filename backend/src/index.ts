@@ -31,7 +31,12 @@ initializeAPIFootballService();
 import { initializeStripeService } from './services/payments/stripe.service';
 initializeStripeService();
 
+// Initialize Supabase after dotenv.config()
+import { initializeSupabase } from './config/supabase';
+initializeSupabase();
+
 // Initialize Google OAuth service after dotenv.config()
+// Note: This will be replaced by Supabase Auth, but keeping for backward compatibility
 import { initializeGoogleOAuthService } from './services/oauth/google.service';
 initializeGoogleOAuthService();
 
