@@ -29,11 +29,25 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Handle network errors (backend not available)
+    if (!error.response) {
+      // Network error - backend might not be available
+      // Silently fail for demo mode, don't show error to user
+      console.warn('API request failed - backend may not be available:', error.message)
+      return Promise.reject(error)
+    }
+
     if (error.response?.status === 401) {
       // Unauthorized - logout user
       useAuthStore.getState().logout()
       window.location.href = '/login'
     }
+
+    // For 404 errors, log but don't show critical error
+    if (error.response?.status === 404) {
+      console.warn('API endpoint not found:', error.config?.url)
+    }
+
     return Promise.reject(error)
   }
 )
