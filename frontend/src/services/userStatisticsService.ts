@@ -36,10 +36,19 @@ export const userStatisticsService = {
   /**
    * Get current user statistics
    */
-  getMyStatistics: async (period?: 'week' | 'month' | 'year'): Promise<UserStatistics | null> => {
+  getMyStatistics: async (period?: 'week' | 'month' | 'year' | 'monthly'): Promise<UserStatistics | null> => {
     try {
-      const { data } = await api.get('/statistics/my-statistics', {
-        params: { period },
+      // Map frontend period to backend period
+      const periodMap: Record<string, string> = {
+        week: 'weekly',
+        month: 'monthly',
+        year: 'all_time',
+        monthly: 'monthly',
+      };
+      const backendPeriod = period ? periodMap[period] || 'all_time' : 'all_time';
+      
+      const { data } = await api.get('/statistics', {
+        params: { period: backendPeriod },
       });
       return data.data as UserStatistics;
     } catch (error) {
@@ -70,12 +79,21 @@ export const userStatisticsService = {
   /**
    * Get statistics breakdown by sport
    */
-  getStatisticsBySport: async (period?: 'week' | 'month' | 'year'): Promise<any> => {
+  getStatisticsBySport: async (period?: 'week' | 'month' | 'year' | 'monthly'): Promise<any> => {
     try {
+      // Map frontend period to backend period
+      const periodMap: Record<string, string> = {
+        week: 'weekly',
+        month: 'monthly',
+        year: 'all_time',
+        monthly: 'monthly',
+      };
+      const backendPeriod = period ? periodMap[period] || 'all_time' : 'all_time';
+      
       const { data } = await api.get('/statistics/by-sport', {
-        params: { period },
+        params: { period: backendPeriod },
       });
-      return data.data;
+      return data.data || {};
     } catch (error) {
       console.error('Error fetching statistics by sport:', error);
       return {};
@@ -85,12 +103,21 @@ export const userStatisticsService = {
   /**
    * Get statistics breakdown by platform
    */
-  getStatisticsByPlatform: async (period?: 'week' | 'month' | 'year'): Promise<any> => {
+  getStatisticsByPlatform: async (period?: 'week' | 'month' | 'year' | 'monthly'): Promise<any> => {
     try {
+      // Map frontend period to backend period
+      const periodMap: Record<string, string> = {
+        week: 'weekly',
+        month: 'monthly',
+        year: 'all_time',
+        monthly: 'monthly',
+      };
+      const backendPeriod = period ? periodMap[period] || 'all_time' : 'all_time';
+      
       const { data } = await api.get('/statistics/by-platform', {
-        params: { period },
+        params: { period: backendPeriod },
       });
-      return data.data;
+      return data.data || {};
     } catch (error) {
       console.error('Error fetching statistics by platform:', error);
       return {};

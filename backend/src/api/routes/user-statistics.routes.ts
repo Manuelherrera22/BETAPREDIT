@@ -9,6 +9,8 @@ router.use(authenticate);
 
 router.get('/', userStatisticsController.getMyStatistics.bind(userStatisticsController));
 router.post('/recalculate', userStatisticsController.recalculateStatistics.bind(userStatisticsController));
+router.get('/by-sport', userStatisticsController.getStatisticsBySport.bind(userStatisticsController));
+router.get('/by-platform', userStatisticsController.getStatisticsByPlatform.bind(userStatisticsController));
 
 export default router;
 

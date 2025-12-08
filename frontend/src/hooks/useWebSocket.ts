@@ -6,7 +6,14 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from '../store/authStore';
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+// Extract base URL without /api suffix
+const getSocketUrl = () => {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  // Remove /api if present
+  return apiUrl.replace(/\/api$/, '');
+};
+
+const SOCKET_URL = getSocketUrl();
 
 interface UseWebSocketOptions {
   autoConnect?: boolean;

@@ -313,24 +313,36 @@ class ArbitrageService {
     try {
       const { minProfitMargin = 0.01, sport, limit = 50 } = options;
 
-      // Get recent events
-      const events = await prisma.event.findMany({
-        where: {
-          startTime: { gte: new Date() },
-          ...(sport && {
-            sport: {
-              slug: sport,
-            },
-          }),
-        },
-        include: {
-          sport: true,
-        },
-        take: limit * 2, // Get more events to find opportunities
-        orderBy: {
-          startTime: 'asc',
-        },
-      });
+      // Check if database is available
+      let events: any[] = [];
+      try {
+        events = await prisma.event.findMany({
+          where: {
+            startTime: { gte: new Date() },
+            ...(sport && {
+              sport: {
+                slug: sport,
+              },
+            }),
+          },
+          include: {
+            sport: true,
+          },
+          take: limit * 2, // Get more events to find opportunities
+          orderBy: {
+            startTime: 'asc',
+          },
+        });
+      } catch (dbError: any) {
+        logger.warn('Database not available or no events found, returning empty array:', dbError.message);
+        return [];
+      }
+
+      // If no events, return empty array
+      if (!events || events.length === 0) {
+        logger.info('No events found for arbitrage detection');
+        return [];
+      }
 
       const allOpportunities: ArbitrageOpportunity[] = [];
 
@@ -342,9 +354,11 @@ class ArbitrageService {
             'h2h',
             minProfitMargin
           );
-          allOpportunities.push(...opportunities);
-        } catch (error) {
-          logger.warn(`Error checking arbitrage for event ${event.id}:`, error);
+          if (opportunities && opportunities.length > 0) {
+            allOpportunities.push(...opportunities);
+          }
+        } catch (error: any) {
+          logger.warn(`Error checking arbitrage for event ${event.id}:`, error.message);
           continue;
         }
       }
@@ -355,7 +369,8 @@ class ArbitrageService {
       return allOpportunities.slice(0, limit);
     } catch (error: any) {
       logger.error('Error getting active opportunities:', error);
-      throw new AppError('Failed to get arbitrage opportunities', 500);
+      // Return empty array instead of throwing error
+      return [];
     }
   }
 
