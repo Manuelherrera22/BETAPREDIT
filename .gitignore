@@ -15,6 +15,10 @@ dist/
 build/
 *.tsbuildinfo
 
+# Frontend build
+frontend/dist/
+frontend/build/
+
 # Environment variables
 .env
 .env.local
