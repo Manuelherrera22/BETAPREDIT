@@ -172,13 +172,15 @@ class SupabaseAuthService {
   /**
    * Get Google OAuth URL using Supabase
    */
-  getGoogleAuthUrl(redirectTo?: string): string {
+  async getGoogleAuthUrl(redirectTo?: string): Promise<string> {
     if (!isSupabaseConfigured()) {
       throw new AppError('Supabase Auth not configured', 503);
     }
 
     const supabase = getSupabaseClient();
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    // Use FRONTEND_URL from env, or detect from environment, or default to localhost
+    const frontendUrl = process.env.FRONTEND_URL || 
+                        (process.env.NODE_ENV === 'production' ? 'https://betapredit.com' : 'http://localhost:5173');
     const callbackUrl = redirectTo || `${frontendUrl}/auth/callback`;
 
     // Generate OAuth URL using Supabase
