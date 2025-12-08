@@ -33,7 +33,6 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   const [lastMessage, setLastMessage] = useState<any>(null);
   const token = useAuthStore((state) => state.token);
   const channelsRef = useRef<string[]>(channels);
-  const listenerIdRef = useRef<string>(Math.random().toString(36));
 
   // Update channels ref when they change
   useEffect(() => {
@@ -198,15 +197,6 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       globalSocket.disconnect();
       globalSocket = null;
       connectionListeners.forEach((listener) => listener(false));
-    }
-  }, []);
-
-  // Disconnect from WebSocket
-  const disconnect = useCallback(() => {
-    if (socketRef.current) {
-      socketRef.current.disconnect();
-      socketRef.current = null;
-      setIsConnected(false);
     }
   }, []);
 

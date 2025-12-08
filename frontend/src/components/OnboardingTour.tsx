@@ -4,7 +4,6 @@
  */
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 interface TourStep {
   id: string;
@@ -26,7 +25,6 @@ interface OnboardingTourProps {
 export default function OnboardingTour({ onComplete, skipOnboarding = false }: OnboardingTourProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [isVisible, setIsVisible] = useState(!skipOnboarding);
-  const navigate = useNavigate();
 
   const steps: TourStep[] = [
     {
