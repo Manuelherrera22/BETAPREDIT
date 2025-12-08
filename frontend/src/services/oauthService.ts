@@ -38,15 +38,32 @@ class OAuthService {
 
         if (data.url) {
           console.log('Using Supabase Auth for OAuth');
+          console.log('OAuth URL:', data.url);
+          console.log('Callback URL:', callbackUrl);
           return data.url;
+        } else {
+          throw new Error('No OAuth URL returned from Supabase');
         }
       } catch (error: any) {
-        console.warn('Supabase OAuth failed, falling back to backend:', error);
-        // Fall through to backend implementation
+        console.error('Supabase OAuth error:', error);
+        console.error('Error details:', {
+          message: error.message,
+          code: error.code,
+          status: error.status,
+        });
+        
+        // If Supabase is configured, don't fallback to backend
+        // The error should be shown to the user
+        if (isSupabaseConfigured()) {
+          throw new Error(`Error con Supabase Auth: ${error.message || 'Error desconocido'}`);
+        }
+        
+        console.warn('Supabase not configured, falling back to backend');
+        // Fall through to backend implementation only if Supabase is not configured
       }
     }
 
-    // Fallback to backend API
+    // Fallback to backend API (only if Supabase is not configured)
     try {
       console.log('Requesting OAuth URL from:', api.defaults.baseURL + '/oauth/google');
       const response = await api.get('/oauth/google');
