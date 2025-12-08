@@ -19,14 +19,22 @@ class GoogleOAuthService {
   initialize() {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    const redirectUri = process.env.GOOGLE_REDIRECT_URI;
+    // Use environment variable or construct from BACKEND_URL
+    const redirectUri = process.env.GOOGLE_REDIRECT_URI || 
+      (process.env.BACKEND_URL ? `${process.env.BACKEND_URL}/api/oauth/google/callback` : undefined);
 
     if (clientId && clientSecret && redirectUri) {
       this.client = new OAuth2Client(clientId, clientSecret, redirectUri);
-      logger.info('Google OAuth service initialized');
+      logger.info('Google OAuth service initialized', {
+        redirectUri,
+        clientId: clientId.substring(0, 10) + '...', // Log partial ID for security
+      });
     } else {
       logger.warn('Google OAuth not configured. Missing environment variables.');
       logger.warn(`Client ID: ${clientId ? '✓' : '✗'}, Secret: ${clientSecret ? '✓' : '✗'}, Redirect: ${redirectUri ? '✓' : '✗'}`);
+      if (!redirectUri) {
+        logger.warn('GOOGLE_REDIRECT_URI not set. Set it manually or configure BACKEND_URL.');
+      }
     }
   }
 

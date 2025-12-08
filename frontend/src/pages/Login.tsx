@@ -7,12 +7,6 @@ import SportPattern from '../components/SportPattern'
 import SportIcon from '../components/SportIcon'
 import { oauthService } from '../services/oauthService'
 
-// Credenciales demo predefinidas
-const DEMO_ACCOUNTS = [
-  { email: 'demo@betapredit.com', password: 'demo123', label: 'Cuenta Demo Estándar' },
-  { email: 'admin@betapredit.com', password: 'admin123', label: 'Cuenta Admin' },
-  { email: 'trader@betapredit.com', password: 'trader123', label: 'Cuenta Trader' },
-]
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -38,22 +32,6 @@ export default function Login() {
     }
   }
 
-  const handleDemoLogin = async (demoEmail: string, demoPassword: string) => {
-    setEmail(demoEmail)
-    setPassword(demoPassword)
-    setLoading(true)
-
-    try {
-      const { data } = await api.post('/auth/login', { email: demoEmail, password: demoPassword })
-      login(data.data.user, data.data.accessToken)
-      toast.success('Inicio de sesión exitoso')
-      navigate('/dashboard')
-    } catch (error: any) {
-      toast.error(error.response?.data?.error?.message || 'Error al iniciar sesión')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleGoogleLogin = async () => {
     try {
@@ -72,24 +50,7 @@ export default function Login() {
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent-600/10 rounded-full blur-3xl"></div>
       </div>
       
-      <div className="max-w-md w-full space-y-4">
-        {/* Banner de Modo Demo */}
-        <div className="bg-gradient-to-r from-accent-500/20 via-gold-500/20 to-primary-500/20 border border-accent-400/30 rounded-2xl p-4 backdrop-blur-sm">
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 rounded-full bg-accent-500/20 flex items-center justify-center">
-                <div className="w-3 h-3 bg-accent-400 rounded-full animate-pulse"></div>
-              </div>
-            </div>
-            <div className="flex-1">
-              <h3 className="text-sm font-bold text-white mb-1">Modo Demo Activo</h3>
-              <p className="text-xs text-gray-300 leading-relaxed">
-                Puedes iniciar sesión con cualquier email y contraseña. El sistema creará tu cuenta automáticamente.
-              </p>
-            </div>
-          </div>
-        </div>
-
+      <div className="max-w-md w-full">
         <div className="bg-slate-900/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-primary-500/20 p-8 sm:p-10">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-500 via-primary-600 to-primary-700 mb-5 shadow-xl shadow-primary-500/30">
@@ -102,31 +63,6 @@ export default function Login() {
               </span>
             </h1>
             <p className="text-gray-400 font-medium">Inicia sesión en tu cuenta</p>
-          </div>
-
-          {/* Acceso Rápido Demo */}
-          <div className="mb-6">
-            <p className="text-xs text-gray-400 mb-3 font-medium uppercase tracking-wider">Acceso Rápido Demo</p>
-            <div className="grid grid-cols-1 gap-2">
-              {DEMO_ACCOUNTS.map((account, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleDemoLogin(account.email, account.password)}
-                  disabled={loading}
-                  className="w-full px-4 py-2.5 bg-slate-800/50 hover:bg-slate-700/50 border border-slate-600/50 hover:border-primary-500/50 text-left rounded-lg transition-all duration-200 group disabled:opacity-50"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-white group-hover:text-primary-300 transition-colors">
-                        {account.label}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-0.5">{account.email}</p>
-                    </div>
-                    <span className="text-primary-400 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
-                  </div>
-                </button>
-              ))}
-            </div>
           </div>
 
           {/* Google OAuth Button */}

@@ -70,24 +70,7 @@ export default function Register() {
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent-600/10 rounded-full blur-3xl"></div>
       </div>
       
-      <div className="max-w-md w-full space-y-4">
-        {/* Banner de Modo Demo */}
-        <div className="bg-gradient-to-r from-accent-500/20 via-gold-500/20 to-primary-500/20 border border-accent-400/30 rounded-2xl p-4 backdrop-blur-sm">
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 rounded-full bg-accent-500/20 flex items-center justify-center">
-                <div className="w-3 h-3 bg-accent-400 rounded-full animate-pulse"></div>
-              </div>
-            </div>
-            <div className="flex-1">
-              <h3 className="text-sm font-bold text-white mb-1">Modo Demo Activo</h3>
-              <p className="text-xs text-gray-300 leading-relaxed">
-                Crea tu cuenta con cualquier email. No se requiere verificación. Tu cuenta se creará automáticamente.
-              </p>
-            </div>
-          </div>
-        </div>
-
+      <div className="max-w-md w-full">
         <div className="bg-slate-900/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-primary-500/20 p-8 sm:p-10">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-500 via-primary-600 to-primary-700 mb-5 shadow-xl shadow-primary-500/30">

@@ -35,29 +35,28 @@ class OAuthController {
     try {
       const { code, error } = req.query;
 
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
       if (error) {
         logger.error('Google OAuth error:', error);
-        return res.redirect(
-          `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=oauth_failed`
-        );
+        return res.redirect(`${frontendUrl}/login?error=oauth_failed`);
       }
 
       if (!code || typeof code !== 'string') {
-        return res.redirect(
-          `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=no_code`
-        );
+        logger.warn('Google OAuth callback called without code');
+        return res.redirect(`${frontendUrl}/login?error=no_code`);
       }
 
       // Authenticate user
       const result = await googleOAuthService.authenticate(code);
 
       // Redirect to frontend with tokens
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
       const redirectUrl = new URL(`${frontendUrl}/auth/callback`);
       redirectUrl.searchParams.set('token', result.accessToken);
       redirectUrl.searchParams.set('refreshToken', result.refreshToken);
       redirectUrl.searchParams.set('provider', 'google');
 
+      logger.info('Google OAuth successful, redirecting to frontend');
       res.redirect(redirectUrl.toString());
     } catch (error: any) {
       logger.error('Error in Google OAuth callback:', error);
