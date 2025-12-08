@@ -16,6 +16,7 @@ class OAuthService {
     // Try Supabase Auth first
     if (isSupabaseConfigured() && supabase) {
       try {
+        // Use current origin (works for both localhost and production)
         const frontendUrl = window.location.origin;
         const callbackUrl = `${frontendUrl}/auth/callback`;
 
