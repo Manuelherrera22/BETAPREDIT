@@ -15,8 +15,12 @@ class OAuthController {
    */
   async initiateGoogle(req: Request, res: Response, next: NextFunction) {
     try {
+      logger.info('Google OAuth initiation requested');
       const authUrl = googleOAuthService.getAuthUrl();
-      logger.info('Google OAuth URL generated successfully');
+      logger.info('Google OAuth URL generated successfully', { 
+        urlLength: authUrl.length,
+        hasClient: !!googleOAuthService['client']
+      });
       res.json({
         success: true,
         data: {
@@ -24,18 +28,31 @@ class OAuthController {
         },
       });
     } catch (error: any) {
-      logger.error('Error generating Google OAuth URL:', error);
+      logger.error('Error generating Google OAuth URL:', {
+        message: error.message,
+        statusCode: error.statusCode,
+        stack: error.stack,
+      });
+      
       // Return a more descriptive error
-      if (error.statusCode === 503) {
+      if (error.statusCode === 503 || error.message?.includes('not configured')) {
         return res.status(503).json({
           success: false,
           error: {
-            message: 'Google OAuth no está configurado. Por favor, contacta al administrador.',
+            message: 'Google OAuth no está configurado. Verifica las variables de entorno: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI',
             code: 'OAUTH_NOT_CONFIGURED',
           },
         });
       }
-      next(error);
+      
+      // Return error response instead of using next()
+      return res.status(500).json({
+        success: false,
+        error: {
+          message: error.message || 'Error al generar URL de OAuth',
+          code: 'OAUTH_ERROR',
+        },
+      });
     }
   }
 
