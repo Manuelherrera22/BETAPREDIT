@@ -45,16 +45,22 @@ class UserStatisticsService {
         where.betPlacedAt.lte = periodEnd;
       }
 
-      const bets = await prisma.externalBet.findMany({
-        where,
-        include: {
-          event: {
-            include: {
-              sport: true,
+      let bets;
+      try {
+        bets = await prisma.externalBet.findMany({
+          where,
+          include: {
+            event: {
+              include: {
+                sport: true,
+              },
             },
           },
-        },
-      });
+        });
+      } catch (dbError: any) {
+        logger.warn(`Database error fetching bets for user ${userId}:`, dbError.message);
+        bets = [];
+      }
 
       // Calculate statistics
       const totalBets = bets.length;
