@@ -59,8 +59,12 @@ class UserStatisticsController {
         success: true, 
         data: stats?.statsBySport || {} 
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      console.error('Error in getStatisticsBySport:', error);
+      res.json({ 
+        success: true, 
+        data: {} 
+      });
     }
   }
 
@@ -81,8 +85,12 @@ class UserStatisticsController {
         success: true, 
         data: stats?.statsByPlatform || {} 
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      console.error('Error in getStatisticsByPlatform:', error);
+      res.json({ 
+        success: true, 
+        data: {} 
+      });
     }
   }
 }

@@ -17,9 +17,12 @@ interface PerformanceHeatmapProps {
 }
 
 export default function PerformanceHeatmap({ data }: PerformanceHeatmapProps) {
+  // Validate data is an array
+  const safeData = Array.isArray(data) ? data : [];
+  
   const days = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
   const times = ['00-06', '06-12', '12-18', '18-24'];
-  const sports = Array.from(new Set(data.map(d => d.sport)));
+  const sports = Array.from(new Set(safeData.map(d => d.sport)));
 
   const getColor = (value: number) => {
     if (value >= 15) return 'bg-green-500';
@@ -30,7 +33,7 @@ export default function PerformanceHeatmap({ data }: PerformanceHeatmapProps) {
   };
 
   const getValue = (sport: string, day: string, time: string) => {
-    const item = data.find(
+    const item = safeData.find(
       d => d.sport === sport && d.dayOfWeek === day && d.timeOfDay === time
     );
     return item?.roi || 0;
@@ -41,7 +44,7 @@ export default function PerformanceHeatmap({ data }: PerformanceHeatmapProps) {
       <h3 className="text-xl font-black text-white mb-4">Heatmap de Rendimiento</h3>
       <div className="overflow-x-auto">
         <div className="space-y-4">
-          {sports.map(sport => (
+          {sports.length > 0 ? sports.map(sport => (
             <div key={sport} className="min-w-[600px]">
               <h4 className="text-sm font-semibold text-gray-400 mb-2">{sport}</h4>
               <div className="grid grid-cols-8 gap-1">
@@ -75,7 +78,11 @@ export default function PerformanceHeatmap({ data }: PerformanceHeatmapProps) {
                 ))}
               </div>
             </div>
-          ))}
+          )) : (
+            <div className="text-center py-8 text-gray-400">
+              <p>No hay datos disponibles para el heatmap</p>
+            </div>
+          )}
         </div>
       </div>
       <div className="mt-4 flex items-center gap-4 text-xs text-gray-400">

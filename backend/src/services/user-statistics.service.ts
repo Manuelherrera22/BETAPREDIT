@@ -274,43 +274,61 @@ class UserStatisticsService {
     userId: string,
     period: 'daily' | 'weekly' | 'monthly' | 'all_time'
   ) {
-    const now = new Date();
-    let periodStart: Date;
+    try {
+      const now = new Date();
+      let periodStart: Date;
 
-    if (period === 'daily') {
-      periodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    } else if (period === 'weekly') {
-      const dayOfWeek = now.getDay();
-      periodStart = new Date(
-        now.getTime() - dayOfWeek * 24 * 60 * 60 * 1000
-      );
-      periodStart.setHours(0, 0, 0, 0);
-    } else if (period === 'monthly') {
-      periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    } else {
-      periodStart = new Date(0);
+      if (period === 'daily') {
+        periodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      } else if (period === 'weekly') {
+        const dayOfWeek = now.getDay();
+        periodStart = new Date(
+          now.getTime() - dayOfWeek * 24 * 60 * 60 * 1000
+        );
+        periodStart.setHours(0, 0, 0, 0);
+      } else if (period === 'monthly') {
+        periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      } else {
+        periodStart = new Date(0);
+      }
+
+      let statistics;
+      try {
+        statistics = await prisma.userStatistics.findUnique({
+          where: {
+            userId_period_periodStart: {
+              userId,
+              period,
+              periodStart,
+            },
+          },
+        });
+      } catch (dbError: any) {
+        logger.warn(`Database error fetching statistics for user ${userId}:`, dbError.message);
+        // Return null to trigger recalculation
+        statistics = null;
+      }
+
+      // If not found or outdated, recalculate
+      if (
+        !statistics ||
+        !statistics.lastUpdated ||
+        now.getTime() - statistics.lastUpdated.getTime() > 5 * 60 * 1000 // 5 minutes
+      ) {
+        try {
+          statistics = await this.calculateUserStatistics(userId, period);
+        } catch (calcError: any) {
+          logger.error(`Error calculating statistics for user ${userId}:`, calcError);
+          // Return null if calculation fails
+          return null;
+        }
+      }
+
+      return statistics;
+    } catch (error: any) {
+      logger.error('Error in getUserStatistics:', error);
+      return null;
     }
-
-    let statistics = await prisma.userStatistics.findUnique({
-      where: {
-        userId_period_periodStart: {
-          userId,
-          period,
-          periodStart,
-        },
-      },
-    });
-
-    // If not found or outdated, recalculate
-    if (
-      !statistics ||
-      !statistics.lastUpdated ||
-      now.getTime() - statistics.lastUpdated.getTime() > 5 * 60 * 1000 // 5 minutes
-    ) {
-      statistics = await this.calculateUserStatistics(userId, period);
-    }
-
-    return statistics;
   }
 }
 
