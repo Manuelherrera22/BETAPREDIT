@@ -34,15 +34,23 @@ export default function Arbitrage() {
     socket.emit('subscribe:arbitrage', { sport: filters.sport || undefined });
 
     const handleArbitrageOpportunity = (opportunity: ArbitrageOpportunity) => {
+      // Validate opportunity structure
+      if (!opportunity || !opportunity.id || !opportunity.selections || !Array.isArray(opportunity.selections)) {
+        console.warn('Invalid arbitrage opportunity received:', opportunity);
+        return;
+      }
+
       setOpportunities((prev) => {
+        // Ensure prev is always an array
+        const safePrev = Array.isArray(prev) ? prev : [];
         // Check if opportunity already exists
-        const exists = prev.find((o) => o.id === opportunity.id);
+        const exists = safePrev.find((o) => o.id === opportunity.id);
         if (exists) {
           // Update existing
-          return prev.map((o) => (o.id === opportunity.id ? opportunity : o));
+          return safePrev.map((o) => (o.id === opportunity.id ? opportunity : o));
         }
         // Add new at the beginning
-        return [opportunity, ...prev].slice(0, 50); // Keep max 50
+        return [opportunity, ...safePrev].slice(0, 50); // Keep max 50
       });
     };
 
@@ -63,10 +71,12 @@ export default function Arbitrage() {
         sport: filters.sport || undefined,
         limit: 50,
       });
-      setOpportunities(data);
+      // Ensure data is always an array
+      setOpportunities(Array.isArray(data) ? data : []);
     } catch (err: any) {
       console.error('Error fetching opportunities:', err);
       setError('Error al cargar oportunidades de arbitraje');
+      setOpportunities([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -174,14 +184,16 @@ export default function Arbitrage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-gradient-to-br from-primary-500/20 to-primary-600/20 rounded-xl p-4 border border-primary-500/30">
             <div className="text-sm text-gray-400 mb-1">Oportunidades</div>
-            <div className="text-2xl font-black text-white">{opportunities.length}</div>
+            <div className="text-2xl font-black text-white">
+              {Array.isArray(opportunities) ? opportunities.length : 0}
+            </div>
           </div>
           <div className="bg-gradient-to-br from-accent-500/20 to-accent-600/20 rounded-xl p-4 border border-accent-500/30">
             <div className="text-sm text-gray-400 mb-1">Margen Promedio</div>
             <div className="text-2xl font-black text-white">
-              {opportunities.length > 0
+              {Array.isArray(opportunities) && opportunities.length > 0
                 ? formatProfitMargin(
-                    opportunities.reduce((sum, o) => sum + o.profitMargin, 0) / opportunities.length
+                    opportunities.reduce((sum, o) => sum + (o?.profitMargin || 0), 0) / opportunities.length
                   )
                 : '0.00'}
               %
@@ -190,7 +202,9 @@ export default function Arbitrage() {
           <div className="bg-gradient-to-br from-green-500/20 to-green-600/20 rounded-xl p-4 border border-green-500/30">
             <div className="text-sm text-gray-400 mb-1">Mejor Oportunidad</div>
             <div className="text-2xl font-black text-white">
-              {opportunities.length > 0 ? formatProfitMargin(opportunities[0].profitMargin) : '0.00'}%
+              {Array.isArray(opportunities) && opportunities.length > 0 && opportunities[0]?.profitMargin
+                ? formatProfitMargin(opportunities[0].profitMargin)
+                : '0.00'}%
             </div>
           </div>
           <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-xl p-4 border border-purple-500/30">
@@ -206,7 +220,7 @@ export default function Arbitrage() {
           <div className="text-center py-12 text-gray-400">Cargando oportunidades...</div>
         ) : error ? (
           <div className="text-center py-12 text-red-400">{error}</div>
-        ) : opportunities.length === 0 ? (
+        ) : !Array.isArray(opportunities) || opportunities.length === 0 ? (
           <div className="text-center py-12 text-gray-400">
             No se encontraron oportunidades de arbitraje con los filtros seleccionados
           </div>
@@ -237,17 +251,21 @@ export default function Arbitrage() {
 
                     {/* Selections */}
                     <div className="flex flex-wrap gap-2">
-                      {opportunity.selections.map((sel, idx) => (
-                        <div
-                          key={idx}
-                          className="px-3 py-1 bg-dark-800 border border-primary-500/30 rounded-lg text-sm"
-                        >
-                          <span className="text-white font-semibold">{sel.selection}</span>
-                          <span className="text-gray-400 mx-2">@</span>
-                          <span className="text-accent-400 font-bold">{sel.odds.toFixed(2)}</span>
-                          <span className="text-gray-500 text-xs ml-2">({sel.bookmaker})</span>
-                        </div>
-                      ))}
+                      {Array.isArray(opportunity.selections) && opportunity.selections.length > 0
+                        ? opportunity.selections.map((sel, idx) => (
+                            <div
+                              key={idx}
+                              className="px-3 py-1 bg-dark-800 border border-primary-500/30 rounded-lg text-sm"
+                            >
+                              <span className="text-white font-semibold">{sel?.selection || 'N/A'}</span>
+                              <span className="text-gray-400 mx-2">@</span>
+                              <span className="text-accent-400 font-bold">
+                                {sel?.odds ? sel.odds.toFixed(2) : 'N/A'}
+                              </span>
+                              <span className="text-gray-500 text-xs ml-2">({sel?.bookmaker || 'N/A'})</span>
+                            </div>
+                          ))
+                        : <span className="text-gray-400 text-sm">No hay selecciones disponibles</span>}
                     </div>
                   </div>
 
@@ -310,52 +328,56 @@ export default function Arbitrage() {
               </div>
 
               <div className="space-y-4 mb-6">
-                {stakes.map((stake, idx) => (
-                  <div
-                    key={idx}
-                    className="bg-dark-800 rounded-lg p-4 border border-primary-500/20"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-semibold text-white">{stake.selection}</div>
-                        <div className="text-sm text-gray-400">
-                          {stake.bookmaker} @ {stake.odds.toFixed(2)}
+                {Array.isArray(stakes) && stakes.length > 0
+                  ? stakes.map((stake, idx) => (
+                      <div
+                        key={idx}
+                        className="bg-dark-800 rounded-lg p-4 border border-primary-500/20"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-semibold text-white">{stake?.selection || 'N/A'}</div>
+                            <div className="text-sm text-gray-400">
+                              {stake?.bookmaker || 'N/A'} @ {stake?.odds ? stake.odds.toFixed(2) : 'N/A'}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-lg font-bold text-accent-400">
+                              {formatCurrency(stake?.stake || 0)}
+                            </div>
+                            <div className="text-sm text-gray-400">
+                              Retorno: {formatCurrency(stake?.potentialReturn || 0)}
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-lg font-bold text-accent-400">
-                          {formatCurrency(stake.stake)}
-                        </div>
-                        <div className="text-sm text-gray-400">
-                          Retorno: {formatCurrency(stake.potentialReturn)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                    ))
+                  : <div className="text-center text-gray-400 py-4">No hay stakes calculados</div>}
               </div>
 
-              <div className="bg-green-500/20 border border-green-500/30 rounded-lg p-4 mb-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-sm text-gray-400 mb-1">Stake Total</div>
-                    <div className="text-xl font-bold text-white">
-                      {formatCurrency(
-                        stakes.reduce((sum, s) => sum + s.stake, 0)
-                      )}
+              {Array.isArray(stakes) && stakes.length > 0 && (
+                <div className="bg-green-500/20 border border-green-500/30 rounded-lg p-4 mb-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm text-gray-400 mb-1">Stake Total</div>
+                      <div className="text-xl font-bold text-white">
+                        {formatCurrency(
+                          stakes.reduce((sum, s) => sum + (s?.stake || 0), 0)
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm text-gray-400 mb-1">Ganancia Garantizada</div>
-                    <div className="text-xl font-bold text-green-400">
-                      {formatCurrency(
-                        stakes.reduce((sum, s) => sum + s.potentialReturn, 0) -
-                          stakes.reduce((sum, s) => sum + s.stake, 0)
-                      )}
+                    <div className="text-right">
+                      <div className="text-sm text-gray-400 mb-1">Ganancia Garantizada</div>
+                      <div className="text-xl font-bold text-green-400">
+                        {formatCurrency(
+                          stakes.reduce((sum, s) => sum + (s?.potentialReturn || 0), 0) -
+                            stakes.reduce((sum, s) => sum + (s?.stake || 0), 0)
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               <button
                 onClick={() => {
