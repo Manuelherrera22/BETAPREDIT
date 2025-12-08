@@ -43,8 +43,12 @@ export default function Alerts() {
         // Cargar notificaciones
         const notifications = await notificationsService.getMyNotifications({ read: false, limit: 50 });
 
+        // Validar que sean arrays
+        const safeValueBetAlerts = Array.isArray(valueBetAlerts) ? valueBetAlerts : [];
+        const safeNotifications = Array.isArray(notifications) ? notifications : [];
+
         // Convertir value bet alerts a formato de alerta
-        const valueBetAlertsFormatted: Alert[] = valueBetAlerts.map(alert => ({
+        const valueBetAlertsFormatted: Alert[] = safeValueBetAlerts.map(alert => ({
           id: alert.id,
           type: 'value_bet' as const,
           title: 'Value Bet Detectado',
@@ -58,7 +62,7 @@ export default function Alerts() {
         }));
 
         // Convertir notificaciones a formato de alerta
-        const notificationsFormatted: Alert[] = notifications.map(notif => ({
+        const notificationsFormatted: Alert[] = safeNotifications.map(notif => ({
           id: notif.id,
           type: (notif.type === 'VALUE_BET_DETECTED' ? 'value_bet' :
                  notif.type === 'ODDS_CHANGED' ? 'odds_change' :

@@ -297,7 +297,7 @@ export default function Statistics() {
       <div className="mt-8 space-y-6">
         {/* Trend Analysis */}
         <TrendAnalysis
-          data={statsByPeriod.map((stat, index) => ({
+          data={Array.isArray(statsByPeriod) && statsByPeriod.length > 0 ? statsByPeriod.map((stat, index) => ({
             period: timeRange === 'week' 
               ? `Sem ${index + 1}`
               : timeRange === 'month'
@@ -307,7 +307,7 @@ export default function Statistics() {
             winRate: stat.winRate || 0,
             betCount: stat.totalBets || 0,
             trend: 'stable' as const,
-          }))}
+          })) : []}
           currentRoi={currentStats.roi}
           currentWinRate={currentStats.winRate}
         />

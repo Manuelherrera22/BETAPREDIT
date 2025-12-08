@@ -50,10 +50,15 @@ export const valueBetAlertsService = {
     minValue?: number;
     sportId?: string;
   }): Promise<ValueBetAlert[]> => {
-    const { data } = await api.get('/value-bet-alerts/my-alerts', {
-      params: filters,
-    });
-    return data.data as ValueBetAlert[];
+    try {
+      const { data } = await api.get('/value-bet-alerts/my-alerts', {
+        params: filters,
+      });
+      return Array.isArray(data?.data) ? data.data : [];
+    } catch (error) {
+      console.error('Error fetching value bet alerts:', error);
+      return [];
+    }
   },
 
   /**

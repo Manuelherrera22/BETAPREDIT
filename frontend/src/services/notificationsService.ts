@@ -31,10 +31,15 @@ export const notificationsService = {
     type?: string;
     limit?: number;
   }): Promise<Notification[]> => {
-    const { data } = await api.get('/notifications/my-notifications', {
-      params: filters,
-    });
-    return data.data as Notification[];
+    try {
+      const { data } = await api.get('/notifications/my-notifications', {
+        params: filters,
+      });
+      return Array.isArray(data?.data) ? data.data : [];
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      return [];
+    }
   },
 
   /**
