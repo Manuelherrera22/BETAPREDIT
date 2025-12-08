@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
+import { disconnectWebSocket } from '../hooks/useWebSocket'
 
 interface User {
   id: string
@@ -26,8 +27,10 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       login: (user, token) =>
         set({ user, token, isAuthenticated: true }),
-      logout: () =>
-        set({ user: null, token: null, isAuthenticated: false }),
+      logout: () => {
+        disconnectWebSocket()
+        set({ user: null, token: null, isAuthenticated: false })
+      },
       setUser: (user) => set({ user }),
     }),
     {

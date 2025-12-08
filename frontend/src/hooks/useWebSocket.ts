@@ -1,6 +1,7 @@
 /**
  * WebSocket Hook
  * Manages Socket.IO connection for real-time updates
+ * Uses singleton pattern to prevent multiple connections
  */
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
@@ -15,6 +16,12 @@ const getSocketUrl = () => {
 
 const SOCKET_URL = getSocketUrl();
 
+// Singleton socket instance
+let globalSocket: Socket | null = null;
+let connectionListeners: Set<(connected: boolean) => void> = new Set();
+let messageListeners: Set<(message: any) => void> = new Set();
+let isConnecting = false;
+
 interface UseWebSocketOptions {
   autoConnect?: boolean;
   channels?: string[];
@@ -22,99 +29,177 @@ interface UseWebSocketOptions {
 
 export function useWebSocket(options: UseWebSocketOptions = {}) {
   const { autoConnect = true, channels = [] } = options;
-  const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState<any>(null);
   const token = useAuthStore((state) => state.token);
+  const channelsRef = useRef<string[]>(channels);
+  const listenerIdRef = useRef<string>(Math.random().toString(36));
+
+  // Update channels ref when they change
+  useEffect(() => {
+    channelsRef.current = channels;
+  }, [channels]);
+
+  // Connection state listener
+  useEffect(() => {
+    const listener = (connected: boolean) => {
+      setIsConnected(connected);
+    };
+    connectionListeners.add(listener);
+    return () => {
+      connectionListeners.delete(listener);
+    };
+  }, []);
+
+  // Message listener
+  useEffect(() => {
+    const listener = (message: any) => {
+      setLastMessage(message);
+    };
+    messageListeners.add(listener);
+    return () => {
+      messageListeners.delete(listener);
+    };
+  }, []);
+
+  // Initialize socket connection (singleton)
+  useEffect(() => {
+    if (!autoConnect || isConnecting || (globalSocket && globalSocket.connected)) {
+      return;
+    }
+
+    isConnecting = true;
+
+    // If socket exists but disconnected, reconnect
+    if (globalSocket && !globalSocket.connected) {
+      globalSocket.connect();
+      isConnecting = false;
+      return;
+    }
+
+    // Create new socket if it doesn't exist
+    if (!globalSocket) {
+      const socket = io(SOCKET_URL, {
+        transports: ['websocket', 'polling'],
+        auth: {
+          token: token || undefined,
+        },
+        reconnection: true,
+        reconnectionDelay: 2000, // Increased delay
+        reconnectionDelayMax: 10000, // Max delay
+        reconnectionAttempts: 10, // More attempts
+        timeout: 20000,
+        forceNew: false, // Reuse connection
+      });
+
+      socket.on('connect', () => {
+        console.log('✅ WebSocket connected:', socket.id);
+        isConnecting = false;
+        connectionListeners.forEach((listener) => listener(true));
+
+        // Subscribe to initial channels
+        channelsRef.current.forEach((channel) => {
+          subscribeToChannel(socket, channel);
+        });
+      });
+
+      socket.on('disconnect', (reason) => {
+        console.log('❌ WebSocket disconnected:', reason);
+        connectionListeners.forEach((listener) => listener(false));
+        
+        // Only reconnect if it's not a manual disconnect
+        if (reason === 'io server disconnect') {
+          // Server disconnected, reconnect manually
+          socket.connect();
+        }
+      });
+
+      socket.on('connect_error', (error) => {
+        console.error('❌ WebSocket connection error:', error.message);
+        isConnecting = false;
+        connectionListeners.forEach((listener) => listener(false));
+      });
+
+      // Listen for all message types
+      const messageHandlers = [
+        'odds:update',
+        'value-bet:alert',
+        'notification:new',
+        'event:update',
+        'sport:update',
+        'arbitrage:opportunity',
+      ];
+
+      messageHandlers.forEach((event) => {
+        socket.on(event, (data) => {
+          messageListeners.forEach((listener) =>
+            listener({ type: event, data })
+          );
+        });
+      });
+
+      globalSocket = socket;
+    }
+
+    return () => {
+      // Don't disconnect on unmount, let it stay connected
+      // Only disconnect when explicitly called
+    };
+  }, [autoConnect, token]); // Removed channels from dependencies
+
+  // Subscribe to channels when they change
+  useEffect(() => {
+    if (!globalSocket || !globalSocket.connected) {
+      return;
+    }
+
+    channels.forEach((channel) => {
+      subscribeToChannel(globalSocket!, channel);
+    });
+  }, [channels]);
+
+  // Helper function to subscribe to a channel
+  const subscribeToChannel = (socket: Socket, channel: string) => {
+    if (channel.startsWith('odds:')) {
+      const eventId = channel.replace('odds:', '');
+      socket.emit('subscribe:odds', eventId);
+    } else if (channel.startsWith('value-bets:')) {
+      const userId = channel.replace('value-bets:', '');
+      socket.emit('subscribe:value-bets', userId || undefined);
+    } else if (channel.startsWith('notifications:')) {
+      const userId = channel.replace('notifications:', '');
+      socket.emit('subscribe:notifications', userId);
+    } else if (channel === 'events:live') {
+      socket.emit('subscribe:events');
+    } else if (channel.startsWith('sport:')) {
+      const sport = channel.replace('sport:', '');
+      socket.emit('subscribe:sport', sport);
+    } else if (channel.startsWith('arbitrage:')) {
+      const options = channel === 'arbitrage:all' 
+        ? undefined 
+        : { sport: channel.replace('arbitrage:', '') };
+      socket.emit('subscribe:arbitrage', options);
+    }
+  };
 
   // Connect to WebSocket
   const connect = useCallback(() => {
-    if (socketRef.current?.connected) {
-      return; // Already connected
+    if (globalSocket?.connected) {
+      return;
     }
+    if (globalSocket) {
+      globalSocket.connect();
+    }
+  }, []);
 
-    const socket = io(SOCKET_URL, {
-      transports: ['websocket', 'polling'],
-      auth: {
-        token: token || undefined,
-      },
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionAttempts: 5,
-    });
-
-    socket.on('connect', () => {
-      console.log('WebSocket connected:', socket.id);
-      setIsConnected(true);
-
-      // Subscribe to channels
-      channels.forEach((channel) => {
-        if (channel.startsWith('odds:')) {
-          const eventId = channel.replace('odds:', '');
-          socket.emit('subscribe:odds', eventId);
-        } else if (channel.startsWith('value-bets:')) {
-          const userId = channel.replace('value-bets:', '');
-          socket.emit('subscribe:value-bets', userId || undefined);
-        } else if (channel.startsWith('notifications:')) {
-          const userId = channel.replace('notifications:', '');
-          socket.emit('subscribe:notifications', userId);
-        } else if (channel === 'events:live') {
-          socket.emit('subscribe:events');
-        } else if (channel.startsWith('sport:')) {
-          const sport = channel.replace('sport:', '');
-          socket.emit('subscribe:sport', sport);
-        }
-      });
-    });
-
-    socket.on('disconnect', () => {
-      console.log('WebSocket disconnected');
-      setIsConnected(false);
-    });
-
-    socket.on('connect_error', (error) => {
-      console.error('WebSocket connection error:', error);
-      setIsConnected(false);
-    });
-
-    // Listen for odds updates
-    socket.on('odds:update', (data) => {
-      console.log('Odds update received:', data);
-      setLastMessage({ type: 'odds:update', data });
-    });
-
-    // Listen for value bet alerts
-    socket.on('value-bet:alert', (data) => {
-      console.log('Value bet alert received:', data);
-      setLastMessage({ type: 'value-bet:alert', data });
-    });
-
-    // Listen for notifications
-    socket.on('notification:new', (data) => {
-      console.log('Notification received:', data);
-      setLastMessage({ type: 'notification:new', data });
-    });
-
-    // Listen for event updates
-    socket.on('event:update', (data) => {
-      console.log('Event update received:', data);
-      setLastMessage({ type: 'event:update', data });
-    });
-
-    // Listen for sport updates
-    socket.on('sport:update', (data) => {
-      console.log('Sport update received:', data);
-      setLastMessage({ type: 'sport:update', data });
-    });
-
-    // Listen for arbitrage opportunities
-    socket.on('arbitrage:opportunity', (data) => {
-      console.log('Arbitrage opportunity received:', data);
-      setLastMessage({ type: 'arbitrage:opportunity', data });
-    });
-
-    socketRef.current = socket;
-  }, [token, channels]);
+  // Disconnect from WebSocket
+  const disconnect = useCallback(() => {
+    if (globalSocket) {
+      globalSocket.disconnect();
+      globalSocket = null;
+      connectionListeners.forEach((listener) => listener(false));
+    }
+  }, []);
 
   // Disconnect from WebSocket
   const disconnect = useCallback(() => {
@@ -127,54 +212,23 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
   // Subscribe to a channel
   const subscribe = useCallback((channel: string) => {
-    if (!socketRef.current?.connected) {
+    if (!globalSocket?.connected) {
       console.warn('Socket not connected, cannot subscribe');
       return;
     }
-
-    if (channel.startsWith('odds:')) {
-      const eventId = channel.replace('odds:', '');
-      socketRef.current.emit('subscribe:odds', eventId);
-    } else if (channel.startsWith('value-bets:')) {
-      const userId = channel.replace('value-bets:', '');
-      socketRef.current.emit('subscribe:value-bets', userId || undefined);
-    } else if (channel.startsWith('notifications:')) {
-      const userId = channel.replace('notifications:', '');
-      socketRef.current.emit('subscribe:notifications', userId);
-    } else if (channel === 'events:live') {
-      socketRef.current.emit('subscribe:events');
-    } else if (channel.startsWith('sport:')) {
-      const sport = channel.replace('sport:', '');
-      socketRef.current.emit('subscribe:sport', sport);
-    } else if (channel.startsWith('arbitrage:')) {
-      const sport = channel.replace('arbitrage:', '');
-      socketRef.current.emit('subscribe:arbitrage', sport || undefined);
-    } else if (channel === 'arbitrage:all') {
-      socketRef.current.emit('subscribe:arbitrage');
-    }
+    subscribeToChannel(globalSocket, channel);
   }, []);
 
   // Unsubscribe from a channel
   const unsubscribe = useCallback((channel: string) => {
-    if (!socketRef.current?.connected) {
+    if (!globalSocket?.connected) {
       return;
     }
-    socketRef.current.emit('unsubscribe', channel);
+    globalSocket.emit('unsubscribe', channel);
   }, []);
 
-  // Auto-connect on mount
-  useEffect(() => {
-    if (autoConnect) {
-      connect();
-    }
-
-    return () => {
-      disconnect();
-    };
-  }, [autoConnect, connect, disconnect]);
-
   return {
-    socket: socketRef.current,
+    socket: globalSocket,
     isConnected,
     connected: isConnected, // Alias for compatibility
     lastMessage,
@@ -183,5 +237,14 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     subscribe,
     unsubscribe,
   };
+}
+
+// Export function to manually disconnect (useful for logout)
+export function disconnectWebSocket() {
+  if (globalSocket) {
+    globalSocket.disconnect();
+    globalSocket = null;
+    connectionListeners.forEach((listener) => listener(false));
+  }
 }
 
