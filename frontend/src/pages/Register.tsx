@@ -54,10 +54,15 @@ export default function Register() {
   }
 
   const handleGoogleSignup = async () => {
+    setLoading(true)
     try {
       await oauthService.initiateGoogle()
+      // No need to set loading to false here as we're redirecting
     } catch (error: any) {
-      toast.error('Error al registrarse con Google')
+      setLoading(false)
+      const errorMessage = error.message || 'Error al registrarse con Google'
+      toast.error(errorMessage)
+      console.error('Google OAuth error:', error)
     }
   }
 

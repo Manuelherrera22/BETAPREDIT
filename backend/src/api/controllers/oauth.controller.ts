@@ -16,13 +16,25 @@ class OAuthController {
   async initiateGoogle(req: Request, res: Response, next: NextFunction) {
     try {
       const authUrl = googleOAuthService.getAuthUrl();
+      logger.info('Google OAuth URL generated successfully');
       res.json({
         success: true,
         data: {
           authUrl,
         },
       });
-    } catch (error) {
+    } catch (error: any) {
+      logger.error('Error generating Google OAuth URL:', error);
+      // Return a more descriptive error
+      if (error.statusCode === 503) {
+        return res.status(503).json({
+          success: false,
+          error: {
+            message: 'Google OAuth no está configurado. Por favor, contacta al administrador.',
+            code: 'OAUTH_NOT_CONFIGURED',
+          },
+        });
+      }
       next(error);
     }
   }

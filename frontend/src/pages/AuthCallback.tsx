@@ -20,7 +20,15 @@ export default function AuthCallback() {
     const error = searchParams.get('error');
 
     if (error) {
-      toast.error('Error al autenticar con ' + (provider || 'OAuth'));
+      let errorMessage = 'Error al autenticar con ' + (provider || 'OAuth');
+      if (error === 'oauth_failed') {
+        errorMessage = 'Error al autenticar con Google. Por favor, intenta de nuevo.';
+      } else if (error === 'no_code') {
+        errorMessage = 'No se recibió el código de autorización de Google.';
+      } else if (error === 'oauth_error') {
+        errorMessage = 'Error en el proceso de autenticación con Google.';
+      }
+      toast.error(errorMessage);
       navigate('/login');
       return;
     }

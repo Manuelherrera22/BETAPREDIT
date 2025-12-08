@@ -34,10 +34,15 @@ export default function Login() {
 
 
   const handleGoogleLogin = async () => {
+    setLoading(true)
     try {
       await oauthService.initiateGoogle()
+      // No need to set loading to false here as we're redirecting
     } catch (error: any) {
-      toast.error('Error al iniciar sesión con Google')
+      setLoading(false)
+      const errorMessage = error.message || 'Error al iniciar sesión con Google'
+      toast.error(errorMessage)
+      console.error('Google OAuth error:', error)
     }
   }
 
