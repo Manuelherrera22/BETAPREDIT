@@ -88,13 +88,31 @@ class OAuthService {
       VITE_SUPABASE_URL: !import.meta.env.VITE_SUPABASE_URL,
       VITE_SUPABASE_ANON_KEY: !import.meta.env.VITE_SUPABASE_ANON_KEY,
     });
-    console.error('⚠️ Falling back to backend API (this should not happen in production)');
+    
+    // In production, we should NEVER fallback to backend
+    // Supabase Auth is required
+    if (import.meta.env.PROD) {
+      throw new Error(
+        'Supabase Auth no está configurado. ' +
+        'Por favor, configura las variables de entorno VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en tu plataforma de hosting. ' +
+        'Consulta la documentación: AGREGAR_VARIABLES_ENTORNO_PRODUCCION.md'
+      );
+    }
+    
+    // Only in development, allow fallback to backend
+    console.warn('⚠️ Development mode: Falling back to backend API');
+    console.warn('⚠️ In production, Supabase Auth is required');
 
-    // Fallback to backend API (only if Supabase is not configured)
+    // Fallback to backend API (ONLY in development)
     try {
       console.log('Requesting OAuth URL from:', api.defaults.baseURL + '/oauth/google');
       const response = await api.get('/oauth/google');
       console.log('OAuth response:', response.data);
+      
+      // Check if response is HTML (404 page)
+      if (typeof response.data === 'string' && response.data.trim().startsWith('<!')) {
+        throw new Error('El backend no está disponible. La respuesta es HTML en lugar de JSON.');
+      }
       
       if (!response || !response.data) {
         throw new Error('No se recibió respuesta del servidor');
