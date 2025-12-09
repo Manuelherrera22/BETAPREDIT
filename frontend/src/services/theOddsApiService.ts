@@ -213,7 +213,17 @@ class TheOddsAPIService {
         }
         
         const result = await response.json();
-        return result.success ? result.data : [];
+        const data = result.success ? result.data : [];
+        
+        // Record API call
+        apiUsageMonitor.recordCall('getOdds');
+        
+        // Cache for 2 minutes (odds change frequently)
+        if (data.length > 0) {
+          apiCache.set(cacheKey, data, 120);
+        }
+        
+        return data;
       } else {
         const { data } = await api.get(`/the-odds-api/sports/${sport}/odds`, {
           params: {
