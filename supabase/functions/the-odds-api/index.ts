@@ -8,6 +8,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const THE_ODDS_API_BASE = "https://api.the-odds-api.com/v4";
 const THE_ODDS_API_KEY = Deno.env.get("THE_ODDS_API_KEY");
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SUPABASE_PROJECT_URL");
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 
 interface RequestPayload {
   path: string;
@@ -37,6 +39,30 @@ serve(async (req) => {
         }),
         {
           status: 503,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
+      );
+    }
+
+    // Verify authentication - Supabase Edge Functions require auth header
+    // But we'll accept the anon key for public proxy functionality
+    const authHeader = req.headers.get("authorization");
+    const apikeyHeader = req.headers.get("apikey");
+    
+    // Accept either Authorization Bearer token or apikey header
+    const hasAuth = (authHeader && authHeader.startsWith("Bearer ")) || apikeyHeader;
+    
+    if (!hasAuth) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: { message: "Missing authorization. Please provide Authorization: Bearer <token> or apikey header" } 
+        }),
+        {
+          status: 401,
           headers: {
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*",

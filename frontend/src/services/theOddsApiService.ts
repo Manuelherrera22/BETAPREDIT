@@ -85,6 +85,7 @@ class TheOddsAPIService {
         const response = await fetch(`${supabaseFunctionsUrl}/the-odds-api/sports`, {
           headers: {
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
           },
         });
         const result = await response.json();
@@ -129,6 +130,7 @@ class TheOddsAPIService {
         const response = await fetch(`${supabaseFunctionsUrl}/the-odds-api/sports/${sport}/odds?${params}`, {
           headers: {
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
           },
         });
         const result = await response.json();
@@ -179,6 +181,7 @@ class TheOddsAPIService {
         const response = await fetch(`${supabaseFunctionsUrl}/the-odds-api/sports/${sport}/events/${eventId}/compare?${params}`, {
           headers: {
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
           },
         });
         const result = await response.json();
