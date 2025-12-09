@@ -10,8 +10,8 @@ router.get('/live', authenticate, eventsController.getLiveEvents);
 // Get upcoming events
 router.get('/upcoming', authenticate, eventsController.getUpcomingEvents);
 
-// Get event details
-router.get('/:eventId', authenticate, eventsController.getEventDetails);
+// Sync events manually (admin or for testing) - MUST be before /:eventId
+router.post('/sync', authenticate, eventsController.syncEvents);
 
 // Get events by sport
 router.get('/sport/:sportId', authenticate, eventsController.getEventsBySport);
@@ -19,8 +19,8 @@ router.get('/sport/:sportId', authenticate, eventsController.getEventsBySport);
 // Search events
 router.get('/search/:query', authenticate, eventsController.searchEvents);
 
-// Sync events manually (admin or for testing)
-router.post('/sync', authenticate, eventsController.syncEvents);
+// Get event details - MUST be last to avoid catching other routes
+router.get('/:eventId', authenticate, eventsController.getEventDetails);
 
 export default router;
 
