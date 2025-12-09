@@ -118,14 +118,33 @@ class PredictionsController {
   async generatePredictions(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       logger.info('Manual prediction generation triggered by user');
-      const result = await autoPredictionsService.generatePredictionsForUpcomingEvents();
-      res.json({
-        success: true,
-        message: `Generated ${result.generated} predictions, updated ${result.updated}`,
-        data: result,
-      });
+      
+      try {
+        const result = await autoPredictionsService.generatePredictionsForUpcomingEvents();
+        res.json({
+          success: true,
+          message: `Generated ${result.generated} predictions, updated ${result.updated}`,
+          data: result,
+        });
+      } catch (serviceError: any) {
+        // Log detailed error for debugging
+        logger.error('Error in autoPredictionsService.generatePredictionsForUpcomingEvents:', {
+          message: serviceError.message,
+          stack: serviceError.stack,
+          name: serviceError.name,
+        });
+        
+        // Return a more descriptive error
+        return res.status(500).json({
+          success: false,
+          error: {
+            message: serviceError.message || 'Error al generar predicciones',
+            details: process.env.NODE_ENV === 'development' ? serviceError.stack : undefined,
+          },
+        });
+      }
     } catch (error: any) {
-      logger.error('Error in manual prediction generation:', error);
+      logger.error('Unexpected error in generatePredictions controller:', error);
       next(error);
     }
   }

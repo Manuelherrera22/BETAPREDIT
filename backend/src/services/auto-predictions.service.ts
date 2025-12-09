@@ -361,39 +361,6 @@ class AutoPredictionsService {
       }
 
       // ⚠️ NUEVO: Detectar value bets automáticamente después de generar predicciones
-      if ((generated > 0 || updated > 0) && event) {
-        try {
-          // Re-fetch event with predictions to detect value bets
-          const eventWithPredictions = await prisma.event.findUnique({
-            where: { id: event.id },
-            include: {
-              sport: true,
-              markets: {
-                where: { isActive: true, type: 'MATCH_WINNER' },
-                include: {
-                  odds: { where: { isActive: true } },
-                },
-              },
-              Prediction: {
-                where: { wasCorrect: null },
-              },
-            },
-          });
-
-          if (eventWithPredictions) {
-            await valueBetDetectionService.detectValueBetsForEvent(eventWithPredictions, {
-              minValue: 0.05,
-              autoCreateAlerts: true,
-            });
-            logger.info(`Detected value bets for event ${event.id} after generating predictions`);
-          }
-        } catch (vbError: any) {
-          logger.warn(`Error detecting value bets for event ${event.id}:`, vbError.message);
-          // Don't fail prediction generation if value bet detection fails
-        }
-      }
-
-      // ⚠️ NUEVO: Detectar value bets automáticamente después de generar predicciones
       if (generated > 0 || updated > 0) {
         try {
           // Reload event with predictions to detect value bets
