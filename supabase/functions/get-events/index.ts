@@ -89,6 +89,7 @@ serve(async (req) => {
         homeScore,
         awayScore,
         externalId,
+        isActive,
         Sport:Sport (
           id,
           name,
@@ -103,6 +104,7 @@ serve(async (req) => {
         )
       `)
       .eq('status', status)
+      .eq('isActive', true) // Only get active events
       .order('startTime', { ascending: true })
       .limit(limit);
 
