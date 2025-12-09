@@ -84,12 +84,22 @@ export const eventsService = {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || 'Failed to fetch live events');
+        let error;
+        try {
+          error = await response.json();
+        } catch {
+          error = { error: { message: `HTTP ${response.status}: ${response.statusText}` } };
+        }
+        const errorMessage = error.error?.message || error.message || 'Failed to fetch live events';
+        console.error('Error fetching live events:', errorMessage);
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
       console.log('get-events (live) response:', { success: result.success, dataLength: result.data?.length || 0 });
+      if (!result.success) {
+        throw new Error(result.error?.message || result.message || 'Failed to fetch live events');
+      }
       return result.data || [];
     } else {
       // Use backend API
@@ -148,12 +158,22 @@ export const eventsService = {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || 'Failed to fetch upcoming events');
+        let error;
+        try {
+          error = await response.json();
+        } catch {
+          error = { error: { message: `HTTP ${response.status}: ${response.statusText}` } };
+        }
+        const errorMessage = error.error?.message || error.message || 'Failed to fetch upcoming events';
+        console.error('Error fetching upcoming events:', errorMessage);
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
       console.log('get-events response:', { success: result.success, dataLength: result.data?.length || 0 });
+      if (!result.success) {
+        throw new Error(result.error?.message || result.message || 'Failed to fetch upcoming events');
+      }
       return result.data || [];
     } else {
       // Use backend API
@@ -219,11 +239,22 @@ export const eventsService = {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || 'Failed to sync events');
+        let error;
+        try {
+          error = await response.json();
+        } catch {
+          error = { error: { message: `HTTP ${response.status}: ${response.statusText}` } };
+        }
+        const errorMessage = error.error?.message || error.message || 'Failed to sync events';
+        console.error('Error syncing events:', errorMessage);
+        throw new Error(errorMessage);
       }
 
-      return await response.json();
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error?.message || result.message || 'Failed to sync events');
+      }
+      return result;
     } else {
       // Use backend API
       const { data } = await api.post('/events/sync', { sportKey });

@@ -35,26 +35,49 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Import error handler
+    import('../utils/errorHandler').then(({ ErrorHandler }) => {
+      // Log error for tracking
+      ErrorHandler.logError(error, `API: ${error.config?.method?.toUpperCase()} ${error.config?.url}`);
+    });
+
     // Handle network errors (backend not available)
     if (!error.response) {
       // Network error - backend might not be available
-      // Silently fail for demo mode, don't show error to user
-      console.warn('API request failed - backend may not be available:', error.message)
-      return Promise.reject(error)
+      console.warn('API request failed - backend may not be available:', error.message);
+      
+      // Don't redirect on network errors, just reject
+      return Promise.reject({
+        message: 'Network error. Please check your connection.',
+        code: 'NETWORK_ERROR',
+        isNetworkError: true,
+      });
     }
 
+    // Handle authentication errors
     if (error.response?.status === 401) {
       // Unauthorized - logout user
-      useAuthStore.getState().logout()
-      window.location.href = '/login'
+      const authStore = useAuthStore.getState();
+      if (authStore.user) {
+        authStore.logout();
+        // Only redirect if we're not already on login page
+        if (!window.location.pathname.includes('/login')) {
+          window.location.href = '/login';
+        }
+      }
     }
 
     // For 404 errors, log but don't show critical error
     if (error.response?.status === 404) {
-      console.warn('API endpoint not found:', error.config?.url)
+      console.warn('API endpoint not found:', error.config?.url);
     }
 
-    return Promise.reject(error)
+    // For 500 errors, provide better error message
+    if (error.response?.status >= 500) {
+      console.error('Server error:', error.response?.data);
+    }
+
+    return Promise.reject(error);
   }
 )
 
