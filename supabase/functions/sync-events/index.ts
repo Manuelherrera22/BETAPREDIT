@@ -193,6 +193,7 @@ serve(async (req) => {
               // ⚠️ IMPORTANTE: Generar ID manualmente para Supabase
               // Supabase no genera automáticamente cuid(), necesitamos generarlo
               const sportId = crypto.randomUUID(); // Usar UUID en lugar de cuid para Supabase
+              const now = new Date().toISOString();
               
               const { data: newSport, error: createSportError } = await supabase
                 .from('Sport')
@@ -201,6 +202,8 @@ serve(async (req) => {
                   name: oddsEvent.sport_title,
                   slug: oddsEvent.sport_key,
                   isActive: true,
+                  createdAt: now, // ⚠️ CRÍTICO: Supabase no genera automáticamente
+                  updatedAt: now, // ⚠️ CRÍTICO: Supabase no genera automáticamente
                 })
                 .select('id')
                 .single();
@@ -259,6 +262,7 @@ serve(async (req) => {
               
               // ⚠️ IMPORTANTE: Generar ID manualmente para Supabase
               const eventId = crypto.randomUUID();
+              const now = new Date().toISOString();
               
               const { data: createdEvent, error: createEventError } = await supabase
                 .from('Event')
@@ -272,6 +276,8 @@ serve(async (req) => {
                   startTime: oddsEvent.commence_time,
                   status: 'SCHEDULED',
                   isActive: true, // ⚠️ CRÍTICO: Establecer isActive para que aparezcan en get-events
+                  createdAt: now, // ⚠️ CRÍTICO: Supabase no genera automáticamente
+                  updatedAt: now, // ⚠️ CRÍTICO: Supabase no genera automáticamente
                 })
                 .select('id, status, startTime, isActive')
                 .single();
