@@ -231,10 +231,13 @@ export default function Alerts() {
     }
   };
 
+  const [priorityFilter, setPriorityFilter] = useState<string>('all');
+
   const filteredAlerts = alerts.filter(alert => {
     if (filters.type !== 'all' && alert.type !== filters.type) return false;
     if (filters.read === 'unread' && alert.read) return false;
     if (filters.read === 'read' && !alert.read) return false;
+    if (priorityFilter !== 'all' && alert.priority !== priorityFilter) return false;
     return true;
   });
 
@@ -338,7 +341,7 @@ export default function Alerts() {
       </div>
 
       {/* Filters */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div>
           <label className="block text-sm font-semibold text-gray-400 mb-2">Tipo de Alerta</label>
           <select
@@ -346,11 +349,11 @@ export default function Alerts() {
             onChange={(e) => setFilters({ ...filters, type: e.target.value })}
             className="w-full px-4 py-3 bg-dark-800 border border-primary-500/30 rounded-lg text-white focus:outline-none focus:border-primary-400"
           >
-            <option value="all">Todas</option>
-            <option value="value_bet">Value Bets</option>
-            <option value="odds_change">Cambios de Cuotas</option>
-            <option value="new_event">Nuevos Eventos</option>
-            <option value="prediction">Predicciones</option>
+            <option value="all">Todas ({alerts.length})</option>
+            <option value="value_bet">Value Bets ({alerts.filter(a => a.type === 'value_bet').length})</option>
+            <option value="odds_change">Cambios de Cuotas ({alerts.filter(a => a.type === 'odds_change').length})</option>
+            <option value="new_event">Nuevos Eventos ({alerts.filter(a => a.type === 'new_event').length})</option>
+            <option value="prediction">Predicciones ({alerts.filter(a => a.type === 'prediction').length})</option>
           </select>
         </div>
         <div>
@@ -362,19 +365,34 @@ export default function Alerts() {
           >
             <option value="all">Todas</option>
             <option value="unread">No leídas ({unreadCount})</option>
-            <option value="read">Leídas</option>
+            <option value="read">Leídas ({alerts.length - unreadCount})</option>
           </select>
         </div>
         <div>
           <label className="block text-sm font-semibold text-gray-400 mb-2">Prioridad</label>
           <select
+            value={priorityFilter}
+            onChange={(e) => setPriorityFilter(e.target.value)}
             className="w-full px-4 py-3 bg-dark-800 border border-primary-500/30 rounded-lg text-white focus:outline-none focus:border-primary-400"
           >
             <option value="all">Todas</option>
-            <option value="high">Alta</option>
-            <option value="medium">Media</option>
-            <option value="low">Baja</option>
+            <option value="high">Alta ({alerts.filter(a => a.priority === 'high').length})</option>
+            <option value="medium">Media ({alerts.filter(a => a.priority === 'medium').length})</option>
+            <option value="low">Baja ({alerts.filter(a => a.priority === 'low').length})</option>
           </select>
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-gray-400 mb-2">Acciones</label>
+          <div className="flex gap-2">
+            {unreadCount > 0 && (
+              <button
+                onClick={markAllAsRead}
+                className="flex-1 px-4 py-3 bg-primary-500/20 border border-primary-500/40 text-primary-300 rounded-lg hover:bg-primary-500/30 transition-colors text-sm font-semibold"
+              >
+                Marcar todas leídas
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -384,43 +402,60 @@ export default function Alerts() {
           filteredAlerts.map((alert) => (
             <div
               key={alert.id}
-              className={`rounded-xl p-6 border-2 transition-all ${
+              className={`rounded-xl p-6 border-2 transition-all hover:shadow-lg ${
                 alert.read
                   ? 'bg-dark-900/50 border-primary-500/20'
-                  : `${getAlertColor(alert.type)} border-opacity-60`
+                  : `${getAlertColor(alert.type)} border-opacity-60 shadow-lg`
               }`}
             >
               <div className="flex items-start gap-4">
                 {getAlertIcon(alert.type)}
                 <div className="flex-1">
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <h3 className="text-lg font-black text-white mb-1">{alert.title}</h3>
-                      <p className="text-gray-400 text-sm">{alert.message}</p>
-                      {alert.value && (
-                        <div className="mt-2">
-                          <span className="px-3 py-1 bg-gold-500/20 text-gold-400 rounded-lg text-sm font-semibold">
-                            +{alert.value}% Valor
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-lg font-black text-white">{alert.title}</h3>
+                        {!alert.read && (
+                          <span className="w-2 h-2 bg-accent-400 rounded-full animate-pulse"></span>
+                        )}
+                      </div>
+                      <p className="text-gray-300 text-sm mb-2">{alert.message}</p>
+                      {alert.value !== undefined && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <span className="px-3 py-1 bg-gold-500/20 text-gold-400 rounded-lg text-sm font-black">
+                            +{typeof alert.value === 'number' ? alert.value.toFixed(1) : alert.value}% Valor
                           </span>
+                          {typeof alert.value === 'number' && alert.value > 10 && (
+                            <span className="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs font-semibold animate-pulse">
+                              🔥 Oportunidad Premium
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {alert.event && (
+                        <div className="mt-2">
+                          <span className="text-xs text-gray-400">Evento: {alert.event}</span>
                         </div>
                       )}
                     </div>
-                    {!alert.read && (
-                      <div className="w-3 h-3 bg-accent-400 rounded-full"></div>
-                    )}
                   </div>
-                  <div className="flex items-center justify-between mt-4">
-                    <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-primary-500/10">
+                    <div className="flex items-center gap-3 flex-wrap">
                       <span className="text-xs text-gray-500">
                         {formatDistanceToNow(new Date(alert.timestamp), { addSuffix: true, locale: es })}
                       </span>
                       {alert.priority && (
-                        <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
-                          alert.priority === 'high' ? 'bg-red-500/20 text-red-400' :
-                          alert.priority === 'medium' ? 'bg-gold-500/20 text-gold-400' :
-                          'bg-gray-500/20 text-gray-400'
+                        <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                          alert.priority === 'high' ? 'bg-red-500/20 text-red-400 border border-red-500/40' :
+                          alert.priority === 'medium' ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' :
+                          'bg-gray-500/20 text-gray-400 border border-gray-500/40'
                         }`}>
-                          {alert.priority === 'high' ? 'Alta' : alert.priority === 'medium' ? 'Media' : 'Baja'}
+                          {alert.priority === 'high' ? '⚡ Alta Prioridad' : alert.priority === 'medium' ? '📊 Media Prioridad' : '📌 Baja Prioridad'}
+                        </span>
+                      )}
+                      {alert.source === 'value_bet_alert' && (
+                        <span className="px-2 py-1 bg-primary-500/20 text-primary-300 rounded text-xs font-semibold">
+                          Value Bet
                         </span>
                       )}
                     </div>
@@ -428,16 +463,16 @@ export default function Alerts() {
                       {!alert.read && (
                         <button
                           onClick={() => markAsRead(alert.id)}
-                          className="px-3 py-1 text-xs bg-primary-500/20 text-primary-300 rounded-lg hover:bg-primary-500/30 transition-colors"
+                          className="px-3 py-1.5 text-xs bg-primary-500/20 text-primary-300 rounded-lg hover:bg-primary-500/30 transition-colors font-semibold"
                         >
-                          Marcar leída
+                          ✓ Leída
                         </button>
                       )}
                       <button
                         onClick={() => deleteAlert(alert.id)}
-                        className="px-3 py-1 text-xs bg-red-500/20 text-red-300 rounded-lg hover:bg-red-500/30 transition-colors"
+                        className="px-3 py-1.5 text-xs bg-red-500/20 text-red-300 rounded-lg hover:bg-red-500/30 transition-colors font-semibold"
                       >
-                        Eliminar
+                        🗑️
                       </button>
                     </div>
                   </div>
