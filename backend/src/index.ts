@@ -182,7 +182,6 @@ app.use('/api/user/preferences', userPreferencesRoutes);
 app.use('/api/roi-tracking', roiTrackingRoutes);
 app.use('/api/platform/metrics', platformMetricsRoutes);
 app.use('/api/predictions', predictionsRoutes);
-app.use('/api/predictions', predictionsRoutes);
 
 // WebSocket connection handler
 io.on('connection', (socket) => {

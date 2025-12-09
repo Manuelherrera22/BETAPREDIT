@@ -36,6 +36,15 @@ class AutoPredictionsService {
         take: 10, // Limit to 10 sports
       });
 
+      if (sports.length === 0) {
+        logger.warn('No active sports found in database. Cannot generate predictions.');
+        return {
+          generated: 0,
+          updated: 0,
+          errors: 0,
+        };
+      }
+
       let totalGenerated = 0;
       let totalUpdated = 0;
       let totalErrors = 0;
