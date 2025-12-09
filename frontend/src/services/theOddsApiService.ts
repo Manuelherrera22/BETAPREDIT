@@ -1,9 +1,18 @@
 /**
  * The Odds API Service
  * Frontend service for interacting with The Odds API endpoints
+ * Uses Supabase Edge Functions in production, backend API in development
  */
 
 import api from './api';
+import { isSupabaseConfigured } from '../config/supabase';
+
+// Get Supabase Functions URL
+const getSupabaseFunctionsUrl = () => {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  if (!supabaseUrl) return null;
+  return `${supabaseUrl}/functions/v1`;
+};
 
 export interface Sport {
   key: string;
@@ -68,8 +77,22 @@ class TheOddsAPIService {
    */
   async getSports(): Promise<Sport[]> {
     try {
-      const { data } = await api.get('/the-odds-api/sports');
-      return data.success ? data.data : [];
+      // Use Supabase Edge Function if available, otherwise use backend API
+      const supabaseFunctionsUrl = getSupabaseFunctionsUrl();
+      const useSupabase = isSupabaseConfigured() && supabaseFunctionsUrl && import.meta.env.PROD;
+      
+      if (useSupabase) {
+        const response = await fetch(`${supabaseFunctionsUrl}/the-odds-api/sports`, {
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+        });
+        const result = await response.json();
+        return result.success ? result.data : [];
+      } else {
+        const { data } = await api.get('/the-odds-api/sports');
+        return data.success ? data.data : [];
+      }
     } catch (error) {
       console.error('Error fetching sports:', error);
       return [];
@@ -91,15 +114,36 @@ class TheOddsAPIService {
     try {
       const { regions = ['us', 'uk', 'eu'], markets = ['h2h'], oddsFormat = 'decimal', sync = true } = options;
 
-      const { data } = await api.get(`/the-odds-api/sports/${sport}/odds`, {
-        params: {
+      // Use Supabase Edge Function if available, otherwise use backend API
+      const supabaseFunctionsUrl = getSupabaseFunctionsUrl();
+      const useSupabase = isSupabaseConfigured() && supabaseFunctionsUrl && import.meta.env.PROD;
+      
+      if (useSupabase) {
+        const params = new URLSearchParams({
           regions: regions.join(','),
           markets: markets.join(','),
           oddsFormat,
-          sync: sync ? 'true' : undefined, // Sincronizar por defecto
-        },
-      });
-      return data.success ? data.data : [];
+        });
+        if (sync) params.set('sync', 'true');
+        
+        const response = await fetch(`${supabaseFunctionsUrl}/the-odds-api/sports/${sport}/odds?${params}`, {
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+        });
+        const result = await response.json();
+        return result.success ? result.data : [];
+      } else {
+        const { data } = await api.get(`/the-odds-api/sports/${sport}/odds`, {
+          params: {
+            regions: regions.join(','),
+            markets: markets.join(','),
+            oddsFormat,
+            sync: sync ? 'true' : undefined, // Sincronizar por defecto
+          },
+        });
+        return data.success ? data.data : [];
+      }
     } catch (error) {
       console.error('Error fetching odds:', error);
       return [];
@@ -123,13 +167,31 @@ class TheOddsAPIService {
   } | null> {
     try {
       const { save = true } = options;
-      const { data } = await api.get(`/the-odds-api/sports/${sport}/events/${eventId}/compare`, {
-        params: { 
-          market,
-          save: save ? 'true' : undefined, // Guardar por defecto
-        },
-      });
-      return data.success ? data.data : null;
+
+      // Use Supabase Edge Function if available, otherwise use backend API
+      const supabaseFunctionsUrl = getSupabaseFunctionsUrl();
+      const useSupabase = isSupabaseConfigured() && supabaseFunctionsUrl && import.meta.env.PROD;
+      
+      if (useSupabase) {
+        const params = new URLSearchParams({ market });
+        if (save) params.set('save', 'true');
+        
+        const response = await fetch(`${supabaseFunctionsUrl}/the-odds-api/sports/${sport}/events/${eventId}/compare?${params}`, {
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+        });
+        const result = await response.json();
+        return result.success ? result.data : null;
+      } else {
+        const { data } = await api.get(`/the-odds-api/sports/${sport}/events/${eventId}/compare`, {
+          params: { 
+            market,
+            save: save ? 'true' : undefined, // Guardar por defecto
+          },
+        });
+        return data.success ? data.data : null;
+      }
     } catch (error) {
       console.error('Error comparing odds:', error);
       return null;
