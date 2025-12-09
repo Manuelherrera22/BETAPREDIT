@@ -119,7 +119,8 @@ export const userStatisticsService = {
       const { data } = await api.get('/statistics/by-platform', {
         params: { period: backendPeriod },
       });
-      return data.data || {};
+      // Asegurar que siempre retornamos un objeto
+      return data?.data && typeof data.data === 'object' ? data.data : {};
     } catch (error) {
       console.error('Error fetching statistics by platform:', error);
       return {};
