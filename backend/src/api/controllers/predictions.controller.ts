@@ -121,9 +121,13 @@ class PredictionsController {
       
       const result = await autoPredictionsService.generatePredictionsForUpcomingEvents();
       
+      // Always return success, even if no predictions were generated
+      // This allows the frontend to show a helpful message
       res.json({
         success: true,
-        message: `Generated ${result.generated} predictions, updated ${result.updated}`,
+        message: result.generated === 0 && result.updated === 0
+          ? 'No se generaron predicciones. Verifica que hay eventos próximos con odds disponibles.'
+          : `Generated ${result.generated} predictions, updated ${result.updated}`,
         data: result,
       });
     } catch (error: any) {
