@@ -122,10 +122,11 @@ class TheOddsAPIService {
     bestBookmakers: Record<string, string>;
   } | null> {
     try {
+      const { save = true } = options;
       const { data } = await api.get(`/the-odds-api/sports/${sport}/events/${eventId}/compare`, {
         params: { 
           market,
-          save: options.save !== false ? 'true' : undefined, // Por defecto guarda
+          save: save ? 'true' : undefined, // Guardar por defecto
         },
       });
       return data.success ? data.data : null;
