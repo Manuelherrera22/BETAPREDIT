@@ -134,7 +134,11 @@ export default function Predictions() {
             }
           } catch (err: any) {
             // Log error but continue with other events
-            console.warn(`Error getting predictions for event ${event.id}:`, err.message || err);
+            const errorMessage = err.message || err.toString() || 'Unknown error';
+            // Only log if it's not the markets error (we handle that gracefully)
+            if (!errorMessage.includes('markets')) {
+              console.warn(`Error getting predictions for event ${event.id}:`, errorMessage);
+            }
           }
         }
         
@@ -146,7 +150,7 @@ export default function Predictions() {
       }
     },
     refetchInterval: 60000, // Refresh every minute
-    enabled: !!selectedSport,
+    enabled: true, // Always enabled, even when 'all' is selected
   });
 
   // Filter predictions (show all that meet confidence and value thresholds)
