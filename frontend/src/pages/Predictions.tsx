@@ -185,7 +185,8 @@ export default function Predictions() {
     },
     onSuccess: (data) => {
       if (data.data.generated === 0 && data.data.updated === 0) {
-        const message = data.data.suggestion === 'sync_events_first'
+        const suggestion = (data.data as any).suggestion;
+        const message = suggestion === 'sync_events_first'
           ? 'No se generaron predicciones. Primero sincroniza los eventos desde la página de Eventos para obtener las odds.'
           : 'No se generaron predicciones. Verifica que hay eventos próximos con odds disponibles.';
         
