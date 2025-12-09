@@ -21,8 +21,295 @@ interface ValueBetDetectionOptions {
 
 class ValueBetDetectionService {
   /**
-   * Detect value bets for upcoming events
-   * Uses a simple probability model based on implied probabilities from odds
+   * ⚠️ NUEVO: Detect value bets using events and predictions from database
+   * Much more efficient - uses existing predictions instead of calling The Odds API
+   */
+  async detectValueBetsForEventsFromDB(options: ValueBetDetectionOptions = {}) {
+    let {
+      userId,
+      sport = 'soccer_epl',
+      minValue = 0.05, // 5% minimum value
+      maxEvents = 20,
+      autoCreateAlerts = false,
+    } = options;
+
+    // Load user preferences if userId is provided
+    if (userId) {
+      try {
+        const preferences = await userPreferencesService.getValueBetPreferences(userId);
+        
+        if (preferences.minValue !== undefined) {
+          minValue = preferences.minValue;
+        }
+        if (preferences.maxEvents !== undefined) {
+          maxEvents = preferences.maxEvents;
+        }
+        if (preferences.sports && preferences.sports.length > 0 && !options.sport) {
+          sport = preferences.sports[0];
+        }
+        if (preferences.autoCreateAlerts !== undefined) {
+          autoCreateAlerts = preferences.autoCreateAlerts;
+        }
+      } catch (error) {
+        logger.warn('Error loading user preferences, using defaults:', error);
+      }
+    }
+
+    try {
+      // Find sport in database
+      const sportRecord = await prisma.sport.findFirst({
+        where: { slug: sport, isActive: true },
+      });
+
+      if (!sportRecord) {
+        logger.info(`Sport ${sport} not found in database`);
+        return [];
+      }
+
+      // Get events with predictions from database
+      const now = new Date();
+      const maxTime = new Date(now.getTime() + 48 * 60 * 60 * 1000); // Next 48 hours
+
+      const events = await prisma.event.findMany({
+        where: {
+          sportId: sportRecord.id,
+          status: 'SCHEDULED',
+          isActive: true,
+          startTime: {
+            gte: now,
+            lte: maxTime,
+          },
+          Prediction: {
+            some: {}, // Only events with predictions
+          },
+        },
+        include: {
+          sport: true,
+          markets: {
+            where: { isActive: true, type: 'MATCH_WINNER' },
+            include: {
+              odds: {
+                where: { isActive: true },
+              },
+            },
+          },
+          Prediction: {
+            where: {
+              wasCorrect: null, // Only unresolved predictions
+            },
+          },
+        },
+        take: maxEvents,
+        orderBy: { startTime: 'asc' },
+      });
+
+      if (events.length === 0) {
+        logger.info(`No events with predictions found in DB for sport ${sport}`);
+        return [];
+      }
+
+      logger.info(`Found ${events.length} events with predictions in DB for ${sport}`);
+
+      const detectedValueBets: Array<{
+        eventId: string;
+        eventName: string;
+        selection: string;
+        bookmaker: string;
+        odds: number;
+        impliedProbability: number;
+        predictedProbability: number;
+        valuePercentage: number;
+        expectedValue: number;
+        confidence?: number;
+        factors?: any;
+      }> = [];
+
+      // Process each event
+      for (const event of events) {
+        try {
+          const result = await this.detectValueBetsForEvent(event, {
+            userId,
+            minValue,
+            autoCreateAlerts,
+          });
+          detectedValueBets.push(...result);
+        } catch (error: any) {
+          logger.warn(`Error processing event ${event.id}:`, error.message);
+          continue;
+        }
+      }
+
+      // Sort by value percentage (highest first)
+      detectedValueBets.sort((a, b) => b.valuePercentage - a.valuePercentage);
+
+      logger.info(`Detected ${detectedValueBets.length} value bets from DB for sport ${sport}`);
+      return detectedValueBets;
+    } catch (error: any) {
+      logger.error('Error detecting value bets from DB:', error);
+      return [];
+    }
+  }
+
+  /**
+   * ⚠️ NUEVO: Detect value bets for a single event using predictions from database
+   */
+  async detectValueBetsForEvent(
+    event: any,
+    options: {
+      userId?: string;
+      minValue?: number;
+      autoCreateAlerts?: boolean;
+    } = {}
+  ) {
+    const { userId, minValue = 0.05, autoCreateAlerts = false } = options;
+
+    const detectedValueBets: Array<{
+      eventId: string;
+      eventName: string;
+      selection: string;
+      bookmaker: string;
+      odds: number;
+      impliedProbability: number;
+      predictedProbability: number;
+      valuePercentage: number;
+      expectedValue: number;
+      confidence?: number;
+      factors?: any;
+    }> = [];
+
+    try {
+      // Get market
+      const market = event.markets?.find((m: any) => m.type === 'MATCH_WINNER');
+      if (!market) {
+        return [];
+      }
+
+      // Process each prediction
+      for (const prediction of event.Prediction || []) {
+        try {
+          // Get odds for this selection from database
+          const oddsForSelection = market.odds?.filter(
+            (o: any) => o.selection === prediction.selection
+          ) || [];
+
+          if (oddsForSelection.length === 0) {
+            // No odds in DB, skip or fetch from API as fallback
+            continue;
+          }
+
+          // Find best odds
+          const bestOdd = oddsForSelection.reduce((best: any, current: any) => {
+            return current.decimal > best.decimal ? current : best;
+          }, oddsForSelection[0]);
+
+          const bestOdds = bestOdd.decimal;
+          const bookmaker = bestOdd.source || 'SYSTEM';
+
+          // Use prediction from database
+          const predictedProbability = prediction.predictedProbability;
+          const confidence = prediction.confidence || 0.7;
+          const factors = (prediction.factors || {}) as any;
+
+          // Calculate implied probability from odds
+          const impliedProbability = 1 / bestOdds;
+
+          // Calculate value using improved calculation
+          const rawValue = predictedProbability * bestOdds - 1;
+          const estimatedMargin = factors.estimatedMargin ? factors.estimatedMargin / 100 : 0.05;
+          const confidenceAdjustedValue = rawValue * confidence;
+          const marginAdjustedValue = confidenceAdjustedValue - (estimatedMargin * (1 - confidence));
+          const valuePercentage = marginAdjustedValue * 100;
+          const adjustedExpectedValue = marginAdjustedValue * 100;
+
+          // Apply user preferences filters if userId provided
+          if (userId) {
+            try {
+              const preferences = await userPreferencesService.getValueBetPreferences(userId);
+              
+              if (preferences.minConfidence !== undefined && confidence < preferences.minConfidence) {
+                continue;
+              }
+              if (preferences.minOdds !== undefined && bestOdds < preferences.minOdds) {
+                continue;
+              }
+              if (preferences.maxOdds !== undefined && bestOdds > preferences.maxOdds) {
+                continue;
+              }
+              if (preferences.platforms && preferences.platforms.length > 0) {
+                if (!preferences.platforms.some(p => bookmaker.toLowerCase().includes(p.toLowerCase()))) {
+                  continue;
+                }
+              }
+            } catch (error) {
+              logger.warn('Error applying user preferences filters:', error);
+            }
+          }
+
+          // Check if it's a value bet
+          if (marginAdjustedValue >= minValue) {
+            detectedValueBets.push({
+              eventId: event.id,
+              eventName: `${event.homeTeam} vs ${event.awayTeam}`,
+              selection: prediction.selection,
+              bookmaker: bookmaker,
+              odds: bestOdds,
+              impliedProbability,
+              predictedProbability,
+              valuePercentage,
+              expectedValue: adjustedExpectedValue,
+              confidence,
+              factors: {
+                ...factors,
+                rawValue: rawValue * 100,
+                marginAdjustedValue: marginAdjustedValue * 100,
+                adjustedExpectedValue,
+              },
+            });
+
+            // Auto-create alert if enabled
+            if (autoCreateAlerts) {
+              try {
+                await valueBetAlertsService.createAlert({
+                  eventId: event.id,
+                  marketId: market.id,
+                  selection: prediction.selection,
+                  bookmakerOdds: bestOdds,
+                  bookmakerPlatform: bookmaker,
+                  predictedProbability,
+                  expectedValue: adjustedExpectedValue,
+                  valuePercentage,
+                  confidence,
+                  factors: {
+                    ...factors,
+                    rawValue: rawValue * 100,
+                    marginAdjustedValue: marginAdjustedValue * 100,
+                    adjustedExpectedValue,
+                  },
+                  expiresAt: event.startTime,
+                  userId,
+                });
+
+                logger.info(`Created value bet alert for ${event.homeTeam} vs ${event.awayTeam} - ${prediction.selection}`);
+              } catch (alertError: any) {
+                logger.error(`Error creating alert for event ${event.id}:`, alertError.message);
+              }
+            }
+          }
+        } catch (error: any) {
+          logger.warn(`Error processing prediction ${prediction.id}:`, error.message);
+          continue;
+        }
+      }
+    } catch (error: any) {
+      logger.error(`Error detecting value bets for event ${event.id}:`, error);
+    }
+
+    return detectedValueBets;
+  }
+
+  /**
+   * Detect value bets for upcoming events (DEPRECATED - uses The Odds API)
+   * ⚠️ Use detectValueBetsForEventsFromDB() instead for better performance
    */
   async detectValueBetsForSport(options: ValueBetDetectionOptions = {}) {
     let {
@@ -335,6 +622,7 @@ class ValueBetDetectionService {
 
   /**
    * Scan multiple sports for value bets
+   * ⚠️ OPTIMIZADO: Usa eventos de BD en lugar de The Odds API
    */
   async scanAllSports(options: ValueBetDetectionOptions = {}) {
     const sports = ['soccer_epl', 'soccer_usa_mls', 'basketball_nba', 'americanfootball_nfl'];
@@ -342,7 +630,8 @@ class ValueBetDetectionService {
 
     for (const sport of sports) {
       try {
-        const valueBets = await this.detectValueBetsForSport({
+        // ⚠️ NUEVO: Usar método optimizado que usa BD
+        const valueBets = await this.detectValueBetsForEventsFromDB({
           ...options,
           sport,
         });

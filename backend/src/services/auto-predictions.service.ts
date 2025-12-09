@@ -10,6 +10,8 @@ import { improvedPredictionService } from './improved-prediction.service';
 import { predictionsService } from './predictions.service';
 import { getTheOddsAPIService } from './integrations/the-odds-api.service';
 import { eventSyncService } from './event-sync.service';
+import { valueBetDetectionService } from './value-bet-detection.service';
+import { valueBetDetectionService } from './value-bet-detection.service';
 
 class AutoPredictionsService {
   private readonly MODEL_VERSION = 'v2.0-auto';
@@ -105,6 +107,23 @@ class AutoPredictionsService {
       }
 
       logger.info(`Generated predictions for synced events: ${generated} generated, ${updated} updated, ${errors} errors`);
+      
+      // ⚠️ NUEVO: Detectar value bets automáticamente después de generar predicciones
+      if (generated > 0 || updated > 0) {
+        try {
+          logger.info('Detecting value bets for events with new predictions...');
+          const valueBets = await valueBetDetectionService.detectValueBetsForEventsFromDB({
+            minValue: 0.05,
+            maxEvents: events.length,
+            autoCreateAlerts: true,
+          });
+          logger.info(`Detected ${valueBets.length} value bets after generating predictions`);
+        } catch (error: any) {
+          logger.warn('Error detecting value bets after generating predictions:', error.message);
+          // Don't fail if value bet detection fails
+        }
+      }
+      
       return { generated, updated, errors };
     } catch (error: any) {
       logger.error('Error in generatePredictionsForSyncedEvents:', error);
@@ -338,6 +357,70 @@ class AutoPredictionsService {
           }
         } catch (error: any) {
           logger.warn(`Error generating prediction for ${selection}:`, error.message);
+        }
+      }
+
+      // ⚠️ NUEVO: Detectar value bets automáticamente después de generar predicciones
+      if ((generated > 0 || updated > 0) && event) {
+        try {
+          // Re-fetch event with predictions to detect value bets
+          const eventWithPredictions = await prisma.event.findUnique({
+            where: { id: event.id },
+            include: {
+              sport: true,
+              markets: {
+                where: { isActive: true, type: 'MATCH_WINNER' },
+                include: {
+                  odds: { where: { isActive: true } },
+                },
+              },
+              Prediction: {
+                where: { wasCorrect: null },
+              },
+            },
+          });
+
+          if (eventWithPredictions) {
+            await valueBetDetectionService.detectValueBetsForEvent(eventWithPredictions, {
+              minValue: 0.05,
+              autoCreateAlerts: true,
+            });
+            logger.info(`Detected value bets for event ${event.id} after generating predictions`);
+          }
+        } catch (vbError: any) {
+          logger.warn(`Error detecting value bets for event ${event.id}:`, vbError.message);
+          // Don't fail prediction generation if value bet detection fails
+        }
+      }
+
+      // ⚠️ NUEVO: Detectar value bets automáticamente después de generar predicciones
+      if (generated > 0 || updated > 0) {
+        try {
+          // Reload event with predictions to detect value bets
+          const eventWithPredictions = await prisma.event.findUnique({
+            where: { id: event.id },
+            include: {
+              sport: true,
+              markets: {
+                where: { isActive: true, type: 'MATCH_WINNER' },
+                include: { odds: { where: { isActive: true } } },
+              },
+              Prediction: {
+                where: { wasCorrect: null },
+              },
+            },
+          });
+
+          if (eventWithPredictions && eventWithPredictions.Prediction.length > 0) {
+            await valueBetDetectionService.detectValueBetsForEvent(eventWithPredictions, {
+              minValue: 0.05, // 5% minimum value
+              autoCreateAlerts: true, // Automatically create alerts
+            });
+            logger.info(`Detected value bets for event ${event.id} after generating predictions`);
+          }
+        } catch (error: any) {
+          logger.warn(`Error detecting value bets for event ${event.id}:`, error.message);
+          // Don't fail prediction generation if value bet detection fails
         }
       }
 
