@@ -185,10 +185,12 @@ class ArbitrageService {
     }
 
     // Fallback: Calculate directly from The Odds API
+    // OPTIMIZED: Use only getOdds() data instead of compareOdds() for each event
+    // This reduces API calls from ~150 to just 1 per request
     try {
       const allOpportunities: ArbitrageOpportunity[] = [];
 
-      // Get events from The Odds API
+      // Get events from The Odds API (single call, cached)
       const events = await theOddsApiService.getOdds(sport, {
         regions: ['us', 'uk', 'eu'],
         markets: ['h2h'],
@@ -199,39 +201,72 @@ class ArbitrageService {
         return [];
       }
 
-      // Process events in batches to avoid too many simultaneous requests
-      const batchSize = 5;
-      const eventsToProcess = events.slice(0, limit * 3); // Check more events to find opportunities
+      // Process events directly from getOdds() response (no additional API calls)
+      // getOdds() already includes all bookmakers and odds for each event
+      const eventsToProcess = events.slice(0, limit * 1.5); // Reduced from limit * 3
 
-      for (let i = 0; i < eventsToProcess.length; i += batchSize) {
-        const batch = eventsToProcess.slice(i, i + batchSize);
-        
-        // Process batch in parallel
-        const batchPromises = batch.map(async (event) => {
-          try {
-            const comparison = await theOddsApiService.compareOdds(sport, event.id, 'h2h', { save: false });
-            if (comparison && comparison.comparisons && Object.keys(comparison.comparisons).length > 0) {
-              const opportunities = this.calculateArbitrageFromComparison(
-                event,
-                comparison.comparisons,
-                minProfitMargin
-              );
-              return opportunities;
-            }
-            return [];
-          } catch (error: any) {
-            // Silently skip events that fail (404, network errors, etc.)
-            return [];
+      for (const event of eventsToProcess) {
+        try {
+          // Extract comparisons directly from event data (already includes all bookmakers)
+          if (!event.bookmakers || !Array.isArray(event.bookmakers)) {
+            continue;
           }
-        });
 
-        const batchResults = await Promise.all(batchPromises);
-        const batchOpportunities = batchResults.flat();
-        allOpportunities.push(...batchOpportunities);
+          // Build comparisons object from event.bookmakers
+          const comparisons: Record<string, any> = {};
+          
+          event.bookmakers.forEach((bookmaker: any) => {
+            if (!bookmaker.markets || !Array.isArray(bookmaker.markets)) {
+              return;
+            }
+            
+            bookmaker.markets.forEach((marketData: any) => {
+              if (marketData.key === 'h2h' && marketData.outcomes && Array.isArray(marketData.outcomes)) {
+                marketData.outcomes.forEach((outcome: any) => {
+                  const selectionName = outcome.name || outcome.description || 'unknown';
+                  if (!comparisons[selectionName]) {
+                    comparisons[selectionName] = {
+                      name: selectionName,
+                      allOdds: [],
+                      bestOdds: 0,
+                      bestBookmaker: '',
+                    };
+                  }
+                  
+                  const odds = parseFloat(outcome.price) || 0;
+                  if (odds > 0) {
+                    comparisons[selectionName].allOdds.push({
+                      odds,
+                      bookmaker: bookmaker.title || bookmaker.key,
+                    });
+                    
+                    if (odds > comparisons[selectionName].bestOdds) {
+                      comparisons[selectionName].bestOdds = odds;
+                      comparisons[selectionName].bestBookmaker = bookmaker.title || bookmaker.key;
+                    }
+                  }
+                });
+              }
+            });
+          });
 
-        // If we have enough opportunities, we can stop early
-        if (allOpportunities.length >= limit) {
-          break;
+          // Calculate arbitrage from the comparisons we built
+          if (Object.keys(comparisons).length >= 2) {
+            const opportunities = this.calculateArbitrageFromComparison(
+              event,
+              comparisons,
+              minProfitMargin
+            );
+            allOpportunities.push(...opportunities);
+          }
+
+          // If we have enough opportunities, we can stop early
+          if (allOpportunities.length >= limit) {
+            break;
+          }
+        } catch (error: any) {
+          // Silently skip events that fail
+          continue;
         }
       }
 

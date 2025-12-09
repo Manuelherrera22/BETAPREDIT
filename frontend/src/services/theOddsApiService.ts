@@ -6,6 +6,8 @@
 
 import api from './api';
 import { isSupabaseConfigured } from '../config/supabase';
+import apiCache from '../utils/apiCache';
+import apiUsageMonitor from '../utils/apiUsageMonitor';
 
 // Get Supabase Functions URL
 const getSupabaseFunctionsUrl = () => {
@@ -108,7 +110,17 @@ class TheOddsAPIService {
         return result.success ? result.data : [];
       } else {
         const { data } = await api.get('/the-odds-api/sports');
-        return data.success ? data.data : [];
+        const sportsData = data.success ? data.data : [];
+        
+        // Record API call
+        apiUsageMonitor.recordCall('getSports');
+        
+        // Cache for 1 hour
+        if (sportsData.length > 0) {
+          apiCache.set('theodds_sports', sportsData, 3600);
+        }
+        
+        return sportsData;
       }
     } catch (error) {
       console.error('Error fetching sports:', error);
@@ -130,6 +142,19 @@ class TheOddsAPIService {
   ): Promise<OddsEvent[]> {
     try {
       const { regions = ['us', 'uk', 'eu'], markets = ['h2h'], oddsFormat = 'decimal', sync = true } = options;
+
+      // Check cache first (odds change frequently, but cache for 2 minutes)
+      const cacheKey = apiCache.generateKey('theodds_odds', { sport, regions, markets, oddsFormat });
+      const cached = apiCache.get<OddsEvent[]>(cacheKey);
+      if (cached) {
+        return cached; // Cache hit - no API call needed
+      }
+
+      // Check if we can make API call
+      if (!apiUsageMonitor.canMakeCall()) {
+        console.warn('⚠️ API usage limit reached. Using cached data if available.');
+        return cached || [];
+      }
 
       // Use Supabase Edge Function if available, otherwise use backend API
       const supabaseFunctionsUrl = getSupabaseFunctionsUrl();
@@ -175,7 +200,17 @@ class TheOddsAPIService {
             sync: sync ? 'true' : undefined, // Sincronizar por defecto
           },
         });
-        return data.success ? data.data : [];
+        const oddsData = data.success ? data.data : [];
+        
+        // Record API call
+        apiUsageMonitor.recordCall('getOdds');
+        
+        // Cache for 2 minutes
+        if (oddsData.length > 0) {
+          apiCache.set(cacheKey, oddsData, 120);
+        }
+        
+        return oddsData;
       }
     } catch (error) {
       console.error('Error fetching odds:', error);
@@ -200,6 +235,23 @@ class TheOddsAPIService {
   } | null> {
     try {
       const { save = true } = options;
+
+      // Check cache first (comparisons change frequently, cache for 1 minute)
+      const cacheKey = apiCache.generateKey('theodds_compare', { sport, eventId, market });
+      const cached = apiCache.get<{
+        event: OddsEvent;
+        comparisons: Record<string, OddsComparison>;
+        bestBookmakers: Record<string, string>;
+      }>(cacheKey);
+      if (cached) {
+        return cached; // Cache hit - no API call needed
+      }
+
+      // Check if we can make API call
+      if (!apiUsageMonitor.canMakeCall()) {
+        console.warn('⚠️ API usage limit reached. Using cached data if available.');
+        return cached || null;
+      }
 
       // Use Supabase Edge Function if available, otherwise use backend API
       const supabaseFunctionsUrl = getSupabaseFunctionsUrl();
@@ -231,7 +283,17 @@ class TheOddsAPIService {
         }
         
         const result = await response.json();
-        return result.success ? result.data : null;
+        const data = result.success ? result.data : null;
+        
+        // Record API call
+        apiUsageMonitor.recordCall('compareOdds');
+        
+        // Cache for 1 minute (comparisons change frequently)
+        if (data) {
+          apiCache.set(cacheKey, data, 60);
+        }
+        
+        return data;
       } else {
         const { data } = await api.get(`/the-odds-api/sports/${sport}/events/${eventId}/compare`, {
           params: { 
@@ -239,7 +301,17 @@ class TheOddsAPIService {
             save: save ? 'true' : undefined, // Guardar por defecto
           },
         });
-        return data.success ? data.data : null;
+        const comparisonData = data.success ? data.data : null;
+        
+        // Record API call
+        apiUsageMonitor.recordCall('compareOdds');
+        
+        // Cache for 1 minute
+        if (comparisonData) {
+          apiCache.set(cacheKey, comparisonData, 60);
+        }
+        
+        return comparisonData;
       }
     } catch (error) {
       console.error('Error comparing odds:', error);

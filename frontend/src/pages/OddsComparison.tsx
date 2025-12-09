@@ -60,8 +60,9 @@ export default function OddsComparison() {
     };
 
     loadEvents();
-    // Actualizar cada 60 segundos
-    const interval = setInterval(loadEvents, 60000);
+    // Actualizar cada 5 minutos (reducido de 60s para ahorrar API calls)
+    // WebSocket se encarga de actualizaciones en tiempo real
+    const interval = setInterval(loadEvents, 300000); // 5 minutos
     return () => clearInterval(interval);
   }, [selectedSport]);
 
@@ -84,8 +85,9 @@ export default function OddsComparison() {
     };
 
     loadComparison();
-    // Actualizar cada 30 segundos (fallback si WebSocket falla)
-    const interval = setInterval(loadComparison, 30000);
+    // Actualizar cada 2 minutos (reducido de 30s para ahorrar API calls)
+    // WebSocket se encarga de actualizaciones en tiempo real
+    const interval = setInterval(loadComparison, 120000); // 2 minutos
     return () => clearInterval(interval);
   }, [selectedEvent, selectedSport]);
 

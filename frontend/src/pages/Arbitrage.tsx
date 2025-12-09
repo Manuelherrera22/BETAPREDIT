@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { arbitrageService, type ArbitrageOpportunity, type StakeCalculation } from '../services/arbitrageService';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { useDebounce } from '../hooks/useDebounce';
 import GradientText from '../components/GradientText';
 
 export default function Arbitrage() {
@@ -22,10 +23,13 @@ export default function Arbitrage() {
 
   const { socket, connected } = useWebSocket();
 
-  // Fetch opportunities on mount and when filters change
+  // Debounce filters to avoid multiple API calls
+  const debouncedFilters = useDebounce(filters, 500);
+
+  // Fetch opportunities on mount and when debounced filters change
   useEffect(() => {
     fetchOpportunities();
-  }, [filters]);
+  }, [debouncedFilters]);
 
   // Subscribe to arbitrage WebSocket updates
   useEffect(() => {
