@@ -56,6 +56,12 @@ supabase functions deploy user-statistics --project-ref mdjzqxhjbisnlfpbjfgb
 supabase functions deploy sync-events --project-ref mdjzqxhjbisnlfpbjfgb
 ```
 
+### 8. Desplegar Get Events
+
+```powershell
+supabase functions deploy get-events --project-ref mdjzqxhjbisnlfpbjfgb
+```
+
 ## ✅ Verificar Deployment
 
 Después de desplegar, verifica que las funciones estén disponibles:
@@ -66,6 +72,7 @@ Después de desplegar, verifica que las funciones estén disponibles:
    - `external-bets`
    - `user-statistics`
    - `sync-events`
+   - `get-events`
 
 ## 🔗 URLs de las Funciones
 
@@ -84,6 +91,11 @@ Una vez desplegadas, las funciones estarán disponibles en:
 - **Sync Events**: 
   ```
   https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/sync-events
+  ```
+
+- **Get Events**: 
+  ```
+  https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/get-events
   ```
 
 ## 🧪 Probar las Funciones
