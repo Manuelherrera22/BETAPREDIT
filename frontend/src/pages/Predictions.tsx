@@ -50,6 +50,11 @@ export default function Predictions() {
         // Get events
         const events = await eventsService.getUpcomingEvents(selectedSport, undefined, true);
         
+        // Validate events is an array
+        if (!events || !Array.isArray(events) || events.length === 0) {
+          return [];
+        }
+        
         // For each event, get predictions
         const eventsWithPreds: EventPrediction[] = [];
         
