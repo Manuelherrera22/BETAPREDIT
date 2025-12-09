@@ -47,17 +47,117 @@ serve(async (req) => {
 
     // Parse request
     const url = new URL(req.url);
-    const path = url.pathname.replace("/the-odds-api", "");
+    let path = url.pathname.replace("/the-odds-api", "");
     
+    // Handle /compare endpoint (custom logic, not in The Odds API)
+    if (path.includes("/events/") && path.includes("/compare")) {
+      // Extract sport and eventId from path: /sports/{sport}/events/{eventId}/compare
+      const pathParts = path.split("/");
+      const sportIndex = pathParts.indexOf("sports");
+      const eventsIndex = pathParts.indexOf("events");
+      
+      if (sportIndex !== -1 && eventsIndex !== -1) {
+        const sport = pathParts[sportIndex + 1];
+        const eventId = pathParts[eventsIndex + 1];
+        const market = url.searchParams.get("market") || "h2h";
+        
+        // Get odds for the sport to find the event
+        const oddsUrl = new URL(`${THE_ODDS_API_BASE}/sports/${sport}/odds`);
+        oddsUrl.searchParams.set("apiKey", THE_ODDS_API_KEY);
+        oddsUrl.searchParams.set("regions", "us,uk,eu");
+        oddsUrl.searchParams.set("markets", market);
+        oddsUrl.searchParams.set("oddsFormat", "decimal");
+        
+        const oddsResponse = await fetch(oddsUrl.toString());
+        const oddsData = await oddsResponse.json();
+        
+        // Find the event by ID
+        const event = Array.isArray(oddsData) 
+          ? oddsData.find((e: any) => e.id === eventId)
+          : null;
+        
+        if (!event) {
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: { message: "Event not found" } 
+            }),
+            {
+              status: 404,
+              headers: {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*",
+              },
+            }
+          );
+        }
+        
+        // Compare odds across bookmakers
+        const comparisons: Record<string, any> = {};
+        const bestBookmakers: Record<string, string> = {};
+        
+        if (event.bookmakers && Array.isArray(event.bookmakers)) {
+          event.bookmakers.forEach((bookmaker: any) => {
+            if (bookmaker.markets && Array.isArray(bookmaker.markets)) {
+              bookmaker.markets.forEach((marketData: any) => {
+                if (marketData.key === market && marketData.outcomes) {
+                  marketData.outcomes.forEach((outcome: any) => {
+                    const key = outcome.name || outcome.description || "unknown";
+                    if (!comparisons[key]) {
+                      comparisons[key] = {
+                        name: key,
+                        bookmakers: {},
+                        bestOdds: 0,
+                        bestBookmaker: "",
+                      };
+                    }
+                    const odds = parseFloat(outcome.price) || 0;
+                    comparisons[key].bookmakers[bookmaker.key] = {
+                      odds,
+                      bookmaker: bookmaker.title || bookmaker.key,
+                    };
+                    if (odds > comparisons[key].bestOdds) {
+                      comparisons[key].bestOdds = odds;
+                      comparisons[key].bestBookmaker = bookmaker.title || bookmaker.key;
+                      bestBookmakers[key] = bookmaker.title || bookmaker.key;
+                    }
+                  });
+                }
+              });
+            }
+          });
+        }
+        
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            data: {
+              event,
+              comparisons,
+              bestBookmakers,
+            }
+          }),
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+              "Access-Control-Allow-Origin": "*",
+            },
+          }
+        );
+      }
+    }
+    
+    // For other endpoints, proxy to The Odds API
     // Build The Odds API URL
     const apiUrl = new URL(`${THE_ODDS_API_BASE}${path}`);
     
     // Add API key
     apiUrl.searchParams.set("apiKey", THE_ODDS_API_KEY);
     
-    // Copy query parameters from request
+    // Copy query parameters from request (except sync and save which are backend-specific)
     url.searchParams.forEach((value, key) => {
-      if (key !== "apiKey") {
+      if (key !== "apiKey" && key !== "sync" && key !== "save") {
         apiUrl.searchParams.set(key, value);
       }
     });
