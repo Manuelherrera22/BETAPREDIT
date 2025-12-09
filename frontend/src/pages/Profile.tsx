@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
 import SubscriptionTab from '../components/SubscriptionTab';
+import ValueBetPreferencesForm from '../components/ValueBetPreferencesForm';
+import PushNotificationSettings from '../components/PushNotificationSettings';
 import { userProfileService } from '../services/userProfileService';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
@@ -277,6 +279,15 @@ export default function Profile() {
               <p className="text-xs text-gray-500 mt-2">
                 💡 El modo de uso se guarda automáticamente al seleccionarlo. Los demás cambios requieren guardar manualmente.
               </p>
+
+              {/* Value Bet Preferences */}
+              <div className="mt-8 pt-8 border-t border-primary-500/20">
+                <h3 className="text-xl font-black text-white mb-4">Preferencias de Value Bets</h3>
+                <p className="text-sm text-gray-400 mb-6">
+                  Configura cómo quieres recibir alertas de value bets. Estas preferencias se aplicarán automáticamente cuando se detecten oportunidades.
+                </p>
+                <ValueBetPreferencesForm />
+              </div>
             </div>
           </div>
         )}
@@ -285,6 +296,9 @@ export default function Profile() {
           <div className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-8 border border-primary-500/20">
             <h2 className="text-2xl font-black text-white mb-6">Preferencias de Notificaciones</h2>
             <div className="space-y-4">
+              {/* Browser Push Notifications */}
+              <PushNotificationSettings />
+              
               <div className="flex items-center justify-between p-4 bg-dark-800/50 rounded-lg">
                 <div>
                   <h3 className="text-white font-semibold mb-1">Alertas de Value Bets</h3>

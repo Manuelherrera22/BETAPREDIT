@@ -4,6 +4,7 @@ import { es } from 'date-fns/locale';
 import { valueBetAlertsService } from '../services/valueBetAlertsService';
 import { notificationsService } from '../services/notificationsService';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 import { useAuthStore } from '../store/authStore';
 
 interface Alert {
@@ -30,6 +31,12 @@ export default function Alerts() {
     autoConnect: true,
     channels: userId ? [`value-bets:${userId}`, `notifications:${userId}`] : [],
   });
+
+  // Push notifications
+  const { showValueBetNotification, showGenericNotification, isGranted } = usePushNotifications();
+
+  // Push notifications
+  const { showValueBetNotification, showGenericNotification, isGranted } = usePushNotifications();
 
   // Cargar alertas y notificaciones
   useEffect(() => {
@@ -136,6 +143,19 @@ export default function Alerts() {
         source: 'value_bet_alert',
       };
       setAlerts((prev) => [newAlert, ...prev]);
+
+      // Show browser notification if permission granted
+      if (isGranted && alertData.valuePercentage) {
+        showValueBetNotification({
+          id: alertData.id,
+          eventName: alertData.event ? `${alertData.event.homeTeam} vs ${alertData.event.awayTeam}` : undefined,
+          selection: alertData.selection,
+          bookmakerOdds: alertData.bookmakerOdds,
+          bookmakerPlatform: alertData.bookmakerPlatform,
+          valuePercentage: alertData.valuePercentage,
+          eventId: alertData.eventId,
+        });
+      }
     } else if (lastMessage?.type === 'notification:new') {
       const notifData = lastMessage.data;
       const newAlert: Alert = {
@@ -152,8 +172,16 @@ export default function Alerts() {
         source: 'notification',
       };
       setAlerts((prev) => [newAlert, ...prev]);
+
+      // Show browser notification if permission granted
+      if (isGranted) {
+        const notificationType = notifData.type === 'VALUE_BET_DETECTED' ? 'success' :
+                                 notifData.type === 'ODDS_CHANGED' ? 'info' :
+                                 notifData.type === 'PREDICTION_READY' ? 'info' : 'info';
+        showGenericNotification(notifData.title, notifData.message, notificationType);
+      }
     }
-  }, [lastMessage]);
+  }, [lastMessage, isGranted, showValueBetNotification, showGenericNotification]);
 
   const [filters, setFilters] = useState<{
     type: string;

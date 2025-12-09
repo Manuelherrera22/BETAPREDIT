@@ -10,9 +10,20 @@ import { AppError } from '../middleware/errorHandler';
 interface ValueBetPreferences {
   minValue?: number; // Minimum value percentage (default: 5%)
   maxEvents?: number; // Maximum events to check per scan
-  sports?: string[]; // Preferred sports
+  sports?: string[]; // Preferred sports (e.g., ['soccer_epl', 'basketball_nba'])
+  leagues?: string[]; // Preferred leagues (e.g., ['Premier League', 'NBA'])
+  platforms?: string[]; // Preferred bookmaker platforms (e.g., ['Bet365', 'Betfair'])
   autoCreateAlerts?: boolean; // Auto-create alerts when value bets detected
   notificationThreshold?: number; // Only notify if value >= this (default: 10%)
+  minConfidence?: number; // Minimum confidence level (0-1, default: 0.5)
+  maxOdds?: number; // Maximum odds to consider (default: 10.0)
+  minOdds?: number; // Minimum odds to consider (default: 1.1)
+  timeRange?: { // Preferred time range for events
+    start?: string; // HH:mm format (e.g., '09:00')
+    end?: string; // HH:mm format (e.g., '23:00')
+    timezone?: string; // Timezone (default: user's timezone)
+  };
+  marketTypes?: string[]; // Preferred market types (e.g., ['h2h', 'totals'])
 }
 
 interface UserPreferencesData {
@@ -48,8 +59,15 @@ class UserPreferencesService {
           minValue: 0.05, // 5%
           maxEvents: 20,
           sports: ['soccer_epl', 'basketball_nba'],
+          leagues: [],
+          platforms: [],
           autoCreateAlerts: true,
           notificationThreshold: 0.10, // 10%
+          minConfidence: 0.5, // 50%
+          maxOdds: 10.0,
+          minOdds: 1.1,
+          timeRange: undefined,
+          marketTypes: ['h2h'],
         },
         emailNotifications: true,
         pushNotifications: true,
@@ -130,8 +148,15 @@ class UserPreferencesService {
       minValue: 0.05,
       maxEvents: 20,
       sports: ['soccer_epl'],
+      leagues: [],
+      platforms: [],
       autoCreateAlerts: true,
       notificationThreshold: 0.10,
+      minConfidence: 0.5,
+      maxOdds: 10.0,
+      minOdds: 1.1,
+      timeRange: undefined,
+      marketTypes: ['h2h'],
     };
   }
 

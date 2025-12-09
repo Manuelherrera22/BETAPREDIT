@@ -7,10 +7,12 @@ import { getTheOddsAPIService } from './integrations/the-odds-api.service';
 import { valueBetAlertsService } from './value-bet-alerts.service';
 import { eventSyncService } from './event-sync.service';
 import { improvedPredictionService } from './improved-prediction.service';
+import { userPreferencesService } from './user-preferences.service';
 import { logger } from '../utils/logger';
 import { prisma } from '../config/database';
 
 interface ValueBetDetectionOptions {
+  userId?: string; // User ID to apply preferences
   sport?: string;
   minValue?: number; // Minimum value percentage (e.g., 0.05 = 5%)
   maxEvents?: number; // Maximum number of events to check
@@ -23,12 +25,37 @@ class ValueBetDetectionService {
    * Uses a simple probability model based on implied probabilities from odds
    */
   async detectValueBetsForSport(options: ValueBetDetectionOptions = {}) {
-    const {
+    let {
+      userId,
       sport = 'soccer_epl',
       minValue = 0.05, // 5% minimum value
       maxEvents = 20,
       autoCreateAlerts = false,
     } = options;
+
+    // Load user preferences if userId is provided
+    if (userId) {
+      try {
+        const preferences = await userPreferencesService.getValueBetPreferences(userId);
+        
+        // Override defaults with user preferences
+        if (preferences.minValue !== undefined) {
+          minValue = preferences.minValue;
+        }
+        if (preferences.maxEvents !== undefined) {
+          maxEvents = preferences.maxEvents;
+        }
+        if (preferences.sports && preferences.sports.length > 0 && !options.sport) {
+          // If user has preferred sports and no sport specified, use first preferred
+          sport = preferences.sports[0];
+        }
+        if (preferences.autoCreateAlerts !== undefined) {
+          autoCreateAlerts = preferences.autoCreateAlerts;
+        }
+      } catch (error) {
+        logger.warn('Error loading user preferences, using defaults:', error);
+      }
+    }
 
     try {
       const theOddsAPI = getTheOddsAPIService();
@@ -131,13 +158,79 @@ class ValueBetDetectionService {
               predictedProbability = impliedProbability * 1.05; // 5% adjustment
             }
 
-            // Calculate value: (predicted_prob * odds) - 1
-            const value = predictedProbability * bestOdds.bestOdds - 1;
-            const valuePercentage = value * 100;
+            // Calculate implied probability from odds
+            const impliedProbability = 1 / bestOdds.bestOdds;
+            
+            // Calculate bookmaker margin (overround)
+            // Sum of all implied probabilities should be > 1 if there's margin
+            // For simplicity, we'll estimate margin as: margin = (1/odds_home + 1/odds_draw + 1/odds_away) - 1
+            // Since we only have one selection, we'll use a conservative estimate
+            const estimatedMargin = 0.05; // 5% typical margin
+            
+            // Calculate raw value: (predicted_prob * odds) - 1
+            const rawValue = predictedProbability * bestOdds.bestOdds - 1;
+            
+            // Adjust value by confidence level (higher confidence = more reliable value)
+            const confidenceAdjustedValue = rawValue * confidence;
+            
+            // Adjust for bookmaker margin (reduce value if margin is high)
+            const marginAdjustedValue = confidenceAdjustedValue - (estimatedMargin * (1 - confidence));
+            
+            // Calculate Kelly Criterion for optimal stake (optional, for reference)
+            // Kelly% = (prob * odds - 1) / (odds - 1)
+            const kellyPercentage = rawValue > 0 
+              ? (predictedProbability * bestOdds.bestOdds - 1) / (bestOdds.bestOdds - 1)
+              : 0;
+            
+            // Final value percentage (use margin-adjusted value)
+            const valuePercentage = marginAdjustedValue * 100;
+            
+            // Expected Value in percentage (raw value * 100 for display)
+            const expectedValue = rawValue * 100;
+            
+            // Adjusted Expected Value (considering confidence and margin)
+            const adjustedExpectedValue = marginAdjustedValue * 100;
 
-            // Check if it's a value bet
-            if (value >= minValue) {
-              const expectedValue = value * 100; // As percentage
+            // Apply user preferences filters if userId provided
+            if (userId) {
+              try {
+                const preferences = await userPreferencesService.getValueBetPreferences(userId);
+                
+                // Filter by confidence
+                if (preferences.minConfidence !== undefined && confidence < preferences.minConfidence) {
+                  continue; // Skip if confidence too low
+                }
+                
+                // Filter by odds range
+                if (preferences.minOdds !== undefined && bestOdds.bestOdds < preferences.minOdds) {
+                  continue; // Skip if odds too low
+                }
+                if (preferences.maxOdds !== undefined && bestOdds.bestOdds > preferences.maxOdds) {
+                  continue; // Skip if odds too high
+                }
+                
+                // Filter by platform
+                if (preferences.platforms && preferences.platforms.length > 0) {
+                  const bookmakerName = bestOdds.bestBookmaker || '';
+                  if (!preferences.platforms.some(p => bookmakerName.toLowerCase().includes(p.toLowerCase()))) {
+                    continue; // Skip if platform not in preferences
+                  }
+                }
+                
+                // Filter by sport (already handled at top level, but double-check)
+                if (preferences.sports && preferences.sports.length > 0) {
+                  if (!preferences.sports.includes(sport)) {
+                    continue; // Skip if sport not in preferences
+                  }
+                }
+              } catch (error) {
+                logger.warn('Error applying user preferences filters:', error);
+                // Continue with detection if preferences check fails
+              }
+            }
+
+            // Check if it's a value bet (use adjusted value for filtering)
+            if (marginAdjustedValue >= minValue) {
 
               detectedValueBets.push({
                 eventId: oddsEvent.id,
@@ -145,12 +238,19 @@ class ValueBetDetectionService {
                 selection: selection,
                 bookmaker: bestOdds.bestBookmaker || 'Unknown',
                 odds: bestOdds.bestOdds,
-                impliedProbability: 1 / bestOdds.bestOdds,
+                impliedProbability,
                 predictedProbability,
-                valuePercentage,
-                expectedValue,
+                valuePercentage, // Margin and confidence adjusted
+                expectedValue, // Raw EV
+                adjustedExpectedValue, // Adjusted EV
                 confidence,
-                factors,
+                kellyPercentage, // Optimal stake percentage
+                factors: {
+                  ...factors,
+                  rawValue: rawValue * 100,
+                  marginAdjustedValue: marginAdjustedValue * 100,
+                  estimatedMargin: estimatedMargin * 100,
+                },
               });
 
               // Auto-create alert if enabled
@@ -194,10 +294,17 @@ class ValueBetDetectionService {
                     bookmakerOdds: bestOdds.bestOdds,
                     bookmakerPlatform: bestOdds.bestBookmaker || 'Unknown',
                     predictedProbability,
-                    expectedValue,
-                    valuePercentage,
+                    expectedValue: adjustedExpectedValue, // Use adjusted EV
+                    valuePercentage, // Use margin and confidence adjusted value
                     confidence: confidence || 0.7,
-                    factors: factors || {},
+                    factors: {
+                      ...factors,
+                      rawValue: rawValue * 100,
+                      marginAdjustedValue: marginAdjustedValue * 100,
+                      adjustedExpectedValue,
+                      kellyPercentage: kellyPercentage * 100,
+                      estimatedMargin: estimatedMargin * 100,
+                    },
                     expiresAt: new Date(oddsEvent.commence_time),
                   });
 

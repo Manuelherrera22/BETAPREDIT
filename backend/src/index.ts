@@ -67,8 +67,10 @@ import valueBetDetectionRoutes from './api/routes/value-bet-detection.routes';
 import userPreferencesRoutes from './api/routes/user-preferences.routes';
 import valueBetAnalyticsRoutes from './api/routes/value-bet-analytics.routes';
 import userProfileRoutes from './api/routes/user-profile.routes';
+import userPreferencesRoutes from './api/routes/user-preferences.routes';
 import roiTrackingRoutes from './api/routes/roi-tracking.routes';
 import platformMetricsRoutes from './api/routes/platform-metrics.routes';
+import predictionsRoutes from './api/routes/predictions.routes';
 
 // Swagger
 import swaggerUi from 'swagger-ui-express';
@@ -175,11 +177,13 @@ app.use('/api/oauth', oauthRoutes);
 app.use('/api/referrals', referralsRoutes);
 app.use('/api/2fa', twoFactorRoutes);
 app.use('/api/value-bet-detection', valueBetDetectionRoutes);
-app.use('/api/user-preferences', userPreferencesRoutes);
 app.use('/api/value-bet-analytics', valueBetAnalyticsRoutes);
 app.use('/api/user/profile', userProfileRoutes);
+app.use('/api/user/preferences', userPreferencesRoutes);
 app.use('/api/roi-tracking', roiTrackingRoutes);
 app.use('/api/platform/metrics', platformMetricsRoutes);
+app.use('/api/predictions', predictionsRoutes);
+app.use('/api/predictions', predictionsRoutes);
 
 // WebSocket connection handler
 io.on('connection', (socket) => {

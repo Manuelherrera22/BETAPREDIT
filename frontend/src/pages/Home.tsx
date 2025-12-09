@@ -48,12 +48,16 @@ export default function Home() {
     enabled: !!user,
   })
   
-  // Obtener notificaciones reales
+  // Obtener notificaciones reales (opcional - puede fallar si el servicio no está disponible)
   const { data: notifications } = useQuery({
     queryKey: ['notifications'],
     queryFn: () => notificationsService.getMyNotifications({ limit: 5 }),
     refetchInterval: 30000,
     enabled: !!user,
+    retry: false, // No reintentar si falla
+    onError: () => {
+      // Silenciar errores de notificaciones - no es crítico
+    },
   })
   
   // Combinar alertas y notificaciones

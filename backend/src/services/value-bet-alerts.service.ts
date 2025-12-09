@@ -4,6 +4,7 @@ import { logger } from '../utils/logger';
 import { webSocketService } from './websocket.service';
 // import { emailService } from './email.service'; // Not used directly, handled by notifications service
 import { notificationsService } from './notifications.service';
+import { userPreferencesService } from './user-preferences.service';
 
 interface CreateValueBetAlertData {
   userId?: string;
@@ -99,36 +100,58 @@ class ValueBetAlertsService {
 
       logger.info(`Value bet alert created: ${alert.id} for event ${data.eventId}`);
 
-      // Send WebSocket notification
-      if (data.userId) {
-        webSocketService.emitValueBetAlert(data.userId, {
-          id: alert.id,
-          eventId: alert.eventId,
-          selection: alert.selection,
-          bookmakerOdds: alert.bookmakerOdds,
-          bookmakerPlatform: alert.bookmakerPlatform,
-          valuePercentage: alert.valuePercentage,
-          predictedProbability: alert.predictedProbability,
-          event: alert.event,
-        });
-      }
-
-      // Create in-app notification
+      // Check user preferences before sending notifications
       if (data.userId) {
         try {
-          await notificationsService.createNotification({
-            userId: data.userId,
-            type: 'VALUE_BET_DETECTED',
-            title: 'Value Bet Detectado',
-            message: `${alert.event?.homeTeam || 'Equipo 1'} vs ${alert.event?.awayTeam || 'Equipo 2'} - ${alert.selection} @ ${alert.bookmakerOdds} (${alert.bookmakerPlatform}) - Valor: +${alert.valuePercentage.toFixed(1)}%`,
-            data: {
-              alertId: alert.id,
+          const preferences = await userPreferencesService.getValueBetPreferences(data.userId);
+          const notificationThreshold = (preferences.notificationThreshold || 0.10) * 100; // Convert to percentage
+          
+          // Only send notifications if value meets user's threshold
+          if (alert.valuePercentage >= notificationThreshold) {
+            // Send WebSocket notification
+            webSocketService.emitValueBetAlert(data.userId, {
+              id: alert.id,
               eventId: alert.eventId,
+              selection: alert.selection,
+              bookmakerOdds: alert.bookmakerOdds,
+              bookmakerPlatform: alert.bookmakerPlatform,
               valuePercentage: alert.valuePercentage,
-            },
-          });
+              predictedProbability: alert.predictedProbability,
+              event: alert.event,
+            });
+
+            // Create in-app notification
+            try {
+              await notificationsService.createNotification({
+                userId: data.userId,
+                type: 'VALUE_BET_DETECTED',
+                title: 'Value Bet Detectado',
+                message: `${alert.event?.homeTeam || 'Equipo 1'} vs ${alert.event?.awayTeam || 'Equipo 2'} - ${alert.selection} @ ${alert.bookmakerOdds} (${alert.bookmakerPlatform}) - Valor: +${alert.valuePercentage.toFixed(1)}%`,
+                data: {
+                  alertId: alert.id,
+                  eventId: alert.eventId,
+                  valuePercentage: alert.valuePercentage,
+                },
+              });
+            } catch (error) {
+              logger.error('Error creating notification for value bet alert:', error);
+            }
+          } else {
+            logger.info(`Alert ${alert.id} below user threshold (${alert.valuePercentage.toFixed(1)}% < ${notificationThreshold.toFixed(1)}%)`);
+          }
         } catch (error) {
-          logger.error('Error creating notification for value bet alert:', error);
+          logger.warn('Error checking user preferences, sending notification anyway:', error);
+          // Fallback: send notification if preferences check fails
+          webSocketService.emitValueBetAlert(data.userId, {
+            id: alert.id,
+            eventId: alert.eventId,
+            selection: alert.selection,
+            bookmakerOdds: alert.bookmakerOdds,
+            bookmakerPlatform: alert.bookmakerPlatform,
+            valuePercentage: alert.valuePercentage,
+            predictedProbability: alert.predictedProbability,
+            event: alert.event,
+          });
         }
       }
 
@@ -154,17 +177,49 @@ class ValueBetAlertsService {
       offset?: number;
     } = {}
   ) {
-    const { minValue = 0, sportId, limit = 50, offset = 0 } = options;
+    // Get user preferences for default filtering
+    let userMinValue = options.minValue;
+    let userPreferredSports: string[] = [];
+    
+    try {
+      const preferences = await userPreferencesService.getValueBetPreferences(userId);
+      if (userMinValue === undefined) {
+        userMinValue = (preferences.minValue || 0.05) * 100; // Convert to percentage
+      }
+      userPreferredSports = preferences.sports || [];
+    } catch (error) {
+      logger.warn('Error getting user preferences, using defaults:', error);
+      if (userMinValue === undefined) {
+        userMinValue = 5; // 5% default
+      }
+    }
+
+    const { sportId, limit = 50, offset = 0 } = options;
 
     const where: any = {
       OR: [{ userId }, { userId: null }], // User-specific or public alerts
       status: 'ACTIVE',
-      valuePercentage: { gte: minValue },
+      valuePercentage: { gte: userMinValue },
       expiresAt: { gt: new Date() },
     };
 
+    // Filter by sport if specified or if user has preferred sports
     if (sportId) {
       where.event = { sportId };
+    } else if (userPreferredSports.length > 0) {
+      // Filter by user's preferred sports
+      const sports = await prisma.sport.findMany({
+        where: {
+          slug: { in: userPreferredSports },
+        },
+        select: { id: true },
+      });
+      
+      if (sports.length > 0) {
+        where.event = {
+          sportId: { in: sports.map(s => s.id) },
+        };
+      }
     }
 
     const alerts = await prisma.valueBetAlert.findMany({

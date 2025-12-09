@@ -12,32 +12,31 @@ const router = Router();
 router.use(authenticate);
 
 /**
- * @route   GET /api/user-preferences
+ * @route   GET /api/user/preferences
  * @desc    Get user preferences
  * @access  Private
  */
-router.get('/', userPreferencesController.getPreferences);
+router.get('/', userPreferencesController.getPreferences.bind(userPreferencesController));
 
 /**
- * @route   PUT /api/user-preferences
+ * @route   PUT /api/user/preferences
  * @desc    Update user preferences
  * @access  Private
  */
-router.put('/', userPreferencesController.updatePreferences);
+router.put('/', userPreferencesController.updatePreferences.bind(userPreferencesController));
 
 /**
- * @route   GET /api/user-preferences/value-bets
- * @desc    Get value bet preferences
+ * @route   GET /api/user/preferences/value-bets
+ * @desc    Get value bet preferences only
  * @access  Private
  */
-router.get('/value-bets', userPreferencesController.getValueBetPreferences);
+router.get('/value-bets', userPreferencesController.getValueBetPreferences.bind(userPreferencesController));
 
 /**
- * @route   PUT /api/user-preferences/value-bets
- * @desc    Update value bet preferences
+ * @route   PUT /api/user/preferences/value-bets
+ * @desc    Update value bet preferences only
  * @access  Private
  */
-router.put('/value-bets', userPreferencesController.updateValueBetPreferences);
+router.put('/value-bets', userPreferencesController.updateValueBetPreferences.bind(userPreferencesController));
 
 export default router;
-
