@@ -59,20 +59,19 @@ serve(async (req) => {
 
     console.log(`🔍 Fetching predictions for eventId: ${eventId}`);
 
-    // First, verify the event is active and upcoming
+    // First, verify the event exists
     const { data: event, error: eventCheckError } = await supabase
       .from('Event')
-      .select('id, isActive, status, startTime')
+      .select('id, isActive, status, startTime, name, homeTeam, awayTeam')
       .eq('id', eventId)
       .maybeSingle();
 
     if (eventCheckError) {
-      console.error('Error checking event:', eventCheckError);
+      console.error('❌ Error checking event:', JSON.stringify(eventCheckError, null, 2));
     }
 
-    // Only return predictions if event is active and upcoming
-    if (!event || !event.isActive || event.status !== 'SCHEDULED' || new Date(event.startTime) < new Date()) {
-      console.log(`⚠️ Event ${eventId} is not active/upcoming. isActive: ${event?.isActive}, status: ${event?.status}, startTime: ${event?.startTime}`);
+    if (!event) {
+      console.log(`⚠️ Event ${eventId} does not exist in database`);
       return new Response(
         JSON.stringify({
           success: true,
@@ -82,8 +81,11 @@ serve(async (req) => {
       );
     }
 
-    // Get predictions for the event (only for active, upcoming events)
-    const { data: predictions, error: predictionsError } = await supabase
+    console.log(`📋 Event found: ${event.name || `${event.homeTeam} vs ${event.awayTeam}`}`);
+    console.log(`   isActive: ${event.isActive}, status: ${event.status}, startTime: ${event.startTime}`);
+
+    // Get ALL predictions for the event first (without filters)
+    const { data: allPredictions, error: allPredictionsError } = await supabase
       .from('Prediction')
       .select(`
         id,
@@ -104,8 +106,40 @@ serve(async (req) => {
         )
       `)
       .eq('eventId', eventId)
-      .eq('Market.isActive', true)
       .order('predictedProbability', { ascending: false });
+
+    if (allPredictionsError) {
+      console.error('❌ Error fetching predictions:', JSON.stringify(allPredictionsError, null, 2));
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: { message: allPredictionsError.message || 'Failed to fetch predictions' },
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`📊 Found ${allPredictions?.length || 0} total predictions for eventId: ${eventId}`);
+
+    // Filter predictions: only show for active events that are scheduled and upcoming
+    let predictions = allPredictions || [];
+    
+    // Only filter by event status if event is not active or not scheduled
+    if (event.isActive && event.status === 'SCHEDULED' && new Date(event.startTime) >= new Date()) {
+      // Event is valid, show all predictions (filter by market later)
+      console.log(`✅ Event is active and upcoming, showing all predictions`);
+    } else {
+      // Event is not valid, return empty
+      console.log(`⚠️ Event is not active/upcoming. Filtering out predictions.`);
+      console.log(`   isActive: ${event.isActive}, status: ${event.status}, startTime: ${new Date(event.startTime).toISOString()}, now: ${new Date().toISOString()}`);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          data: [],
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (predictionsError) {
       console.error('❌ Error fetching predictions:', JSON.stringify(predictionsError, null, 2));
@@ -118,14 +152,22 @@ serve(async (req) => {
       );
     }
 
-    console.log(`✅ Found ${predictions?.length || 0} predictions for eventId: ${eventId}`);
-    
-    // Filter out predictions with inactive markets
-    const activePredictions = (predictions || []).filter((pred: any) => 
-      pred.Market && pred.Market.isActive !== false
-    );
+    // Filter out predictions with inactive markets (but be lenient - if market doesn't have isActive, include it)
+    const activePredictions = (predictions || []).filter((pred: any) => {
+      // Include if market doesn't exist (shouldn't happen but be safe)
+      if (!pred.Market) {
+        console.warn(`⚠️ Prediction ${pred.id} has no Market`);
+        return false;
+      }
+      // Include if isActive is true or undefined/null (be lenient)
+      const isActive = pred.Market.isActive !== false;
+      if (!isActive) {
+        console.log(`⚠️ Prediction ${pred.id} has inactive market: ${pred.Market.name || pred.Market.type}`);
+      }
+      return isActive;
+    });
 
-    console.log(`📊 Found ${predictions?.length || 0} total predictions, ${activePredictions.length} with active markets`);
+    console.log(`📊 Filtered: ${predictions.length} total → ${activePredictions.length} with active markets`);
 
     // Transform predictions to match frontend expectations (only active ones)
     const transformedPredictions = activePredictions.map((pred: any) => ({
