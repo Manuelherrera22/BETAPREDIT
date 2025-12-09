@@ -6,6 +6,7 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../../middleware/auth';
 import { predictionsService } from '../../services/predictions.service';
+import { autoPredictionsService } from '../../services/auto-predictions.service';
 import { logger } from '../../utils/logger';
 
 class PredictionsController {
@@ -106,6 +107,25 @@ class PredictionsController {
       const prediction = await predictionsService.getPredictionWithFactors(predictionId);
       res.json({ success: true, data: prediction });
     } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Manually trigger prediction generation
+   * POST /api/predictions/generate
+   */
+  async generatePredictions(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      logger.info('Manual prediction generation triggered by user');
+      const result = await autoPredictionsService.generatePredictionsForUpcomingEvents();
+      res.json({
+        success: true,
+        message: `Generated ${result.generated} predictions, updated ${result.updated}`,
+        data: result,
+      });
+    } catch (error: any) {
+      logger.error('Error in manual prediction generation:', error);
       next(error);
     }
   }
