@@ -62,6 +62,12 @@ supabase functions deploy sync-events --project-ref mdjzqxhjbisnlfpbjfgb
 supabase functions deploy get-events --project-ref mdjzqxhjbisnlfpbjfgb
 ```
 
+### 9. Desplegar Generate Predictions
+
+```powershell
+supabase functions deploy generate-predictions --project-ref mdjzqxhjbisnlfpbjfgb
+```
+
 ## ✅ Verificar Deployment
 
 Después de desplegar, verifica que las funciones estén disponibles:
