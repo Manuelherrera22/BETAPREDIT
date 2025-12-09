@@ -71,10 +71,21 @@ export default function MyBets() {
     ...getDateRange(filters.dateRange),
   }
   
-  const { data: bets, isLoading } = useQuery({
+  const { data: bets, isLoading, error } = useQuery({
     queryKey: ['externalBets', apiFilters],
-    queryFn: () => externalBetsService.getMyBets(apiFilters),
+    queryFn: async () => {
+      try {
+        const result = await externalBetsService.getMyBets(apiFilters);
+        return Array.isArray(result) ? result : [];
+      } catch (err: any) {
+        console.error('Error loading bets:', err);
+        toast.error(`Error al cargar apuestas: ${err.message || 'Error desconocido'}`);
+        return [];
+      }
+    },
     refetchInterval: 30000,
+    retry: 2,
+    staleTime: 30000, // 30 seconds
   })
   
   // Filtrar por búsqueda de texto (client-side)
@@ -170,12 +181,36 @@ export default function MyBets() {
     }
   }
 
-  if (isLoading) {
+  if (isLoading && !bets) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-white">Cargando apuestas...</div>
+      <div className="px-4 py-6">
+        <div className="flex justify-center items-center h-96">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-primary-500 border-t-transparent mb-4"></div>
+            <div className="text-white text-lg font-semibold">Cargando apuestas...</div>
+            <p className="text-gray-400 text-sm mt-2">Obteniendo tus apuestas registradas</p>
+          </div>
+        </div>
       </div>
-    )
+    );
+  }
+
+  // Show error state if there's an error and no bets
+  if (error && !bets) {
+    return (
+      <div className="px-4 py-6">
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-8 text-center">
+          <p className="text-red-400 mb-2 font-semibold">Error al cargar apuestas</p>
+          <p className="text-sm text-gray-400 mb-4">Por favor, intenta recargar la página</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-red-500/20 border border-red-500/40 text-red-300 rounded-lg hover:bg-red-500/30 transition-colors text-sm"
+          >
+            Reintentar
+          </button>
+        </div>
+      </div>
+    );
   }
 
   const getStatusColor = (status: string) => {

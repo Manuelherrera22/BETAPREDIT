@@ -38,26 +38,36 @@ export default function Alerts() {
   // Cargar alertas y notificaciones
   useEffect(() => {
     const loadAlerts = async () => {
+      if (!userId) {
+        setLoading(false);
+        setAlerts([]);
+        return;
+      }
+
       setLoading(true);
       setError(null);
       try {
         // Cargar value bet alerts
         let valueBetAlerts: any[] = [];
         try {
-          valueBetAlerts = await valueBetAlertsService.getMyAlerts({ status: 'ACTIVE' });
-        } catch (err) {
+          const alertsResult = await valueBetAlertsService.getMyAlerts({ status: 'ACTIVE' });
+          valueBetAlerts = Array.isArray(alertsResult) ? alertsResult : [];
+        } catch (err: any) {
           console.error('Error loading value bet alerts:', err);
+          // Don't fail completely, just log and continue
         }
         
         // Cargar notificaciones
         let notifications: any[] = [];
         try {
-          notifications = await notificationsService.getMyNotifications({ read: false, limit: 50 });
-        } catch (err) {
+          const notifResult = await notificationsService.getMyNotifications({ read: false, limit: 50 });
+          notifications = Array.isArray(notifResult) ? notifResult : [];
+        } catch (err: any) {
           console.error('Error loading notifications:', err);
+          // Don't fail completely, just log and continue
         }
 
-        // Validar que sean arrays
+        // Validar que sean arrays (defensive programming)
         const safeValueBetAlerts = Array.isArray(valueBetAlerts) ? valueBetAlerts : [];
         const safeNotifications = Array.isArray(notifications) ? notifications : [];
 

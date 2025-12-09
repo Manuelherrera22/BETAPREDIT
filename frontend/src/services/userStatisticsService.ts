@@ -69,13 +69,18 @@ const makeApiCall = async (endpoint: string, params?: Record<string, string>) =>
       try {
         errorData = JSON.parse(errorText);
       } catch {
-        errorData = { message: errorText };
+        errorData = { message: errorText || `HTTP ${response.status}: ${response.statusText}` };
       }
-      throw new Error(errorData.error?.message || errorData.message || `HTTP ${response.status}`);
+      const errorMessage = errorData.error?.message || errorData.message || `HTTP ${response.status}`;
+      console.error(`Error in user-statistics${endpoint}:`, errorMessage);
+      throw new Error(errorMessage);
     }
 
     const result = await response.json();
-    return result;
+    if (!result.success) {
+      throw new Error(result.error?.message || result.message || 'Failed to fetch statistics');
+    }
+    return result.data || result;
   } else {
     // Use backend API
     const { data } = await api.get(endpoint, { params });

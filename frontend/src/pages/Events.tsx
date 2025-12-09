@@ -24,26 +24,35 @@ export default function Events() {
     queryKey: ['allEvents', selectedSport, viewMode],
     queryFn: async () => {
       try {
+        let result;
         if (viewMode === 'live') {
-          const result = await eventsService.getLiveEvents(selectedSport !== 'all' ? selectedSport : undefined)
-          return Array.isArray(result) ? result : []
+          result = await eventsService.getLiveEvents(selectedSport !== 'all' ? selectedSport : undefined);
         } else {
-          const result = await eventsService.getUpcomingEvents(
+          result = await eventsService.getUpcomingEvents(
             selectedSport !== 'all' ? selectedSport : undefined,
             undefined,
             true
-          )
-          return Array.isArray(result) ? result : []
+          );
         }
+        
+        // Validate result is an array
+        if (!Array.isArray(result)) {
+          console.warn('Events service returned non-array:', result);
+          return [];
+        }
+        
+        return result;
       } catch (err: any) {
-        console.error('Error loading events:', err)
-        console.error('Error details:', { message: err.message, stack: err.stack })
-        toast.error(`Error al cargar eventos: ${err.message || 'Error desconocido'}`)
-        return []
+        console.error('Error loading events:', err);
+        const errorMessage = err.message || 'Error desconocido';
+        toast.error(`Error al cargar eventos: ${errorMessage}`);
+        return [];
       }
     },
     refetchInterval: 300000, // 5 minutes
-    retry: 1,
+    retry: 2,
+    retryDelay: 1000,
+    staleTime: 60000, // 1 minute
   })
 
   const handleRefresh = async () => {
@@ -98,17 +107,19 @@ export default function Events() {
     }
   }
 
-  if (isLoading && !events) {
+  // Show loading only on initial load, not on refetch
+  if (isLoading && !events && !error) {
     return (
       <div className="px-4 py-6">
         <div className="flex justify-center items-center h-64">
           <div className="text-center">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mb-4"></div>
             <div className="text-white">Cargando eventos...</div>
+            <p className="text-gray-400 text-sm mt-2">Obteniendo eventos desde la base de datos</p>
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (

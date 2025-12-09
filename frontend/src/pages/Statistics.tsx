@@ -26,20 +26,41 @@ export default function Statistics() {
       try {
         // Cargar estadísticas actuales
         const currentStats = await userStatisticsService.getMyStatistics(timeRange);
-        setStatistics(currentStats);
+        setStatistics(currentStats || null);
 
         // Cargar estadísticas por período para gráficos
-        const periodStats = await userStatisticsService.getStatisticsByPeriod(timeRange);
-        setStatsByPeriod(periodStats);
+        try {
+          const periodStats = await userStatisticsService.getStatisticsByPeriod(timeRange);
+          setStatsByPeriod(Array.isArray(periodStats) ? periodStats : []);
+        } catch (err) {
+          console.error('Error loading period stats:', err);
+          setStatsByPeriod([]);
+        }
 
         // Cargar breakdowns
-        const sportStats = await userStatisticsService.getStatisticsBySport(timeRange);
-        setStatsBySport(sportStats || {});
+        try {
+          const sportStats = await userStatisticsService.getStatisticsBySport(timeRange);
+          setStatsBySport(sportStats && typeof sportStats === 'object' ? sportStats : {});
+        } catch (err) {
+          console.error('Error loading sport stats:', err);
+          setStatsBySport({});
+        }
 
-        const platformStats = await userStatisticsService.getStatisticsByPlatform(timeRange);
-        setStatsByPlatform(platformStats || {});
-      } catch (error) {
+        try {
+          const platformStats = await userStatisticsService.getStatisticsByPlatform(timeRange);
+          setStatsByPlatform(platformStats && typeof platformStats === 'object' ? platformStats : {});
+        } catch (err) {
+          console.error('Error loading platform stats:', err);
+          setStatsByPlatform({});
+        }
+      } catch (error: any) {
         console.error('Error loading statistics:', error);
+        toast.error(`Error al cargar estadísticas: ${error.message || 'Error desconocido'}`);
+        // Set defaults to prevent crashes
+        setStatistics(null);
+        setStatsByPeriod([]);
+        setStatsBySport({});
+        setStatsByPlatform({});
       } finally {
         setLoading(false);
       }
