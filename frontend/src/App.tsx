@@ -18,6 +18,7 @@ import Profile from './pages/Profile'
 import BankrollAnalysis from './pages/BankrollAnalysis'
 import PredictionHistory from './pages/PredictionHistory'
 import PredictionTracking from './pages/PredictionTracking'
+import Predictions from './pages/Predictions'
 import Arbitrage from './pages/Arbitrage'
 import AuthCallback from './pages/AuthCallback'
 import Referrals from './pages/Referrals'
@@ -167,6 +168,18 @@ function App() {
         />
         <Route
           path="/predictions"
+          element={
+            isAuthenticated ? (
+              <Layout>
+                <Predictions />
+              </Layout>
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+        <Route
+          path="/prediction-history"
           element={
             isAuthenticated ? (
               <Layout>

@@ -70,6 +70,13 @@ export default function Layout({ children }: LayoutProps) {
                   Estadísticas
                 </Link>
                 <Link
+                  to="/predictions"
+                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-300 hover:text-white"
+                >
+                  Predicciones
+                  <span className="ml-1 px-1.5 py-0.5 bg-gold-500 text-white text-xs rounded-full font-black">🏆</span>
+                </Link>
+                <Link
                   to="/alerts"
                   className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-300 hover:text-white relative"
                 >
