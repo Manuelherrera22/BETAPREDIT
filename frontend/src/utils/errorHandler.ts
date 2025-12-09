@@ -52,10 +52,29 @@ export class ErrorHandler {
       }
     }
 
-    // TODO: Send to error tracking service (Sentry, etc.)
-    // if (import.meta.env.PROD) {
-    //   this.sendToErrorTracking(logEntry);
-    // }
+    // Send to Sentry if available
+    if (import.meta.env.PROD) {
+      try {
+        const { Sentry } = await import('../config/sentry');
+        if (Sentry && Sentry.captureException) {
+          Sentry.captureException(error instanceof Error ? error : new Error(error.message), {
+            tags: {
+              context: context || 'unknown',
+              code: errorData.code,
+            },
+            extra: {
+              error: errorData,
+              timestamp: logEntry.timestamp,
+            },
+          });
+        }
+      } catch (err) {
+        // Sentry not available, continue silently
+        if (import.meta.env.DEV) {
+          console.warn('Sentry not available:', err);
+        }
+      }
+    }
   }
 
   /**
