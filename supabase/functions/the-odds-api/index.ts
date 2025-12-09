@@ -224,6 +224,7 @@ serve(async (req) => {
     });
 
     // Make request to The Odds API
+    console.log("Fetching from The Odds API:", apiUrl.toString());
     const response = await fetch(apiUrl.toString(), {
       method: req.method,
       headers: {
@@ -231,7 +232,46 @@ serve(async (req) => {
       },
     });
 
-    const data = await response.json();
+    // Check if response is OK and is JSON
+    const contentType = response.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      const errorText = await response.text();
+      console.error(`The Odds API returned non-JSON (${response.status}):`, errorText.substring(0, 200));
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: { message: `The Odds API returned ${response.status}. Expected JSON but got ${contentType || 'unknown'}` } 
+        }),
+        {
+          status: 500,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
+      );
+    }
+
+    let data;
+    try {
+      data = await response.json();
+    } catch (e: any) {
+      const errorText = await response.text();
+      console.error("Failed to parse The Odds API response:", e.message, errorText.substring(0, 200));
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: { message: `Failed to parse response from The Odds API: ${e.message}` } 
+        }),
+        {
+          status: 500,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
+      );
+    }
 
     // Return response
     return new Response(
