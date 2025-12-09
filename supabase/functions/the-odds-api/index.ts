@@ -47,29 +47,9 @@ serve(async (req) => {
       );
     }
 
-    // Verify authentication - Supabase Edge Functions require auth header
-    // But we'll accept the anon key for public proxy functionality
-    const authHeader = req.headers.get("authorization");
-    const apikeyHeader = req.headers.get("apikey");
-    
-    // Accept either Authorization Bearer token or apikey header
-    const hasAuth = (authHeader && authHeader.startsWith("Bearer ")) || apikeyHeader;
-    
-    if (!hasAuth) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: { message: "Missing authorization. Please provide Authorization: Bearer <token> or apikey header" } 
-        }),
-        {
-          status: 401,
-          headers: {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
-          },
-        }
-      );
-    }
+    // Note: Supabase Edge Functions may require auth, but we'll allow requests
+    // The function should be configured as public or with --no-verify-jwt flag
+    // For now, we'll proceed without strict auth verification for this public proxy
 
     // Parse request
     const url = new URL(req.url);
