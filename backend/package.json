@@ -4,6 +4,7 @@
   "description": "Backend API para plataforma de apuestas deportivas",
   "main": "dist/index.js",
   "scripts": {
+    "test:apis": "node scripts/test-apis.js",
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
