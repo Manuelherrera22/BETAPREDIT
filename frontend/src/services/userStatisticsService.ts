@@ -69,7 +69,8 @@ export const userStatisticsService = {
       const { data } = await api.get('/statistics/by-period', {
         params: { period, startDate, endDate },
       });
-      return data.data as UserStatistics[];
+      // Asegurar que siempre retornamos un array
+      return Array.isArray(data?.data) ? data.data : [];
     } catch (error) {
       console.error('Error fetching statistics by period:', error);
       return [];
@@ -93,7 +94,8 @@ export const userStatisticsService = {
       const { data } = await api.get('/statistics/by-sport', {
         params: { period: backendPeriod },
       });
-      return data.data || {};
+      // Asegurar que siempre retornamos un objeto
+      return data?.data && typeof data.data === 'object' ? data.data : {};
     } catch (error) {
       console.error('Error fetching statistics by sport:', error);
       return {};

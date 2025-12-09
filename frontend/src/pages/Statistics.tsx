@@ -47,14 +47,15 @@ export default function Statistics() {
     return () => clearInterval(interval);
   }, [timeRange]);
 
-  // Preparar datos para gráficos
-  const monthlyData = statsByPeriod.length > 0
-    ? statsByPeriod.map((stat, index) => ({
+  // Preparar datos para gráficos (con validación defensiva)
+  const safeStatsByPeriod = Array.isArray(statsByPeriod) ? statsByPeriod : [];
+  const monthlyData = safeStatsByPeriod.length > 0
+    ? safeStatsByPeriod.map((stat, index) => ({
         label: timeRange === 'week' 
           ? `Sem ${index + 1}`
           : timeRange === 'month'
           ? ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][index] || `Mes ${index + 1}`
-          : `Año ${new Date(stat.periodStart).getFullYear()}`,
+          : `Año ${new Date(stat.periodStart || new Date()).getFullYear()}`,
         value: stat.roi || 0,
       }))
     : [
@@ -66,8 +67,8 @@ export default function Statistics() {
         { label: 'Jun', value: 27 },
       ];
 
-  const winRateData = statsByPeriod.length > 0
-    ? statsByPeriod.map((stat, index) => ({
+  const winRateData = safeStatsByPeriod.length > 0
+    ? safeStatsByPeriod.map((stat, index) => ({
         label: timeRange === 'week' ? `Sem ${index + 1}` : `Período ${index + 1}`,
         value: stat.winRate || 0,
       }))
@@ -78,13 +79,14 @@ export default function Statistics() {
         { label: 'Sem 4', value: 75 },
       ];
 
-  // Preparar heatmap data desde statsBySport
-  const heatmapData = Object.entries(statsBySport).length > 0
-    ? Object.entries(statsBySport).map(([sport, data]: [string, any]) => ({
+  // Preparar heatmap data desde statsBySport (con validación defensiva)
+  const safeStatsBySport = statsBySport && typeof statsBySport === 'object' ? statsBySport : {};
+  const heatmapData = Object.entries(safeStatsBySport).length > 0
+    ? Object.entries(safeStatsBySport).map(([sport, data]: [string, any]) => ({
         sport,
-        league: data.league || sport,
-        value: data.averageValue || data.roi || 0,
-        count: data.totalBets || 0,
+        league: data?.league || sport,
+        value: data?.averageValue || data?.roi || 0,
+        count: data?.totalBets || 0,
       }))
     : [
         { sport: 'Fútbol', league: 'La Liga', value: 12.5, count: 45 },
@@ -92,15 +94,15 @@ export default function Statistics() {
         { sport: 'Basketball', league: 'NBA', value: 9.3, count: 28 },
       ];
 
-  // Calcular porcentajes por deporte
-  const totalBetsBySport = Object.values(statsBySport).reduce(
-    (sum: number, data: any) => sum + (data.totalBets || 0),
+  // Calcular porcentajes por deporte (con validación defensiva)
+  const totalBetsBySport = Object.values(safeStatsBySport).reduce(
+    (sum: number, data: any) => sum + (data?.totalBets || 0),
     0
   );
 
-  const sportPercentages = Object.entries(statsBySport).map(([sport, data]: [string, any]) => ({
+  const sportPercentages = Object.entries(safeStatsBySport).map(([sport, data]: [string, any]) => ({
     sport,
-    percentage: totalBetsBySport > 0 ? ((data.totalBets || 0) / totalBetsBySport) * 100 : 0,
+    percentage: totalBetsBySport > 0 ? ((data?.totalBets || 0) / totalBetsBySport) * 100 : 0,
   }));
 
   if (loading && !statistics) {
@@ -253,12 +255,12 @@ export default function Statistics() {
         <div className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-6 border border-primary-500/20">
           <h3 className="text-lg font-semibold text-white mb-4">Rendimiento por Plataforma</h3>
           <div className="space-y-3">
-            {Object.entries(statsByPlatform).length > 0 ? (
+            {statsByPlatform && typeof statsByPlatform === 'object' && Object.entries(statsByPlatform).length > 0 ? (
               Object.entries(statsByPlatform).slice(0, 3).map(([platform, data]: [string, any]) => (
                 <div key={platform} className="flex justify-between items-center">
                   <span className="text-gray-400">{platform}</span>
-                  <span className={`font-bold ${(data.roi || 0) > 0 ? 'text-accent-400' : 'text-red-400'}`}>
-                    {data.roi >= 0 ? '+' : ''}{data.roi?.toFixed(1) || 0}% ROI
+                  <span className={`font-bold ${(data?.roi || 0) > 0 ? 'text-accent-400' : 'text-red-400'}`}>
+                    {(data?.roi || 0) >= 0 ? '+' : ''}{(data?.roi || 0).toFixed(1)}% ROI
                   </span>
                 </div>
               ))
@@ -297,12 +299,12 @@ export default function Statistics() {
       <div className="mt-8 space-y-6">
         {/* Trend Analysis */}
         <TrendAnalysis
-          data={Array.isArray(statsByPeriod) && statsByPeriod.length > 0 ? statsByPeriod.map((stat, index) => ({
+          data={safeStatsByPeriod.length > 0 ? safeStatsByPeriod.map((stat, index) => ({
             period: timeRange === 'week' 
               ? `Sem ${index + 1}`
               : timeRange === 'month'
               ? ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][index] || `Mes ${index + 1}`
-              : `Año ${new Date(stat.periodStart).getFullYear()}`,
+              : `Año ${new Date(stat.periodStart || new Date()).getFullYear()}`,
             roi: stat.roi || 0,
             winRate: stat.winRate || 0,
             betCount: stat.totalBets || 0,
