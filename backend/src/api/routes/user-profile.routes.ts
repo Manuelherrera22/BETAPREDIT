@@ -16,14 +16,14 @@ router.use(authenticate);
  * @desc    Get current user profile
  * @access  Private
  */
-router.get('/', userProfileController.getProfile);
+router.get('/', userProfileController.getProfile.bind(userProfileController));
 
 /**
  * @route   PUT /api/user/profile
  * @desc    Update user profile
  * @access  Private
  */
-router.put('/', userProfileController.updateProfile);
+router.put('/', userProfileController.updateProfile.bind(userProfileController));
 
 export default router;
 

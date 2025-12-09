@@ -16,7 +16,13 @@ class UserProfileController {
    */
   async getProfile(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.id;
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          error: { message: 'Unauthorized' },
+        });
+      }
 
       const user = await prisma.user.findUnique({
         where: { id: userId },
@@ -52,7 +58,13 @@ class UserProfileController {
    */
   async updateProfile(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.id;
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          error: { message: 'Unauthorized' },
+        });
+      }
       const {
         firstName,
         lastName,

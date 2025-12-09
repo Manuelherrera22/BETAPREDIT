@@ -3,18 +3,41 @@ import { eventsService } from '../services/eventsService'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Link } from 'react-router-dom'
+import toast from 'react-hot-toast'
 
 export default function Events() {
-  const { data: events, isLoading } = useQuery({
+  const { data: events, isLoading, error } = useQuery({
     queryKey: ['allEvents'],
-    queryFn: () => eventsService.getUpcomingEvents(undefined, undefined, true), // Use The Odds API
-    refetchInterval: 300000, // 5 minutes (reduced from 60s to save API calls)
+    queryFn: async () => {
+      try {
+        const result = await eventsService.getUpcomingEvents(undefined, undefined, true)
+        return Array.isArray(result) ? result : []
+      } catch (err: any) {
+        console.error('Error loading events:', err)
+        toast.error('Error al cargar eventos. Intenta recargar la página.')
+        return []
+      }
+    },
+    refetchInterval: 300000, // 5 minutes
+    retry: 1,
   })
 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="text-white">Cargando eventos...</div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="px-4 py-6">
+        <h1 className="text-3xl font-bold text-white mb-6">Eventos Deportivos</h1>
+        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-6 text-center">
+          <p className="text-red-400 mb-2">Error al cargar eventos</p>
+          <p className="text-sm text-gray-400">Por favor, intenta recargar la página</p>
+        </div>
       </div>
     )
   }
@@ -29,10 +52,10 @@ export default function Events() {
             <Link
               key={event.id}
               to={`/events/${event.id}`}
-              className="bg-slate-800 rounded-lg p-6 hover:bg-slate-700 transition"
+              className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-lg p-6 border border-primary-500/20 hover:border-primary-500/40 transition"
             >
               <div className="mb-4">
-                <p className="text-sm text-gray-400 mb-2">{event.sport?.name}</p>
+                <p className="text-sm text-gray-400 mb-2">{event.sport?.name || 'Deporte'}</p>
                 <h3 className="text-xl font-semibold text-white mb-2">
                   {event.homeTeam} vs {event.awayTeam}
                 </h3>
@@ -61,7 +84,12 @@ export default function Events() {
             </Link>
           ))
         ) : (
-          <p className="text-gray-400 col-span-full">No hay eventos disponibles</p>
+          <div className="col-span-full bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-8 border border-primary-500/20 text-center">
+            <p className="text-gray-400 mb-2">No hay eventos disponibles en este momento</p>
+            <p className="text-sm text-gray-500">
+              Los eventos se actualizan automáticamente. Intenta recargar la página más tarde.
+            </p>
+          </div>
         )}
       </div>
     </div>
