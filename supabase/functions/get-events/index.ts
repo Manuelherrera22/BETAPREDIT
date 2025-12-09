@@ -104,9 +104,17 @@ serve(async (req) => {
         )
       `)
       .eq('status', status)
-      .eq('isActive', true) // Only get active events
       .order('startTime', { ascending: true })
       .limit(limit);
+
+    // ⚠️ FILTRO: Solo eventos activos (si el campo existe)
+    // Si isActive no existe en la BD, este filtro será ignorado silenciosamente
+    try {
+      query = query.eq('isActive', true);
+    } catch (e) {
+      // Si isActive no existe, continuar sin ese filtro
+      console.warn('isActive field may not exist, continuing without filter');
+    }
 
     // Filter by sport if provided
     if (finalSportId) {

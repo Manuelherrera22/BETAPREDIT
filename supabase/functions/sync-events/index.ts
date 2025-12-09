@@ -111,16 +111,19 @@ serve(async (req) => {
 
     // ⚠️ RATE LIMITING SIMPLE: Verificar última sincronización global
     // Buscar el evento más reciente para estimar última sincronización
+    // Nota: En Supabase, los campos pueden ser snake_case (created_at) o camelCase (createdAt)
     const { data: lastEvent } = await supabase
       .from('Event')
-      .select('createdAt')
+      .select('createdAt, created_at')
       .eq('isActive', true)
       .order('createdAt', { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    if (lastEvent?.createdAt) {
-      const lastSyncTime = new Date(lastEvent.createdAt).getTime();
+    // Usar createdAt o created_at dependiendo de cuál esté disponible
+    const lastEventTime = lastEvent?.createdAt || lastEvent?.created_at;
+    if (lastEventTime) {
+      const lastSyncTime = new Date(lastEventTime).getTime();
       const fiveMinutesAgo = now - 5 * 60 * 1000;
       
       // Si se creó un evento en los últimos 5 minutos, probablemente ya se sincronizó
@@ -233,6 +236,7 @@ serve(async (req) => {
                   awayTeam: oddsEvent.away_team,
                   startTime: oddsEvent.commence_time,
                   status: 'SCHEDULED',
+                  isActive: true, // ⚠️ CRÍTICO: Establecer isActive para que aparezcan en get-events
                 });
 
               if (createEventError) {
@@ -250,6 +254,7 @@ serve(async (req) => {
                   homeTeam: oddsEvent.home_team,
                   awayTeam: oddsEvent.away_team,
                   startTime: oddsEvent.commence_time,
+                  isActive: true, // ⚠️ CRÍTICO: Asegurar que esté activo
                 })
                 .eq('id', existingEvent.id);
 
