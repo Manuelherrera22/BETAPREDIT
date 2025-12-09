@@ -3,18 +3,17 @@
  * Displays prediction accuracy statistics and tracking
  */
 
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { predictionsService, type PredictionAccuracyStats } from '../services/predictionsService';
+import { predictionsService } from '../services/predictionsService';
 import SimpleChart from '../components/SimpleChart';
 
 export default function PredictionTracking() {
-  const [filters, setFilters] = useState({
+  const filters = {
     sportId: '',
     marketType: '',
     startDate: '',
     endDate: '',
-  });
+  };
 
   const { data: accuracyStats, isLoading } = useQuery({
     queryKey: ['predictionAccuracy', filters],
@@ -101,9 +100,7 @@ export default function PredictionTracking() {
               data={accuracyStats.bySport.map((s) => ({
                 label: s.sport,
                 value: s.accuracy,
-                metadata: { total: s.total, correct: s.correct },
               }))}
-              type="bar"
             />
           </div>
         )}
@@ -116,9 +113,7 @@ export default function PredictionTracking() {
               data={accuracyStats.byMarket.map((m) => ({
                 label: m.market,
                 value: m.accuracy,
-                metadata: { total: m.total, correct: m.correct },
               }))}
-              type="bar"
             />
           </div>
         )}
@@ -131,9 +126,7 @@ export default function PredictionTracking() {
               data={accuracyStats.byConfidence.map((c) => ({
                 label: `${(c.confidence * 100).toFixed(0)}%`,
                 value: c.accuracy,
-                metadata: { total: c.total, correct: c.correct },
               }))}
-              type="line"
             />
           </div>
         )}
@@ -146,9 +139,7 @@ export default function PredictionTracking() {
               data={accuracyStats.calibrationBins.map((b) => ({
                 label: `${(b.bin * 100).toFixed(0)}%`,
                 value: b.avgActual * 100,
-                metadata: { predicted: b.avgPredicted * 100, count: b.count },
               }))}
-              type="line"
             />
             <p className="text-xs text-gray-500 mt-2">
               Comparación entre probabilidad predicha vs probabilidad real

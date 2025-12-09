@@ -80,8 +80,7 @@ export function usePushNotifications() {
       if (Notification.permission !== 'granted') {
         console.warn('Notification permission not granted');
         // Fallback to toast
-        toast(options.title, {
-          description: options.body,
+        toast(`${options.title}: ${options.body}`, {
           icon: options.icon || '🔔',
           duration: 5000,
         });
@@ -160,21 +159,14 @@ export function usePushNotifications() {
    * Show generic notification
    */
   const showGenericNotification = useCallback(
-    (title: string, message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info') => {
-      const icons = {
-        info: 'ℹ️',
-        success: '✅',
-        warning: '⚠️',
-        error: '❌',
-      };
-
+    (title: string, message: string, _type: 'info' | 'success' | 'warning' | 'error' = 'info') => {
       return showNotification({
         title,
         body: message,
         icon: '/favicon.ico',
         tag: `notification-${Date.now()}`,
         data: {
-          type,
+          type: _type,
         },
       });
     },

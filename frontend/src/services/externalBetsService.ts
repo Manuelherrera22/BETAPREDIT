@@ -58,14 +58,14 @@ const makeApiCall = async (method: string, endpoint: string, data?: any) => {
   } else {
     // Use backend API
     if (method === 'GET') {
-      const { data } = await api.get(endpoint, { params: data });
-      return data;
+      const { data: responseData } = await api.get(endpoint, { params: data });
+      return responseData;
     } else if (method === 'POST') {
-      const { data } = await api.post(endpoint, data);
-      return data;
+      const { data: responseData } = await api.post(endpoint, data);
+      return responseData;
     } else if (method === 'PUT' || method === 'PATCH') {
-      const { data } = await api[method.toLowerCase() as 'put' | 'patch'](endpoint, data);
-      return data;
+      const { data: responseData } = await api[method.toLowerCase() as 'put' | 'patch'](endpoint, data);
+      return responseData;
     } else if (method === 'DELETE') {
       await api.delete(endpoint);
       return { success: true };

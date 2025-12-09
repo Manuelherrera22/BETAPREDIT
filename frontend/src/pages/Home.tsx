@@ -55,9 +55,6 @@ export default function Home() {
     refetchInterval: 30000,
     enabled: !!user,
     retry: false, // No reintentar si falla
-    onError: () => {
-      // Silenciar errores de notificaciones - no es crítico
-    },
   })
   
   // Combinar alertas y notificaciones
@@ -69,7 +66,7 @@ export default function Home() {
       message: `${alert.event?.name || 'Evento'} - ${alert.selection} con +${alert.valuePercentage.toFixed(1)}% de valor`,
       timestamp: alert.createdAt,
     })),
-    ...(notifications || []).map((notif: any) => ({
+    ...(Array.isArray(notifications) ? notifications : []).map((notif: any) => ({
       id: notif.id,
       type: notif.type,
       title: notif.title,

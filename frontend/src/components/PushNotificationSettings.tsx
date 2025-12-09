@@ -7,7 +7,7 @@ import { usePushNotifications } from '../hooks/usePushNotifications';
 import toast from 'react-hot-toast';
 
 export default function PushNotificationSettings() {
-  const { isSupported, permission, requestPermission, isGranted } = usePushNotifications();
+  const { isSupported, permission, requestPermission } = usePushNotifications();
 
   const handleEnableNotifications = async () => {
     const granted = await requestPermission();

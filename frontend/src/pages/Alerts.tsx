@@ -35,9 +35,6 @@ export default function Alerts() {
   // Push notifications
   const { showValueBetNotification, showGenericNotification, isGranted } = usePushNotifications();
 
-  // Push notifications
-  const { showValueBetNotification, showGenericNotification, isGranted } = usePushNotifications();
-
   // Cargar alertas y notificaciones
   useEffect(() => {
     const loadAlerts = async () => {
