@@ -209,7 +209,9 @@ serve(async (req) => {
     
     // For other endpoints, proxy to The Odds API
     // Build The Odds API URL
-    const apiUrl = new URL(`${THE_ODDS_API_BASE}${path}`);
+    // Ensure path starts with / for proper URL construction
+    const apiPath = path.startsWith('/') ? path : `/${path}`;
+    const apiUrl = new URL(`${THE_ODDS_API_BASE}${apiPath}`);
     
     // Add API key
     apiUrl.searchParams.set("apiKey", THE_ODDS_API_KEY);
