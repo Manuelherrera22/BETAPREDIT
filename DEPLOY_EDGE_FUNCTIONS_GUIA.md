@@ -50,6 +50,12 @@ supabase functions deploy external-bets --project-ref mdjzqxhjbisnlfpbjfgb
 supabase functions deploy user-statistics --project-ref mdjzqxhjbisnlfpbjfgb
 ```
 
+### 7. Desplegar Sync Events
+
+```powershell
+supabase functions deploy sync-events --project-ref mdjzqxhjbisnlfpbjfgb
+```
+
 ## ✅ Verificar Deployment
 
 Después de desplegar, verifica que las funciones estén disponibles:

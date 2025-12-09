@@ -67,8 +67,49 @@ export const eventsService = {
   },
 
   syncEvents: async (sportKey?: string) => {
-    const { data } = await api.post('/events/sync', { sportKey })
-    return data
+    // Use Supabase Edge Function in production, backend API in development
+    const isSupabaseConfigured = () => {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      return !!(supabaseUrl && supabaseKey);
+    };
+
+    if (isSupabaseConfigured() && import.meta.env.PROD) {
+      // Use Supabase Edge Function
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      // Get auth token from Supabase
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabase = createClient(supabaseUrl, supabaseKey);
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/sync-events`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'apikey': supabaseKey,
+        },
+        body: JSON.stringify({ sportKey }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || 'Failed to sync events');
+      }
+
+      return await response.json();
+    } else {
+      // Use backend API
+      const { data } = await api.post('/events/sync', { sportKey });
+      return data;
+    }
   },
 }
 
