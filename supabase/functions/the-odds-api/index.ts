@@ -47,9 +47,8 @@ serve(async (req) => {
       );
     }
 
-    // Note: Supabase Edge Functions may require auth, but we'll allow requests
-    // The function should be configured as public or with --no-verify-jwt flag
-    // For now, we'll proceed without strict auth verification for this public proxy
+    // This function is deployed with --no-verify-jwt, so it's public
+    // We don't need to verify authentication for this proxy function
 
     // Parse request
     const url = new URL(req.url);
