@@ -179,7 +179,7 @@ serve(async (req) => {
                 id,
                 selection,
                 decimal,
-                bookmaker
+                isActive
               )
             )
           `)
@@ -192,7 +192,7 @@ serve(async (req) => {
           .order('startTime', { ascending: true });
 
         if (eventsError) {
-          console.error(`Error fetching events for sport ${sport.id}:`, eventsError);
+          console.error(`Error fetching events for sport ${sport.id}:`, JSON.stringify(eventsError, null, 2));
           totalErrors++;
           continue;
         }
@@ -212,31 +212,46 @@ serve(async (req) => {
             
             if (!market) {
               // Create market if it doesn't exist
+              const currentTime = new Date().toISOString();
               const { data: newMarket, error: marketError } = await supabase
                 .from('Market')
                 .insert({
+                  id: crypto.randomUUID(),
                   eventId: event.id,
                   sportId: sport.id,
                   type: 'MATCH_WINNER',
                   name: 'Match Winner',
                   isActive: true,
+                  isSuspended: false,
+                  createdAt: currentTime,
+                  updatedAt: currentTime,
                 })
                 .select()
                 .single();
 
               if (marketError) {
-                console.error(`Error creating market for event ${event.id}:`, marketError);
+                console.error(`Error creating market for event ${event.id}:`, JSON.stringify(marketError, null, 2));
                 continue;
               }
               market = newMarket;
+              // Market created but has no odds, skip
+              console.log(`Market created for event ${event.id} but no odds available yet`);
+              continue;
             }
 
             // Extract odds from database
             const selections: Record<string, number[]> = {};
             
             if (market.Odds && market.Odds.length > 0) {
-              // Use odds from database
-              for (const odd of market.Odds) {
+              // Use odds from database (filter active odds)
+              const activeOdds = market.Odds.filter((odd: any) => odd.isActive !== false && odd.decimal && odd.decimal > 0);
+              
+              if (activeOdds.length === 0) {
+                console.log(`No active odds available for event ${event.id}`);
+                continue;
+              }
+              
+              for (const odd of activeOdds) {
                 if (!selections[odd.selection]) {
                   selections[odd.selection] = [];
                 }
@@ -244,7 +259,7 @@ serve(async (req) => {
               }
             } else {
               // No odds in database, skip this event
-              console.log(`No odds available for event ${event.id}`);
+              console.log(`No odds available for event ${event.id} (market has ${market.Odds?.length || 0} odds)`);
               continue;
             }
 
@@ -297,16 +312,19 @@ serve(async (req) => {
                       .eq('id', existing.id);
 
                     if (updateError) {
-                      console.error(`Error updating prediction:`, updateError);
+                      console.error(`Error updating prediction:`, JSON.stringify(updateError, null, 2));
                     } else {
                       totalUpdated++;
+                      console.log(`✅ Updated prediction for ${selection} in event ${event.id}`);
                     }
                   }
                 } else {
                   // Create new prediction
+                  const currentTime = new Date().toISOString();
                   const { error: insertError } = await supabase
                     .from('Prediction')
                     .insert({
+                      id: crypto.randomUUID(),
                       eventId: event.id,
                       marketId: market.id,
                       selection: selection,
@@ -314,12 +332,15 @@ serve(async (req) => {
                       confidence: prediction.confidence,
                       modelVersion: MODEL_VERSION,
                       factors: prediction.factors,
+                      createdAt: currentTime,
+                      updatedAt: currentTime,
                     });
 
                   if (insertError) {
-                    console.error(`Error creating prediction:`, insertError);
+                    console.error(`Error creating prediction for ${selection}:`, JSON.stringify(insertError, null, 2));
                   } else {
                     totalGenerated++;
+                    console.log(`✅ Created prediction for ${selection} in event ${event.id}`);
                   }
                 }
               } catch (error: any) {
