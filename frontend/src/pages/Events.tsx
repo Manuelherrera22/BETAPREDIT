@@ -37,7 +37,8 @@ export default function Events() {
         }
       } catch (err: any) {
         console.error('Error loading events:', err)
-        toast.error('Error al cargar eventos. Intenta recargar la página.')
+        console.error('Error details:', { message: err.message, stack: err.stack })
+        toast.error(`Error al cargar eventos: ${err.message || 'Error desconocido'}`)
         return []
       }
     },

@@ -75,7 +75,7 @@ serve(async (req) => {
       }
     }
 
-    // Build query
+    // Build query - Primero sin isActive para evitar problemas
     let query = supabase
       .from('Event')
       .select(`
@@ -89,7 +89,6 @@ serve(async (req) => {
         homeScore,
         awayScore,
         externalId,
-        isActive,
         Sport:Sport (
           id,
           name,
@@ -109,7 +108,12 @@ serve(async (req) => {
 
     // ⚠️ FILTRO: Solo eventos activos (si el campo existe en la BD)
     // Intentar agregar el filtro, pero si falla, continuar sin él
-    query = query.eq('isActive', true);
+    // Nota: Intentamos agregar isActive después para que si falla, podamos manejarlo
+    try {
+      query = query.eq('isActive', true);
+    } catch (e) {
+      console.warn('isActive filter not available, continuing without it');
+    }
 
     // Filter by sport if provided
     if (finalSportId) {
@@ -124,7 +128,7 @@ serve(async (req) => {
     let { data: events, error: queryError } = await query;
 
     // Si el error es por isActive no existir, reintentar sin ese filtro
-    if (queryError && (queryError.message?.includes('isActive') || queryError.code === 'PGRST116' || queryError.message?.includes('column'))) {
+    if (queryError && (queryError.message?.includes('isActive') || queryError.code === 'PGRST116' || queryError.message?.includes('column') || queryError.message?.includes('unknown'))) {
       console.warn('isActive field may not exist, retrying without filter...', queryError.message);
       
       // Reconstruir query sin isActive
@@ -173,6 +177,7 @@ serve(async (req) => {
 
     if (queryError) {
       console.error('Error querying events:', queryError);
+      console.error('Query details:', { status, finalSportId, limit });
       return new Response(
         JSON.stringify({
           success: false,
@@ -182,8 +187,24 @@ serve(async (req) => {
       );
     }
     
-    // ⚠️ DEBUG: Log para verificar qué eventos se están obteniendo
+    // ⚠️ DEBUG: Log detallado para verificar qué eventos se están obteniendo
     console.log(`Found ${events?.length || 0} events with status=${status}, sportId=${finalSportId || 'all'}`);
+    if (events && events.length > 0) {
+      console.log('Sample event:', JSON.stringify(events[0], null, 2));
+    } else {
+      // Si no hay eventos, verificar si hay eventos en la BD sin filtros
+      const { count: totalEvents } = await supabase
+        .from('Event')
+        .select('*', { count: 'exact', head: true });
+      console.log(`Total events in DB: ${totalEvents || 0}`);
+      
+      // Verificar eventos con status SCHEDULED
+      const { count: scheduledEvents } = await supabase
+        .from('Event')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'SCHEDULED');
+      console.log(`Scheduled events in DB: ${scheduledEvents || 0}`);
+    }
 
     // Transform data to match frontend interface
     const transformedEvents = (events || []).map((event: any) => ({
