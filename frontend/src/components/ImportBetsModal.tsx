@@ -6,7 +6,7 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { externalBetsService, type RegisterExternalBetData } from '../services/externalBetsService'
-import { readCSVFile, parseCSV, validateAndNormalizeBetRow, type CSVBetRow } from '../utils/csvImport'
+import { readCSVFile, parseCSV, validateAndNormalizeBetRow } from '../utils/csvImport'
 import toast from 'react-hot-toast'
 
 interface ImportBetsModalProps {
@@ -91,7 +91,10 @@ export default function ImportBetsModal({ isOpen, onClose }: ImportBetsModalProp
       if (valid.length === 0) {
         toast.error('No se encontraron apuestas válidas en el archivo')
       } else if (errors.length > 0) {
-        toast.warning(`${valid.length} apuestas válidas, ${errors.length} errores encontrados`)
+        toast(`${valid.length} apuestas válidas, ${errors.length} errores encontrados`, {
+          icon: '⚠️',
+          duration: 4000,
+        })
       } else {
         toast.success(`${valid.length} apuestas listas para importar`)
       }
