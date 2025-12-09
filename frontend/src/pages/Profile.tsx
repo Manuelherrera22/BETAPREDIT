@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
 import SubscriptionTab from '../components/SubscriptionTab';
-import { userProfileService, UserProfile } from '../services/userProfileService';
+import { userProfileService } from '../services/userProfileService';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 
@@ -11,7 +11,7 @@ export default function Profile() {
   const queryClient = useQueryClient();
   
   // Obtener perfil completo
-  const { data: profile, isLoading: profileLoading } = useQuery({
+  const { data: profile } = useQuery({
     queryKey: ['userProfile'],
     queryFn: () => userProfileService.getProfile(),
     enabled: !!user,

@@ -4,7 +4,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { roiTrackingService, type ROITrackingData } from '../services/roiTrackingService';
+import { roiTrackingService } from '../services/roiTrackingService';
 import { useState } from 'react';
 import SimpleChart from './SimpleChart';
 

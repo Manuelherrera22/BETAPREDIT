@@ -37,9 +37,6 @@ export default function SimpleRecommendation({
       : `Esta apuesta tiene ${(confidence * 100).toFixed(0)}% de probabilidad de ganar, pero la casa te paga menos de lo que debería. No es una buena oportunidad.`
   );
 
-  // Calcular ganancia potencial
-  const potentialWin = (odds - 1) * 100; // Porcentaje de ganancia
-
   return (
     <div className={`bg-gradient-to-br rounded-xl p-6 border-2 ${
       ratingColor === 'green'

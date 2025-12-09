@@ -5,11 +5,9 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { userStatisticsService } from '../services/userStatisticsService';
-import { useAuthStore } from '../store/authStore';
 import { Link } from 'react-router-dom';
 
 export default function CasualDashboard() {
-  const { user } = useAuthStore();
 
   // Obtener estadísticas reales
   const { data: stats, isLoading } = useQuery({

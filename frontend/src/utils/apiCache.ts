@@ -59,7 +59,9 @@ class APICache {
     if (this.memoryCache.size >= this.MEMORY_CACHE_MAX_SIZE) {
       // Remove oldest entry
       const firstKey = this.memoryCache.keys().next().value;
-      this.memoryCache.delete(firstKey);
+      if (firstKey !== undefined) {
+        this.memoryCache.delete(firstKey);
+      }
     }
     this.memoryCache.set(key, entry);
 
@@ -114,5 +116,6 @@ class APICache {
 }
 
 export const apiCache = new APICache();
+export { APICache };
 export default apiCache;
 

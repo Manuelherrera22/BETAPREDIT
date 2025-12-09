@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import StatsCard from '../components/StatsCard';
 import SimpleChart from '../components/SimpleChart';

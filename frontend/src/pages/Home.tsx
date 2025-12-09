@@ -5,7 +5,6 @@ import { es } from 'date-fns/locale'
 import { Link } from 'react-router-dom'
 import ValueBetCalculator from '../components/ValueBetCalculator'
 import StatsCard from '../components/StatsCard'
-import { useState, useEffect } from 'react'
 import { useOnboarding } from '../hooks/useOnboarding'
 import QuickValueBetDemo from '../components/QuickValueBetDemo'
 import SocialProof from '../components/SocialProof'
@@ -25,7 +24,7 @@ export default function Home() {
   const isCasualMode = userMode === 'casual'
   
   // Obtener estadísticas reales
-  const { data: userStats, isLoading: statsLoading } = useQuery({
+  const { data: userStats } = useQuery({
     queryKey: ['userStatistics', 'monthly'],
     queryFn: () => userStatisticsService.getMyStatistics('month'),
     refetchInterval: 60000, // Actualizar cada minuto
@@ -35,7 +34,7 @@ export default function Home() {
   // Obtener alertas reales
   const { data: valueBetAlerts } = useQuery({
     queryKey: ['valueBetAlerts'],
-    queryFn: () => valueBetAlertsService.getMyAlerts({ limit: 5 }),
+    queryFn: () => valueBetAlertsService.getMyAlerts({}),
     refetchInterval: 30000, // Actualizar cada 30 segundos
     enabled: !!user,
   })

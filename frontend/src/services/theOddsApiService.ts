@@ -6,7 +6,7 @@
 
 import api from './api';
 import { isSupabaseConfigured } from '../config/supabase';
-import apiCache from '../utils/apiCache';
+import apiCache, { APICache } from '../utils/apiCache';
 import apiUsageMonitor from '../utils/apiUsageMonitor';
 
 // Get Supabase Functions URL
@@ -167,7 +167,7 @@ class TheOddsAPIService {
       const { regions = ['us', 'uk', 'eu'], markets = ['h2h'], oddsFormat = 'decimal', sync = true } = options;
 
       // Check cache first (odds change frequently, but cache for 2 minutes)
-      const cacheKey = apiCache.generateKey('theodds_odds', { sport, regions, markets, oddsFormat });
+      const cacheKey = APICache.generateKey('theodds_odds', { sport, regions, markets, oddsFormat });
       const cached = apiCache.get<OddsEvent[]>(cacheKey);
       if (cached) {
         return cached; // Cache hit - no API call needed
@@ -270,7 +270,7 @@ class TheOddsAPIService {
       const { save = true } = options;
 
       // Check cache first (comparisons change frequently, cache for 1 minute)
-      const cacheKey = apiCache.generateKey('theodds_compare', { sport, eventId, market });
+      const cacheKey = APICache.generateKey('theodds_compare', { sport, eventId, market });
       const cached = apiCache.get<{
         event: OddsEvent;
         comparisons: Record<string, OddsComparison>;
