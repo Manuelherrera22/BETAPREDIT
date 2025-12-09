@@ -449,7 +449,8 @@ serve(async (req) => {
         for (const oddsEvent of oddsEvents) {
           try {
             const commenceTime = new Date(oddsEvent.commence_time);
-            if (commenceTime < new Date(now - 60 * 60 * 1000)) continue; // Skip past events
+            const currentTime = Date.now();
+            if (commenceTime < new Date(currentTime - 60 * 60 * 1000)) continue; // Skip past events
 
             // Check if event exists
             const { data: existingEvent } = await supabase
