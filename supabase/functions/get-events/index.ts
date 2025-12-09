@@ -76,6 +76,7 @@ serve(async (req) => {
     }
 
     // Build query - Primero sin isActive para evitar problemas
+    // ⚠️ IMPORTANTE: Intentar query simple primero para verificar si hay eventos
     let query = supabase
       .from('Event')
       .select(`
