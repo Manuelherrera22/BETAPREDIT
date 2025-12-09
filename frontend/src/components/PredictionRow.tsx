@@ -7,8 +7,6 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { predictionsService } from '../services/predictionsService';
 import toast from 'react-hot-toast';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 
 interface PredictionRowProps {
   prediction: {
