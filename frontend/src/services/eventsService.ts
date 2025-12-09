@@ -79,14 +79,20 @@ export const eventsService = {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       
-      // Get auth token from Supabase
-      const { createClient } = await import('@supabase/supabase-js');
-      const supabase = createClient(supabaseUrl, supabaseKey);
-      const { data: { session } } = await supabase.auth.getSession();
+      // Get auth token from Supabase (use configured client)
+      const { supabase } = await import('../config/supabase');
+      if (!supabase) {
+        throw new Error('Supabase client not configured');
+      }
+      
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) {
+        throw new Error(`Failed to get session: ${sessionError.message}`);
+      }
+      
       const token = session?.access_token;
-
       if (!token) {
-        throw new Error('No authentication token available');
+        throw new Error('No authentication token available. Please log in.');
       }
 
       const response = await fetch(`${supabaseUrl}/functions/v1/sync-events`, {
