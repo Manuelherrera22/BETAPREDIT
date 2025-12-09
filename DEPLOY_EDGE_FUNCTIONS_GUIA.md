@@ -79,6 +79,7 @@ Después de desplegar, verifica que las funciones estén disponibles:
    - `user-statistics`
    - `sync-events`
    - `get-events`
+   - `generate-predictions`
 
 ## 🔗 URLs de las Funciones
 
@@ -102,6 +103,11 @@ Una vez desplegadas, las funciones estarán disponibles en:
 - **Get Events**: 
   ```
   https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/get-events
+  ```
+
+- **Generate Predictions**: 
+  ```
+  https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/generate-predictions
   ```
 
 ## 🧪 Probar las Funciones
@@ -163,6 +169,9 @@ Invoke-WebRequest -Uri "https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/us
 - [ ] Proyecto linkeado (opcional)
 - [ ] `external-bets` desplegada
 - [ ] `user-statistics` desplegada
+- [ ] `sync-events` desplegada
+- [ ] `get-events` desplegada
+- [ ] `generate-predictions` desplegada
 - [ ] Funciones verificadas en el dashboard
 - [ ] Frontend probado en producción
 
