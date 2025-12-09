@@ -6,7 +6,6 @@
 
 import api from './api';
 import { theOddsApiService } from './theOddsApiService';
-import { isSupabaseConfigured } from '../config/supabase';
 
 export interface ArbitrageOpportunity {
   id: string;
