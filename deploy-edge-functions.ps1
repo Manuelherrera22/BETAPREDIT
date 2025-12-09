@@ -16,7 +16,7 @@ Write-Host "✅ Supabase CLI encontrado" -ForegroundColor Green
 $projectRef = "mdjzqxhjbisnlfpbjfgb"
 
 # Lista de funciones a desplegar
-$functions = @("external-bets", "user-statistics")
+$functions = @("external-bets", "user-statistics", "sync-events")
 
 foreach ($function in $functions) {
     Write-Host "`n📦 Desplegando $function..." -ForegroundColor Yellow
@@ -35,4 +35,5 @@ Write-Host "`n✨ Deployment completado!" -ForegroundColor Cyan
 Write-Host "`n🔗 URLs de las funciones:" -ForegroundColor Cyan
 Write-Host "  - External Bets: https://$projectRef.supabase.co/functions/v1/external-bets" -ForegroundColor White
 Write-Host "  - User Statistics: https://$projectRef.supabase.co/functions/v1/user-statistics" -ForegroundColor White
+Write-Host "  - Sync Events: https://$projectRef.supabase.co/functions/v1/sync-events" -ForegroundColor White
 

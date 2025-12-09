@@ -65,6 +65,7 @@ Después de desplegar, verifica que las funciones estén disponibles:
 3. Deberías ver:
    - `external-bets`
    - `user-statistics`
+   - `sync-events`
 
 ## 🔗 URLs de las Funciones
 
@@ -78,6 +79,11 @@ Una vez desplegadas, las funciones estarán disponibles en:
 - **User Statistics**: 
   ```
   https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/user-statistics
+  ```
+
+- **Sync Events**: 
+  ```
+  https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/sync-events
   ```
 
 ## 🧪 Probar las Funciones
