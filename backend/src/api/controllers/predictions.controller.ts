@@ -119,33 +119,35 @@ class PredictionsController {
     try {
       logger.info('Manual prediction generation triggered by user');
       
-      try {
-        const result = await autoPredictionsService.generatePredictionsForUpcomingEvents();
-        res.json({
-          success: true,
-          message: `Generated ${result.generated} predictions, updated ${result.updated}`,
-          data: result,
-        });
-      } catch (serviceError: any) {
-        // Log detailed error for debugging
-        logger.error('Error in autoPredictionsService.generatePredictionsForUpcomingEvents:', {
-          message: serviceError.message,
-          stack: serviceError.stack,
-          name: serviceError.name,
-        });
-        
-        // Return a more descriptive error
-        return res.status(500).json({
-          success: false,
-          error: {
-            message: serviceError.message || 'Error al generar predicciones',
-            details: process.env.NODE_ENV === 'development' ? serviceError.stack : undefined,
-          },
-        });
-      }
+      const result = await autoPredictionsService.generatePredictionsForUpcomingEvents();
+      
+      res.json({
+        success: true,
+        message: `Generated ${result.generated} predictions, updated ${result.updated}`,
+        data: result,
+      });
     } catch (error: any) {
-      logger.error('Unexpected error in generatePredictions controller:', error);
-      next(error);
+      // Log detailed error for debugging
+      logger.error('Error in generatePredictions controller:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        statusCode: error.statusCode,
+      });
+      
+      // If it's an AppError, use its status code, otherwise default to 500
+      const statusCode = error.statusCode || error.status || 500;
+      
+      res.status(statusCode).json({
+        success: false,
+        error: {
+          message: error.message || 'Error al generar predicciones',
+          ...(process.env.NODE_ENV === 'development' && { 
+            stack: error.stack,
+            details: error.toString(),
+          }),
+        },
+      });
     }
   }
 }
