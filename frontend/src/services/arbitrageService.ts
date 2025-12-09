@@ -195,27 +195,64 @@ class ArbitrageService {
         oddsFormat: 'decimal',
       });
 
-      // Check each event for arbitrage
-      for (const event of events.slice(0, limit * 2)) {
-        try {
-          const comparison = await theOddsApiService.compareOdds(sport, event.id, 'h2h');
-          if (comparison && comparison.comparisons) {
-            const opportunities = this.calculateArbitrageFromComparison(
-              event,
-              comparison.comparisons,
-              minProfitMargin
-            );
-            allOpportunities.push(...opportunities);
+      if (!events || events.length === 0) {
+        return [];
+      }
+
+      // Process events in batches to avoid too many simultaneous requests
+      const batchSize = 5;
+      const eventsToProcess = events.slice(0, limit * 3); // Check more events to find opportunities
+
+      for (let i = 0; i < eventsToProcess.length; i += batchSize) {
+        const batch = eventsToProcess.slice(i, i + batchSize);
+        
+        // Process batch in parallel
+        const batchPromises = batch.map(async (event) => {
+          try {
+            const comparison = await theOddsApiService.compareOdds(sport, event.id, 'h2h', { save: false });
+            if (comparison && comparison.comparisons && Object.keys(comparison.comparisons).length > 0) {
+              const opportunities = this.calculateArbitrageFromComparison(
+                event,
+                comparison.comparisons,
+                minProfitMargin
+              );
+              return opportunities;
+            }
+            return [];
+          } catch (error: any) {
+            // Silently skip events that fail (404, network errors, etc.)
+            return [];
           }
-        } catch (error: any) {
-          console.warn(`Error checking arbitrage for event ${event.id}:`, error.message);
-          continue;
+        });
+
+        const batchResults = await Promise.all(batchPromises);
+        const batchOpportunities = batchResults.flat();
+        allOpportunities.push(...batchOpportunities);
+
+        // If we have enough opportunities, we can stop early
+        if (allOpportunities.length >= limit) {
+          break;
         }
       }
 
-      // Sort by profit margin and return
+      // Sort by profit margin (highest first) and group by event
       allOpportunities.sort((a, b) => b.profitMargin - a.profitMargin);
-      return allOpportunities.slice(0, limit);
+
+      // Group by event and take best opportunity per event, then take top N
+      const opportunitiesByEvent = new Map<string, ArbitrageOpportunity>();
+      for (const opp of allOpportunities) {
+        const existing = opportunitiesByEvent.get(opp.eventId);
+        if (!existing || opp.profitMargin > existing.profitMargin) {
+          opportunitiesByEvent.set(opp.eventId, opp);
+        }
+      }
+
+      // Convert back to array, sort by profit margin, and return top N
+      const uniqueOpportunities = Array.from(opportunitiesByEvent.values())
+        .sort((a, b) => b.profitMargin - a.profitMargin)
+        .slice(0, limit);
+
+      return uniqueOpportunities;
     } catch (error: any) {
       console.error('Error calculating arbitrage opportunities:', error);
       return [];

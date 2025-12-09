@@ -52,45 +52,56 @@ serve(async (req) => {
     // Handle /compare endpoint (custom logic, not in The Odds API)
     if (path.includes("/events/") && path.includes("/compare")) {
       // Extract sport and eventId from path: /sports/{sport}/events/{eventId}/compare
-      const pathParts = path.split("/");
+      const pathParts = path.split("/").filter(p => p); // Remove empty strings
       const sportIndex = pathParts.indexOf("sports");
       const eventsIndex = pathParts.indexOf("events");
       
-      if (sportIndex !== -1 && eventsIndex !== -1) {
+      if (sportIndex !== -1 && eventsIndex !== -1 && eventsIndex < pathParts.length - 1) {
         const sport = pathParts[sportIndex + 1];
         const eventId = pathParts[eventsIndex + 1];
         const market = url.searchParams.get("market") || "h2h";
         
-        // Get odds for the sport to find the event
-        const oddsUrl = new URL(`${THE_ODDS_API_BASE}/sports/${sport}/odds`);
-        oddsUrl.searchParams.set("apiKey", THE_ODDS_API_KEY);
-        oddsUrl.searchParams.set("regions", "us,uk,eu");
-        oddsUrl.searchParams.set("markets", market);
-        oddsUrl.searchParams.set("oddsFormat", "decimal");
-        
-        const oddsResponse = await fetch(oddsUrl.toString());
-        const oddsData = await oddsResponse.json();
-        
-        // Find the event by ID
-        const event = Array.isArray(oddsData) 
-          ? oddsData.find((e: any) => e.id === eventId)
-          : null;
-        
-        if (!event) {
-          return new Response(
-            JSON.stringify({ 
-              success: false, 
-              error: { message: "Event not found" } 
-            }),
-            {
-              status: 404,
-              headers: {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*",
-              },
-            }
-          );
-        }
+        try {
+          // Get odds for the sport to find the event
+          const oddsUrl = new URL(`${THE_ODDS_API_BASE}/sports/${sport}/odds`);
+          oddsUrl.searchParams.set("apiKey", THE_ODDS_API_KEY);
+          oddsUrl.searchParams.set("regions", "us,uk,eu");
+          oddsUrl.searchParams.set("markets", market);
+          oddsUrl.searchParams.set("oddsFormat", "decimal");
+          
+          const oddsResponse = await fetch(oddsUrl.toString());
+          
+          if (!oddsResponse.ok) {
+            throw new Error(`The Odds API returned ${oddsResponse.status}`);
+          }
+          
+          const oddsData = await oddsResponse.json();
+          
+          // Find the event by ID
+          const event = Array.isArray(oddsData) 
+            ? oddsData.find((e: any) => e.id === eventId)
+            : null;
+          
+          if (!event) {
+            // Event not found in current odds - return empty comparisons instead of 404
+            return new Response(
+              JSON.stringify({ 
+                success: true, 
+                data: {
+                  event: { id: eventId },
+                  comparisons: {},
+                  bestBookmakers: {},
+                }
+              }),
+              {
+                status: 200,
+                headers: {
+                  "Content-Type": "application/json",
+                  "Access-Control-Allow-Origin": "*",
+                },
+              }
+            );
+          }
         
         // Compare odds across bookmakers
         const comparisons: Record<string, any> = {};
@@ -132,23 +143,39 @@ serve(async (req) => {
           });
         }
         
-        return new Response(
-          JSON.stringify({ 
-            success: true, 
-            data: {
-              event,
-              comparisons,
-              bestBookmakers,
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              data: {
+                event,
+                comparisons,
+                bestBookmakers,
+              }
+            }),
+            {
+              status: 200,
+              headers: {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*",
+              },
             }
-          }),
-          {
-            status: 200,
-            headers: {
-              "Content-Type": "application/json",
-              "Access-Control-Allow-Origin": "*",
-            },
-          }
-        );
+          );
+        } catch (error: any) {
+          console.error("Error processing compare request:", error);
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: { message: error.message || "Error processing comparison" } 
+            }),
+            {
+              status: 500,
+              headers: {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*",
+              },
+            }
+          );
+        }
       }
     }
     
