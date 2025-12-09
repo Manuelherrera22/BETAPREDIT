@@ -7,6 +7,7 @@ import { prisma } from '../config/database';
 import { logger } from '../utils/logger';
 import { getTheOddsAPIService } from './integrations/the-odds-api.service';
 import { AppError } from '../middleware/errorHandler';
+import { autoPredictionsService } from './auto-predictions.service';
 
 interface SyncEventData {
   externalId: string;
@@ -157,6 +158,7 @@ class EventSyncService {
 
   /**
    * Sincronizar eventos de un deporte específico
+   * ⚠️ NUEVO: Genera predicciones automáticamente después de sincronizar
    */
   async syncSportEvents(sportKey: string) {
     try {
@@ -174,6 +176,18 @@ class EventSyncService {
 
       // Sincronizar eventos
       const syncedEvents = await this.syncEventsFromOddsData(oddsEvents);
+
+      // ⚠️ NUEVO: Generar predicciones automáticamente para eventos sincronizados
+      if (syncedEvents.length > 0) {
+        try {
+          const eventIds = syncedEvents.map((e) => e.id);
+          await autoPredictionsService.generatePredictionsForSyncedEvents(eventIds);
+          logger.info(`Generated predictions for ${syncedEvents.length} synced events`);
+        } catch (error: any) {
+          logger.warn('Error generating predictions for synced events:', error.message);
+          // No fallar la sincronización si falla la generación de predicciones
+        }
+      }
 
       return syncedEvents;
     } catch (error: any) {

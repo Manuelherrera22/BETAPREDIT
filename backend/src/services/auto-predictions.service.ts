@@ -17,35 +17,36 @@ class AutoPredictionsService {
 
   /**
    * Generate predictions for all upcoming events
+   * ⚠️ OPTIMIZADO: Usa eventos de la BD en lugar de The Odds API directamente
    * This is the main method that should run every 10 minutes
    */
   async generatePredictionsForUpcomingEvents() {
     try {
-      logger.info('Starting automatic prediction generation...');
+      logger.info('Starting automatic prediction generation from database...');
 
-      const theOddsAPI = getTheOddsAPIService();
-      if (!theOddsAPI) {
-        logger.warn('The Odds API service not configured, skipping prediction generation');
-        return { generated: 0, updated: 0, errors: 0 };
-      }
+      // ⚠️ NUEVO: Obtener eventos desde la BD en lugar de The Odds API
+      const now = new Date();
+      const maxTime = new Date(now.getTime() + this.HOURS_AHEAD * 60 * 60 * 1000);
 
-      // Get all active sports
-      const sports = await theOddsAPI.getSports();
-      const activeSports = sports.filter((s: any) => s.active);
+      // Get all active sports from database
+      const sports = await prisma.sport.findMany({
+        where: { isActive: true },
+        take: 10, // Limit to 10 sports
+      });
 
       let totalGenerated = 0;
       let totalUpdated = 0;
       let totalErrors = 0;
 
       // Process each sport
-      for (const sport of activeSports.slice(0, 10)) { // Limit to 10 sports to avoid rate limits
+      for (const sport of sports) {
         try {
-          const result = await this.generatePredictionsForSport(sport.key);
+          const result = await this.generatePredictionsForSportFromDB(sport.slug || sport.id);
           totalGenerated += result.generated;
           totalUpdated += result.updated;
           totalErrors += result.errors;
         } catch (error: any) {
-          logger.error(`Error generating predictions for sport ${sport.key}:`, error.message);
+          logger.error(`Error generating predictions for sport ${sport.slug}:`, error.message);
           totalErrors++;
         }
       }
@@ -66,51 +67,112 @@ class AutoPredictionsService {
   }
 
   /**
-   * Generate predictions for a specific sport
+   * ⚠️ NUEVO: Generate predictions for events that were just synced
+   * Called automatically after event synchronization
    */
-  private async generatePredictionsForSport(sportKey: string) {
+  async generatePredictionsForSyncedEvents(eventIds: string[]) {
     try {
-      logger.info(`Generating predictions for sport: ${sportKey}`);
+      logger.info(`Generating predictions for ${eventIds.length} synced events...`);
 
-      const theOddsAPI = getTheOddsAPIService();
-      if (!theOddsAPI) {
-        return { generated: 0, updated: 0, errors: 0 };
-      }
-
-      // Get upcoming events for this sport
-      const oddsEvents = await theOddsAPI.getOdds(sportKey, {
-        regions: ['us', 'uk', 'eu'],
-        markets: ['h2h'],
-        oddsFormat: 'decimal',
+      const events = await prisma.event.findMany({
+        where: {
+          id: { in: eventIds },
+          status: 'SCHEDULED',
+          isActive: true,
+        },
+        include: {
+          sport: true,
+          markets: {
+            where: { isActive: true, type: 'MATCH_WINNER' },
+            include: { odds: { where: { isActive: true } } },
+          },
+        },
       });
-
-      if (!oddsEvents || oddsEvents.length === 0) {
-        logger.info(`No events found for sport ${sportKey}`);
-        return { generated: 0, updated: 0, errors: 0 };
-      }
-
-      // Filter events in next 48 hours
-      const now = new Date();
-      const maxTime = new Date(now.getTime() + this.HOURS_AHEAD * 60 * 60 * 1000);
-      const upcomingEvents = oddsEvents.filter((event: any) => {
-        const eventTime = new Date(event.commence_time);
-        return eventTime > now && eventTime <= maxTime;
-      });
-
-      logger.info(`Found ${upcomingEvents.length} upcoming events for ${sportKey}`);
 
       let generated = 0;
       let updated = 0;
       let errors = 0;
 
-      // Process each event (limit to 30 to avoid rate limits)
-      for (const oddsEvent of upcomingEvents.slice(0, 30)) {
+      for (const event of events) {
         try {
-          const result = await this.generatePredictionsForEvent(oddsEvent, sportKey);
+          const result = await this.generatePredictionsForEventFromDB(event);
           generated += result.generated;
           updated += result.updated;
         } catch (error: any) {
-          logger.warn(`Error processing event ${oddsEvent.id}:`, error.message);
+          logger.warn(`Error generating predictions for event ${event.id}:`, error.message);
+          errors++;
+        }
+      }
+
+      logger.info(`Generated predictions for synced events: ${generated} generated, ${updated} updated, ${errors} errors`);
+      return { generated, updated, errors };
+    } catch (error: any) {
+      logger.error('Error in generatePredictionsForSyncedEvents:', error);
+      return { generated: 0, updated: 0, errors: 1 };
+    }
+  }
+
+  /**
+   * ⚠️ NUEVO: Generate predictions for a specific sport using events from database
+   */
+  private async generatePredictionsForSportFromDB(sportKey: string) {
+    try {
+      logger.info(`Generating predictions for sport from DB: ${sportKey}`);
+
+      // Find sport by slug
+      const sport = await prisma.sport.findFirst({
+        where: { slug: sportKey, isActive: true },
+      });
+
+      if (!sport) {
+        logger.info(`Sport ${sportKey} not found in database`);
+        return { generated: 0, updated: 0, errors: 0 };
+      }
+
+      // Get upcoming events from database
+      const now = new Date();
+      const maxTime = new Date(now.getTime() + this.HOURS_AHEAD * 60 * 60 * 1000);
+
+      const events = await prisma.event.findMany({
+        where: {
+          sportId: sport.id,
+          status: 'SCHEDULED',
+          isActive: true,
+          startTime: {
+            gte: now,
+            lte: maxTime,
+          },
+        },
+        include: {
+          sport: true,
+          markets: {
+            where: { isActive: true, type: 'MATCH_WINNER' },
+            include: { odds: { where: { isActive: true } } },
+          },
+        },
+        take: 30, // Limit to 30 events
+        orderBy: { startTime: 'asc' },
+      });
+
+      if (events.length === 0) {
+        logger.info(`No upcoming events found in DB for sport ${sportKey}`);
+        return { generated: 0, updated: 0, errors: 0 };
+      }
+
+      logger.info(`Found ${events.length} upcoming events in DB for ${sportKey}`);
+
+      let generated = 0;
+      let updated = 0;
+      let errors = 0;
+
+      // Process each event
+      for (const event of events) {
+        try {
+          const result = await this.generatePredictionsForEventFromDB(event);
+          generated += result.generated;
+          updated += result.updated;
+        } catch (error: any) {
+          logger.warn(`Error processing event ${event.id}:`, error.message);
           errors++;
         }
       }
@@ -123,7 +185,171 @@ class AutoPredictionsService {
   }
 
   /**
-   * Generate predictions for a single event
+   * ⚠️ DEPRECATED: Keep for backward compatibility, but prefer generatePredictionsForSportFromDB
+   * Generate predictions for a specific sport (uses The Odds API - less efficient)
+   */
+  private async generatePredictionsForSport(sportKey: string) {
+    // Redirect to DB-based method
+    return this.generatePredictionsForSportFromDB(sportKey);
+  }
+
+  /**
+   * ⚠️ NUEVO: Generate predictions for an event from database
+   * Uses existing odds from database, or fetches from The Odds API if needed
+   */
+  private async generatePredictionsForEventFromDB(event: any) {
+    try {
+      // Find or create market
+      let market = event.markets?.find((m: any) => m.type === 'MATCH_WINNER');
+      
+      if (!market) {
+        market = await prisma.market.create({
+          data: {
+            eventId: event.id,
+            sportId: event.sportId,
+            type: 'MATCH_WINNER',
+            name: 'Match Winner',
+            isActive: true,
+          },
+        });
+      }
+
+      // Extract odds from database
+      const selections: Record<string, number[]> = {};
+      
+      if (market.odds && market.odds.length > 0) {
+        // Use odds from database
+        for (const odd of market.odds) {
+          if (!selections[odd.selection]) {
+            selections[odd.selection] = [];
+          }
+          selections[odd.selection].push(odd.decimal);
+        }
+      } else {
+        // No odds in database, fetch from The Odds API as fallback
+        logger.info(`No odds in DB for event ${event.id}, fetching from The Odds API...`);
+        const theOddsAPI = getTheOddsAPIService();
+        if (theOddsAPI && event.externalId) {
+          try {
+            const sportKey = event.sport?.slug || 'soccer_epl';
+            const oddsEvents = await theOddsAPI.getOdds(sportKey, {
+              regions: ['us', 'uk', 'eu'],
+              markets: ['h2h'],
+              oddsFormat: 'decimal',
+            });
+            
+            const oddsEvent = oddsEvents.find((oe: any) => 
+              oe.id === event.externalId ||
+              (oe.home_team === event.homeTeam && oe.away_team === event.awayTeam)
+            );
+            
+            if (oddsEvent?.bookmakers) {
+              for (const bookmaker of oddsEvent.bookmakers) {
+                if (!bookmaker.markets || bookmaker.markets.length === 0) continue;
+                const h2hMarket = bookmaker.markets.find((m: any) => m.key === 'h2h');
+                if (!h2hMarket || !h2hMarket.outcomes) continue;
+                
+                for (const outcome of h2hMarket.outcomes) {
+                  const selection = this.normalizeSelection(outcome.name, {
+                    home_team: event.homeTeam,
+                    away_team: event.awayTeam,
+                  });
+                  if (!selections[selection]) {
+                    selections[selection] = [];
+                  }
+                  if (outcome.price) {
+                    selections[selection].push(outcome.price);
+                  }
+                }
+              }
+            }
+          } catch (error: any) {
+            logger.warn(`Error fetching odds from API for event ${event.id}:`, error.message);
+            return { generated: 0, updated: 0 };
+          }
+        } else {
+          logger.warn(`Cannot fetch odds: event ${event.id} has no externalId`);
+          return { generated: 0, updated: 0 };
+        }
+      }
+
+      if (Object.keys(selections).length === 0) {
+        logger.info(`No odds available for event ${event.id}`);
+        return { generated: 0, updated: 0 };
+      }
+
+      let generated = 0;
+      let updated = 0;
+
+      // Generate predictions for each selection
+      for (const [selection, oddsArray] of Object.entries(selections)) {
+        if (oddsArray.length === 0) continue;
+
+        try {
+          // Calculate prediction using improved prediction service
+          const prediction = await improvedPredictionService.calculatePredictedProbability(
+            event.id,
+            selection,
+            oddsArray
+          );
+
+          // Check if prediction already exists
+          const existing = await prisma.prediction.findFirst({
+            where: {
+              eventId: event.id,
+              marketId: market.id,
+              selection: selection,
+            },
+          });
+
+          if (existing) {
+            // Update existing prediction if odds changed significantly (>5%)
+            const avgOdds = oddsArray.reduce((sum, odd) => sum + odd, 0) / oddsArray.length;
+            const existingFactors = (existing.factors || {}) as any;
+            const existingAvgOdds = existingFactors.marketAverage
+              ? 1 / existingFactors.marketAverage
+              : null;
+
+            if (existingAvgOdds && Math.abs(avgOdds - existingAvgOdds) / existingAvgOdds > 0.05) {
+              // Odds changed more than 5%, update prediction
+              await predictionsService.createPrediction({
+                eventId: event.id,
+                marketId: market.id,
+                selection: selection,
+                predictedProbability: prediction.predictedProbability,
+                confidence: prediction.confidence,
+                modelVersion: this.MODEL_VERSION,
+                factors: prediction.factors,
+              });
+              updated++;
+            }
+          } else {
+            // Create new prediction
+            await predictionsService.createPrediction({
+              eventId: event.id,
+              marketId: market.id,
+              selection: selection,
+              predictedProbability: prediction.predictedProbability,
+              confidence: prediction.confidence,
+              modelVersion: this.MODEL_VERSION,
+              factors: prediction.factors,
+            });
+            generated++;
+          }
+        } catch (error: any) {
+          logger.warn(`Error generating prediction for ${selection}:`, error.message);
+        }
+      }
+
+      return { generated, updated };
+    } catch (error: any) {
+      logger.error(`Error generating predictions for event ${event.id}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate predictions for a single event (DEPRECATED - uses The Odds API)
    */
   private async generatePredictionsForEvent(oddsEvent: any, sportKey: string) {
     try {
