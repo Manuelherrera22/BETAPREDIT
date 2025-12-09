@@ -107,14 +107,9 @@ serve(async (req) => {
       .order('startTime', { ascending: true })
       .limit(limit);
 
-    // ⚠️ FILTRO: Solo eventos activos (si el campo existe)
-    // Si isActive no existe en la BD, este filtro será ignorado silenciosamente
-    try {
-      query = query.eq('isActive', true);
-    } catch (e) {
-      // Si isActive no existe, continuar sin ese filtro
-      console.warn('isActive field may not exist, continuing without filter');
-    }
+    // ⚠️ FILTRO: Solo eventos activos (si el campo existe en la BD)
+    // Intentar agregar el filtro, pero si falla, continuar sin él
+    query = query.eq('isActive', true);
 
     // Filter by sport if provided
     if (finalSportId) {
@@ -126,7 +121,55 @@ serve(async (req) => {
       query = query.gte('startTime', new Date().toISOString());
     }
 
-    const { data: events, error: queryError } = await query;
+    let { data: events, error: queryError } = await query;
+
+    // Si el error es por isActive no existir, reintentar sin ese filtro
+    if (queryError && (queryError.message?.includes('isActive') || queryError.code === 'PGRST116' || queryError.message?.includes('column'))) {
+      console.warn('isActive field may not exist, retrying without filter...', queryError.message);
+      
+      // Reconstruir query sin isActive
+      let retryQuery = supabase
+        .from('Event')
+        .select(`
+          id,
+          name,
+          sportId,
+          startTime,
+          status,
+          homeTeam,
+          awayTeam,
+          homeScore,
+          awayScore,
+          externalId,
+          Sport:Sport (
+            id,
+            name,
+            slug
+          ),
+          Market:Market (
+            id,
+            type,
+            name,
+            isActive,
+            isSuspended
+          )
+        `)
+        .eq('status', status)
+        .order('startTime', { ascending: true })
+        .limit(limit);
+      
+      if (finalSportId) {
+        retryQuery = retryQuery.eq('sportId', finalSportId);
+      }
+      
+      if (status === 'SCHEDULED') {
+        retryQuery = retryQuery.gte('startTime', new Date().toISOString());
+      }
+      
+      const retryResult = await retryQuery;
+      events = retryResult.data;
+      queryError = retryResult.error;
+    }
 
     if (queryError) {
       console.error('Error querying events:', queryError);
@@ -138,6 +181,9 @@ serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    
+    // ⚠️ DEBUG: Log para verificar qué eventos se están obteniendo
+    console.log(`Found ${events?.length || 0} events with status=${status}, sportId=${finalSportId || 'all'}`);
 
     // Transform data to match frontend interface
     const transformedEvents = (events || []).map((event: any) => ({
