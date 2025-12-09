@@ -226,7 +226,17 @@ serve(async (req) => {
 
             if (!existingEvent) {
               // Create new event
-              const { error: createEventError } = await supabase
+              // ⚠️ VERIFICAR: Asegurar que startTime sea futuro
+              const commenceTime = new Date(oddsEvent.commence_time);
+              const now = new Date();
+              
+              // Solo crear eventos con startTime en el futuro (o muy recientes, dentro de 1 hora)
+              if (commenceTime < new Date(now.getTime() - 60 * 60 * 1000)) {
+                console.log(`Skipping event ${oddsEvent.id}: startTime is in the past (${commenceTime.toISOString()})`);
+                continue;
+              }
+              
+              const { data: createdEvent, error: createEventError } = await supabase
                 .from('Event')
                 .insert({
                   externalId: oddsEvent.id,
@@ -237,12 +247,24 @@ serve(async (req) => {
                   startTime: oddsEvent.commence_time,
                   status: 'SCHEDULED',
                   isActive: true, // ⚠️ CRÍTICO: Establecer isActive para que aparezcan en get-events
-                });
+                })
+                .select('id, status, startTime, isActive')
+                .single();
 
               if (createEventError) {
                 console.error(`Error creating event ${oddsEvent.id}:`, createEventError);
                 continue;
               }
+              
+              // ⚠️ VERIFICAR: Log del evento creado para debug
+              console.log(`Created event:`, {
+                id: createdEvent?.id,
+                name: `${oddsEvent.home_team} vs ${oddsEvent.away_team}`,
+                status: createdEvent?.status,
+                startTime: createdEvent?.startTime,
+                isActive: createdEvent?.isActive,
+              });
+              
               syncedCount++;
             } else {
               // Update existing event if needed
@@ -272,16 +294,39 @@ serve(async (req) => {
 
         totalSynced += syncedCount;
         results.push({ sport, count: syncedCount });
+        console.log(`Synced ${syncedCount} events for sport ${sport}`);
       } catch (sportError: any) {
         results.push({ sport, count: 0, error: sportError.message });
       }
     }
 
+    // ⚠️ VERIFICAR: Después de sincronizar, verificar cuántos eventos hay en la BD
+    const { count: totalEventsAfterSync } = await supabase
+      .from('Event')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'SCHEDULED');
+    
+    const { count: upcomingEventsAfterSync } = await supabase
+      .from('Event')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'SCHEDULED')
+      .gte('startTime', new Date().toISOString());
+    
+    console.log(`After sync: Total SCHEDULED events in DB: ${totalEventsAfterSync || 0}`);
+    console.log(`After sync: Upcoming SCHEDULED events: ${upcomingEventsAfterSync || 0}`);
+
     return new Response(
       JSON.stringify({
         success: true,
         message: `Synced ${totalSynced} total events`,
-        data: { totalSynced, results },
+        data: { 
+          totalSynced, 
+          results,
+          verification: {
+            totalScheduledInDB: totalEventsAfterSync || 0,
+            upcomingScheduledInDB: upcomingEventsAfterSync || 0,
+          },
+        },
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
