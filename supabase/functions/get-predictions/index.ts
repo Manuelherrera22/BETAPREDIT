@@ -141,17 +141,6 @@ serve(async (req) => {
       );
     }
 
-    if (predictionsError) {
-      console.error('❌ Error fetching predictions:', JSON.stringify(predictionsError, null, 2));
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: { message: predictionsError.message || 'Failed to fetch predictions' },
-        }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     // Filter out predictions with inactive markets (but be lenient - if market doesn't have isActive, include it)
     const activePredictions = (predictions || []).filter((pred: any) => {
       // Include if market doesn't exist (shouldn't happen but be safe)
