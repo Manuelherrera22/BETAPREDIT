@@ -66,7 +66,14 @@ export const eventsService = {
       }
 
       const params = new URLSearchParams({ status: 'LIVE' });
-      if (sportId) params.set('sportId', sportId);
+      // If sportId looks like a slug (contains underscore), use sportSlug instead
+      if (sportId) {
+        if (sportId.includes('_')) {
+          params.set('sportSlug', sportId);
+        } else {
+          params.set('sportId', sportId);
+        }
+      }
 
       const response = await fetch(`${supabaseUrl}/functions/v1/get-events?${params}`, {
         method: 'GET',
@@ -121,7 +128,14 @@ export const eventsService = {
       }
 
       const params = new URLSearchParams({ status: 'SCHEDULED' });
-      if (sportId) params.set('sportId', sportId);
+      // If sportId looks like a slug (contains underscore), use sportSlug instead
+      if (sportId) {
+        if (sportId.includes('_')) {
+          params.set('sportSlug', sportId);
+        } else {
+          params.set('sportId', sportId);
+        }
+      }
       if (date) params.set('date', date);
 
       const response = await fetch(`${supabaseUrl}/functions/v1/get-events?${params}`, {

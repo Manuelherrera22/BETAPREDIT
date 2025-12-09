@@ -55,7 +55,25 @@ serve(async (req) => {
     const url = new URL(req.url);
     const status = url.searchParams.get('status') || 'SCHEDULED'; // 'LIVE' or 'SCHEDULED'
     const sportId = url.searchParams.get('sportId') || null;
+    const sportSlug = url.searchParams.get('sportSlug') || null;
     const limit = parseInt(url.searchParams.get('limit') || '50');
+
+    // If sportSlug is provided, find the sportId first
+    let finalSportId = sportId;
+    if (sportSlug && !sportId) {
+      const { data: sport, error: sportError } = await supabase
+        .from('Sport')
+        .select('id')
+        .eq('slug', sportSlug)
+        .limit(1)
+        .maybeSingle();
+
+      if (sportError) {
+        console.error('Error finding sport by slug:', sportError);
+      } else if (sport) {
+        finalSportId = sport.id;
+      }
+    }
 
     // Build query
     let query = supabase
@@ -89,8 +107,8 @@ serve(async (req) => {
       .limit(limit);
 
     // Filter by sport if provided
-    if (sportId) {
-      query = query.eq('sportId', sportId);
+    if (finalSportId) {
+      query = query.eq('sportId', finalSportId);
     }
 
     // For upcoming events, filter by startTime >= now
