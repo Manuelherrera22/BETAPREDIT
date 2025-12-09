@@ -9,6 +9,7 @@ import { valueBetAlertsService } from './value-bet-alerts.service';
 import { webSocketService } from './websocket.service';
 import { notificationsService } from './notifications.service';
 import { userPreferencesService } from './user-preferences.service';
+import { autoPredictionsService } from './auto-predictions.service';
 import { prisma } from '../config/database';
 
 class ScheduledTasksService {
@@ -26,6 +27,12 @@ class ScheduledTasksService {
 
     this.isRunning = true;
     logger.info('Starting scheduled tasks...');
+
+    // Generate predictions for all upcoming events every 10 minutes
+    this.startAutoPredictions(10 * 60 * 1000); // 10 minutes
+
+    // Update predictions when odds change every 5 minutes
+    this.startPredictionUpdates(5 * 60 * 1000); // 5 minutes
 
     // Scan for value bets every 15 minutes
     this.startValueBetScan(15 * 60 * 1000); // 15 minutes
@@ -55,6 +62,74 @@ class ScheduledTasksService {
 
     this.intervals.clear();
     logger.info('All scheduled tasks stopped');
+  }
+
+  /**
+   * Start automatic prediction generation task
+   */
+  private startAutoPredictions(intervalMs: number) {
+    const taskName = 'auto-predictions';
+
+    // Run immediately on start (with delay to let server fully start)
+    setTimeout(() => {
+      this.runAutoPredictions();
+    }, 30000); // Wait 30 seconds after server start
+
+    // Then run on interval
+    const interval = setInterval(() => {
+      this.runAutoPredictions();
+    }, intervalMs);
+
+    this.intervals.set(taskName, interval);
+    logger.info(`Started auto predictions task (interval: ${intervalMs / 1000}s)`);
+  }
+
+  /**
+   * Run automatic prediction generation
+   */
+  private async runAutoPredictions() {
+    try {
+      logger.info('Running automatic prediction generation...');
+      const result = await autoPredictionsService.generatePredictionsForUpcomingEvents();
+      logger.info(
+        `Auto predictions: ${result.generated} generated, ${result.updated} updated, ${result.errors} errors`
+      );
+    } catch (error: any) {
+      logger.error('Error running auto predictions:', error);
+    }
+  }
+
+  /**
+   * Start prediction update task
+   */
+  private startPredictionUpdates(intervalMs: number) {
+    const taskName = 'prediction-updates';
+
+    // Run immediately on start (with delay)
+    setTimeout(() => {
+      this.runPredictionUpdates();
+    }, 60000); // Wait 1 minute after server start
+
+    // Then run on interval
+    const interval = setInterval(() => {
+      this.runPredictionUpdates();
+    }, intervalMs);
+
+    this.intervals.set(taskName, interval);
+    logger.info(`Started prediction updates task (interval: ${intervalMs / 1000}s)`);
+  }
+
+  /**
+   * Run prediction updates
+   */
+  private async runPredictionUpdates() {
+    try {
+      logger.info('Running prediction updates for changed odds...');
+      const result = await autoPredictionsService.updatePredictionsForChangedOdds();
+      logger.info(`Prediction updates: ${result.updated} updated, ${result.errors} errors`);
+    } catch (error: any) {
+      logger.error('Error running prediction updates:', error);
+    }
   }
 
   /**
