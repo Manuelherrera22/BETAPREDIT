@@ -1,0 +1,12 @@
+# Supabase Configuration
+# This file configures Supabase Edge Functions and cron jobs
+
+[functions.auto-sync]
+# This function runs automatically every hour
+# Configure in Supabase Dashboard: Database → Cron Jobs
+
+# Example cron job configuration (set in Supabase Dashboard):
+# Schedule: 0 * * * * (every hour)
+# Function: auto-sync
+# Enabled: true
+
