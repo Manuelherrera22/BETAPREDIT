@@ -35,8 +35,8 @@ class ScheduledTasksService {
     // Update predictions when odds change every 5 minutes
     this.startPredictionUpdates(5 * 60 * 1000); // 5 minutes
 
-    // Sync events from The Odds API every hour
-    this.startEventSync(60 * 60 * 1000); // 1 hour
+    // ⚠️ OPTIMIZADO: Sync events from The Odds API every 4 hours (reduced from 1 hour to save API credits)
+    this.startEventSync(4 * 60 * 60 * 1000); // 4 hours
 
     // Scan for value bets every 15 minutes
     this.startValueBetScan(15 * 60 * 1000); // 15 minutes
@@ -158,10 +158,29 @@ class ScheduledTasksService {
 
   /**
    * Run event synchronization
+   * ⚠️ OPTIMIZADO: Solo sincroniza si faltan eventos para reducir uso de API
    */
   private async runEventSync() {
     try {
       logger.info('Running scheduled event sync...');
+
+      // ⚠️ VALIDACIÓN: Verificar si ya hay suficientes eventos
+      const twoHoursFromNow = new Date(Date.now() + 2 * 60 * 60 * 1000);
+      const recentEventsCount = await prisma.event.count({
+        where: {
+          isActive: true,
+          startTime: {
+            gte: new Date(),
+            lte: twoHoursFromNow,
+          },
+        },
+      });
+
+      // Si ya hay 10+ eventos en las próximas 2 horas, no sincronizar
+      if (recentEventsCount >= 10) {
+        logger.info(`Skipping sync: Already have ${recentEventsCount} events in next 2 hours`);
+        return;
+      }
 
       const mainSports = [
         'soccer_epl',
@@ -174,7 +193,38 @@ class ScheduledTasksService {
 
       let totalSynced = 0;
 
-      for (const sportKey of mainSports) {
+      // ⚠️ OPTIMIZACIÓN: Priorizar deportes con menos eventos
+      const sportsWithEventCounts = await Promise.all(
+        mainSports.map(async (sportKey) => {
+          const sport = await prisma.sport.findFirst({
+            where: { slug: sportKey },
+          });
+          if (!sport) return { sportKey, count: 0 };
+
+          const count = await prisma.event.count({
+            where: {
+              sportId: sport.id,
+              isActive: true,
+              startTime: {
+                gte: new Date(),
+                lte: twoHoursFromNow,
+              },
+            },
+          });
+
+          return { sportKey, count };
+        })
+      );
+
+      // Ordenar por menor cantidad de eventos (priorizar los que más necesitan)
+      sportsWithEventCounts.sort((a, b) => a.count - b.count);
+
+      // Sincronizar solo los 3 deportes con menos eventos
+      const sportsToSync = sportsWithEventCounts.slice(0, 3).map((s) => s.sportKey);
+
+      logger.info(`Syncing only ${sportsToSync.length} sports with least events to save API credits`);
+
+      for (const sportKey of sportsToSync) {
         try {
           const synced = await eventSyncService.syncSportEvents(sportKey);
           totalSynced += synced.length;
@@ -184,7 +234,7 @@ class ScheduledTasksService {
         }
       }
 
-      logger.info(`Event sync completed: ${totalSynced} total events synced`);
+      logger.info(`Event sync completed: ${totalSynced} total events synced (optimized to save API credits)`);
     } catch (error: any) {
       logger.error('Error running event sync:', error);
     }

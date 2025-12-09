@@ -51,18 +51,49 @@ export default function Events() {
     toast.success('Eventos actualizados')
   }
 
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [lastSyncTime, setLastSyncTime] = useState<number | null>(null)
+
   const handleSyncEvents = async () => {
+    // ⚠️ PROTECCIÓN: Prevenir múltiples clics simultáneos
+    if (isSyncing) {
+      toast('Ya se está sincronizando. Por favor espera...', { icon: '⏳' })
+      return
+    }
+
+    // ⚠️ PROTECCIÓN: Cooldown de 10 minutos entre sincronizaciones manuales
+    if (lastSyncTime) {
+      const tenMinutesAgo = Date.now() - 10 * 60 * 1000
+      if (lastSyncTime > tenMinutesAgo) {
+        const remainingMinutes = Math.ceil((lastSyncTime + 10 * 60 * 1000 - Date.now()) / 60000)
+        toast(`Debes esperar ${remainingMinutes} minuto(s) antes de sincronizar nuevamente. Esto protege nuestros créditos de API.`, {
+          icon: '⏰',
+          duration: 5000,
+        })
+        return
+      }
+    }
+
+    setIsSyncing(true)
     try {
       toast.loading('Sincronizando eventos desde The Odds API...')
       await eventsService.syncEvents()
       toast.dismiss()
       toast.success('Eventos sincronizados correctamente')
+      setLastSyncTime(Date.now())
       // Refetch events after sync
       await queryClient.invalidateQueries({ queryKey: ['allEvents'] })
       await refetch()
     } catch (error: any) {
       toast.dismiss()
-      toast.error(`Error al sincronizar: ${error.message || 'Error desconocido'}`)
+      // Manejar error 429 (rate limit) específicamente
+      if (error.message?.includes('429') || error.message?.includes('esperar')) {
+        toast.error(error.message || 'Debes esperar antes de sincronizar nuevamente')
+      } else {
+        toast.error(`Error al sincronizar: ${error.message || 'Error desconocido'}`)
+      }
+    } finally {
+      setIsSyncing(false)
     }
   }
 
@@ -245,9 +276,14 @@ export default function Events() {
             <div className="flex gap-3 justify-center">
               <button
                 onClick={handleSyncEvents}
-                className="px-4 py-2 bg-green-500/20 border border-green-500/40 text-green-300 rounded-lg hover:bg-green-500/30 transition-colors text-sm font-semibold"
+                disabled={isSyncing || (lastSyncTime && Date.now() - lastSyncTime < 10 * 60 * 1000)}
+                className={`px-4 py-2 border rounded-lg transition-colors text-sm font-semibold ${
+                  isSyncing || (lastSyncTime && Date.now() - lastSyncTime < 10 * 60 * 1000)
+                    ? 'bg-gray-500/20 border-gray-500/40 text-gray-400 cursor-not-allowed'
+                    : 'bg-green-500/20 border-green-500/40 text-green-300 hover:bg-green-500/30'
+                }`}
               >
-                🔄 Sincronizar desde API
+                {isSyncing ? '⏳ Sincronizando...' : '🔄 Sincronizar desde API'}
               </button>
               <button
                 onClick={handleRefresh}

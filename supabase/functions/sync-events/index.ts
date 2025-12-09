@@ -74,7 +74,8 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { sportKey } = await req.json().catch(() => ({}));
+    const requestBody = await req.json().catch(() => ({}));
+    const { sportKey } = requestBody || {};
 
     // Get The Odds API key from environment
     const theOddsApiKey = Deno.env.get('THE_ODDS_API_KEY');
@@ -83,6 +84,57 @@ serve(async (req) => {
         JSON.stringify({ success: false, error: { message: 'The Odds API key not configured' } }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // ⚠️ VALIDACIÓN CRÍTICA: Verificar si ya hay eventos recientes suficientes
+    // Esto evita sincronizaciones innecesarias y protege nuestros créditos de API
+    const now = Date.now();
+    const twoHoursFromNow = new Date(now + 2 * 60 * 60 * 1000).toISOString();
+    const { count: recentEventsCount } = await supabase
+      .from('Event')
+      .select('id', { count: 'exact', head: true })
+      .eq('isActive', true)
+      .gte('startTime', new Date().toISOString())
+      .lte('startTime', twoHoursFromNow);
+
+    // Si ya hay suficientes eventos recientes, no sincronizar
+    if (recentEventsCount && recentEventsCount >= 10) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: `Ya hay ${recentEventsCount} eventos disponibles en las próximas 2 horas. No es necesario sincronizar ahora. Esto protege nuestros créditos de API.`,
+          data: { totalSynced: 0, results: [], skipped: true, reason: 'sufficient_events' },
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // ⚠️ RATE LIMITING SIMPLE: Verificar última sincronización global
+    // Buscar el evento más reciente para estimar última sincronización
+    const { data: lastEvent } = await supabase
+      .from('Event')
+      .select('createdAt')
+      .eq('isActive', true)
+      .order('createdAt', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (lastEvent?.createdAt) {
+      const lastSyncTime = new Date(lastEvent.createdAt).getTime();
+      const fiveMinutesAgo = now - 5 * 60 * 1000;
+      
+      // Si se creó un evento en los últimos 5 minutos, probablemente ya se sincronizó
+      if (lastSyncTime > fiveMinutesAgo) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: {
+              message: 'La sincronización se ejecutó recientemente. Por favor espera unos minutos antes de sincronizar nuevamente. Esto protege nuestros créditos de API.',
+            },
+          }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // Define sports to sync (if no sportKey provided, sync main sports)
