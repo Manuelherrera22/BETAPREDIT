@@ -158,6 +158,9 @@ export const predictionsService = {
       }
 
       const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error?.message || result.message || 'Failed to fetch predictions');
+      }
       return result.data || [];
     } else {
       // Use backend API
@@ -254,7 +257,10 @@ export const predictionsService = {
       }
 
       const result = await response.json();
-      return result.data;
+      if (!result.success) {
+        throw new Error(result.error?.message || result.message || 'Failed to generate predictions');
+      }
+      return result.data || { generated: 0, updated: 0, errors: 0 };
     } else {
       // Use backend API
       const { data } = await api.post('/predictions/generate', {});
