@@ -85,16 +85,18 @@ class TheOddsAPIService {
       regions?: string[];
       markets?: string[];
       oddsFormat?: 'decimal' | 'american';
+      sync?: boolean; // Sincronizar eventos a Supabase
     } = {}
   ): Promise<OddsEvent[]> {
     try {
-      const { regions = ['us', 'uk', 'eu'], markets = ['h2h'], oddsFormat = 'decimal' } = options;
+      const { regions = ['us', 'uk', 'eu'], markets = ['h2h'], oddsFormat = 'decimal', sync = true } = options;
 
       const { data } = await api.get(`/the-odds-api/sports/${sport}/odds`, {
         params: {
           regions: regions.join(','),
           markets: markets.join(','),
           oddsFormat,
+          sync: sync ? 'true' : undefined, // Sincronizar por defecto
         },
       });
       return data.success ? data.data : [];
