@@ -296,6 +296,9 @@ serve(async (req) => {
                 isActive: createdEvent?.isActive,
               });
               
+              // ⚠️ NUEVO: Guardar markets y odds si están disponibles
+              await syncMarketsAndOdds(supabase, createdEvent.id, sportData.id, oddsEvent);
+              
               syncedCount++;
             } else {
               // Update existing event if needed
@@ -314,6 +317,8 @@ serve(async (req) => {
               if (updateError) {
                 console.error(`Error updating event ${oddsEvent.id}:`, updateError);
               } else {
+                // ⚠️ NUEVO: Guardar markets y odds si están disponibles
+                await syncMarketsAndOdds(supabase, existingEvent.id, sportData.id, oddsEvent);
                 syncedCount++;
               }
             }
