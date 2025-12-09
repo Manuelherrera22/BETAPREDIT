@@ -11,6 +11,138 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+/**
+ * Sync markets and odds for an event
+ */
+async function syncMarketsAndOdds(
+  supabase: any,
+  eventId: string,
+  sportId: string,
+  oddsEvent: OddsEvent
+) {
+  try {
+    if (!oddsEvent.bookmakers || oddsEvent.bookmakers.length === 0) {
+      console.log(`No bookmakers/odds available for event ${eventId}`);
+      return;
+    }
+
+    // Find or create MATCH_WINNER market
+    let { data: market, error: marketError } = await supabase
+      .from('Market')
+      .select('id')
+      .eq('eventId', eventId)
+      .eq('type', 'MATCH_WINNER')
+      .maybeSingle();
+
+    if (marketError && marketError.code !== 'PGRST116') {
+      console.error(`Error finding market for event ${eventId}:`, marketError);
+      return;
+    }
+
+    if (!market) {
+      // Create market
+      const currentTime = new Date().toISOString();
+      const { data: newMarket, error: createMarketError } = await supabase
+        .from('Market')
+        .insert({
+          id: crypto.randomUUID(),
+          eventId: eventId,
+          sportId: sportId,
+          type: 'MATCH_WINNER',
+          name: 'Match Winner',
+          isActive: true,
+          isSuspended: false,
+          createdAt: currentTime,
+          updatedAt: currentTime,
+        })
+        .select('id')
+        .single();
+
+      if (createMarketError) {
+        console.error(`Error creating market for event ${eventId}:`, createMarketError);
+        return;
+      }
+      market = newMarket;
+    }
+
+    // Extract odds from all bookmakers
+    const oddsToInsert: any[] = [];
+    const currentTime = new Date().toISOString();
+
+    for (const bookmaker of oddsEvent.bookmakers) {
+      if (!bookmaker.markets || bookmaker.markets.length === 0) continue;
+
+      const h2hMarket = bookmaker.markets.find((m: any) => m.key === 'h2h');
+      if (!h2hMarket || !h2hMarket.outcomes) continue;
+
+      for (const outcome of h2hMarket.outcomes) {
+        if (!outcome.price || outcome.price <= 0) continue;
+
+        // Normalize selection name
+        let selection = outcome.name;
+        const homeLower = oddsEvent.home_team.toLowerCase();
+        const awayLower = oddsEvent.away_team.toLowerCase();
+        const nameLower = outcome.name.toLowerCase();
+
+        if (nameLower.includes(homeLower) || nameLower === 'home' || nameLower === '1') {
+          selection = oddsEvent.home_team;
+        } else if (nameLower.includes(awayLower) || nameLower === 'away' || nameLower === '2') {
+          selection = oddsEvent.away_team;
+        } else if (nameLower.includes('draw') || nameLower === 'x' || nameLower === '3') {
+          selection = 'Draw';
+        }
+
+        // Calculate probability
+        const probability = 1 / outcome.price;
+
+        oddsToInsert.push({
+          id: crypto.randomUUID(),
+          eventId: eventId,
+          marketId: market.id,
+          selection: selection,
+          decimal: outcome.price,
+          probability: probability,
+          source: 'THE_ODDS_API',
+          isActive: true,
+          createdAt: currentTime,
+          updatedAt: currentTime,
+        });
+      }
+    }
+
+    if (oddsToInsert.length === 0) {
+      console.log(`No valid odds to insert for event ${eventId}`);
+      return;
+    }
+
+    // Deactivate old odds for this market
+    await supabase
+      .from('Odds')
+      .update({ isActive: false, updatedAt: currentTime })
+      .eq('eventId', eventId)
+      .eq('marketId', market.id);
+
+    // Insert new odds (in batches to avoid too many at once)
+    const batchSize = 50;
+    for (let i = 0; i < oddsToInsert.length; i += batchSize) {
+      const batch = oddsToInsert.slice(i, i + batchSize);
+      const { error: insertError } = await supabase
+        .from('Odds')
+        .insert(batch);
+
+      if (insertError) {
+        console.error(`Error inserting odds batch for event ${eventId}:`, insertError);
+      } else {
+        console.log(`Inserted ${batch.length} odds for event ${eventId}`);
+      }
+    }
+
+    console.log(`✅ Synced ${oddsToInsert.length} odds for event ${eventId}`);
+  } catch (error: any) {
+    console.error(`Error syncing markets/odds for event ${eventId}:`, error.message);
+  }
+}
+
 interface OddsEvent {
   id: string;
   sport_key: string;
