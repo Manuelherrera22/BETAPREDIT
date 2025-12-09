@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { eventsService } from '../services/eventsService'
+import { eventsService, type Event } from '../services/eventsService'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Link } from 'react-router-dom'
@@ -247,7 +247,7 @@ export default function Home() {
           </h2>
           <div className="space-y-4">
             {liveEvents && liveEvents.length > 0 ? (
-              liveEvents.slice(0, 5).map((event) => (
+              liveEvents.slice(0, 5).map((event: Event) => (
                 <Link
                   key={event.id}
                   to={`/events/${event.id}`}
@@ -297,7 +297,7 @@ export default function Home() {
           </h2>
           <div className="space-y-4">
             {upcomingEvents && upcomingEvents.length > 0 ? (
-              upcomingEvents.slice(0, 5).map((event) => (
+              upcomingEvents.slice(0, 5).map((event: Event) => (
                 <Link
                   key={event.id}
                   to={`/events/${event.id}`}

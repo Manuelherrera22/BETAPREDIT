@@ -276,9 +276,9 @@ export default function Events() {
             <div className="flex gap-3 justify-center">
               <button
                 onClick={handleSyncEvents}
-                disabled={isSyncing || (lastSyncTime && Date.now() - lastSyncTime < 10 * 60 * 1000)}
+                disabled={isSyncing || !!(lastSyncTime && Date.now() - lastSyncTime < 10 * 60 * 1000)}
                 className={`px-4 py-2 border rounded-lg transition-colors text-sm font-semibold ${
-                  isSyncing || (lastSyncTime && Date.now() - lastSyncTime < 10 * 60 * 1000)
+                  isSyncing || !!(lastSyncTime && Date.now() - lastSyncTime < 10 * 60 * 1000)
                     ? 'bg-gray-500/20 border-gray-500/40 text-gray-400 cursor-not-allowed'
                     : 'bg-green-500/20 border-green-500/40 text-green-300 hover:bg-green-500/30'
                 }`}
