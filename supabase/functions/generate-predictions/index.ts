@@ -72,7 +72,7 @@ function normalizeSelection(name: string, teams: { home_team: string; away_team:
     return teams.home_team;
   }
   if (lowerName.includes(awayLower) || lowerName === 'away' || lowerName === '2') {
-    return teams.awayTeam;
+    return teams.away_team;
   }
   if (lowerName.includes('draw') || lowerName === 'x' || lowerName === '3') {
     return 'Draw';
