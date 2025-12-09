@@ -31,7 +31,7 @@ interface EventPrediction {
 }
 
 export default function Predictions() {
-  const [selectedSport, setSelectedSport] = useState<string>('soccer_epl');
+  const [selectedSport, setSelectedSport] = useState<string>('all'); // Changed to 'all' to show all predictions
   const [minConfidence, setMinConfidence] = useState<number>(0.5); // Reduced from 0.7 to show more predictions
   const [minValue, setMinValue] = useState<number>(0); // Reduced from 0.05 to show more predictions
 
@@ -47,18 +47,27 @@ export default function Predictions() {
     queryKey: ['eventsWithPredictions', selectedSport],
     queryFn: async () => {
       try {
-        // Get events
-        const events = await eventsService.getUpcomingEvents(selectedSport, undefined, true);
+        // Get events - if 'all', don't filter by sport
+        const events = await eventsService.getUpcomingEvents(
+          selectedSport !== 'all' ? selectedSport : undefined,
+          undefined,
+          true
+        );
         
         // Validate events is an array
         if (!events || !Array.isArray(events) || events.length === 0) {
+          console.log(`No events found for sport: ${selectedSport}`);
           return [];
         }
+        
+        console.log(`Found ${events.length} events for sport: ${selectedSport}`);
         
         // For each event, get predictions
         const eventsWithPreds: EventPrediction[] = [];
         
-        for (const event of events.slice(0, 20)) { // Limit to 20 events
+        // Increase limit when showing all sports to get more predictions
+        const eventLimit = selectedSport === 'all' ? 50 : 20;
+        for (const event of events.slice(0, eventLimit)) {
           try {
             // Get predictions for this event
             const predictions = await predictionsService.getEventPredictions(event.id);
@@ -67,12 +76,18 @@ export default function Predictions() {
             
             if (predictions && predictions.length > 0) {
               // Get event details with odds
-              const eventDetails = await eventsService.getEventDetails(event.id);
+              let eventDetails;
+              try {
+                eventDetails = await eventsService.getEventDetails(event.id);
+              } catch (err: any) {
+                console.warn(`Error getting event details for ${event.id}:`, err.message);
+                eventDetails = null;
+              }
               
               const predictionsWithOdds = predictions.map((pred: any) => {
                 // Find corresponding odds from event markets
                 let marketOdds = 2.0; // Default
-                if (eventDetails.markets && eventDetails.markets.length > 0) {
+                if (eventDetails?.markets && eventDetails.markets.length > 0) {
                   const market = eventDetails.markets.find((m: any) => m.id === pred.marketId);
                   if (market?.odds) {
                     const odds = market.odds.find((o: any) => o.selection === pred.selection);
@@ -253,6 +268,7 @@ export default function Predictions() {
             onChange={(e) => setSelectedSport(e.target.value)}
             className="w-full px-4 py-3 bg-dark-800 border border-primary-500/30 rounded-lg text-white focus:outline-none focus:border-primary-400"
           >
+            <option value="all">🌍 Todos los Deportes</option>
             {sports?.filter(s => s.active).map((sport) => (
               <option key={sport.key} value={sport.key}>
                 {sport.title}
