@@ -314,6 +314,7 @@ class ArbitrageService {
 
   /**
    * Get all active arbitrage opportunities
+   * Now works directly with The Odds API without requiring events in database
    */
   async getActiveOpportunities(
     options: {
@@ -323,46 +324,40 @@ class ArbitrageService {
     } = {}
   ): Promise<ArbitrageOpportunity[]> {
     try {
-      const { minProfitMargin = 0.01, sport, limit = 50 } = options;
+      const { minProfitMargin = 0.01, sport = 'soccer_epl', limit = 50 } = options;
 
-      // Check if database is available
-      let events: any[] = [];
-      try {
-        events = await prisma.event.findMany({
-          where: {
-            startTime: { gte: new Date() },
-            ...(sport && {
-              sport: {
-                slug: sport,
-              },
-            }),
-          },
-          include: {
-            sport: true,
-          },
-          take: limit * 2, // Get more events to find opportunities
-          orderBy: {
-            startTime: 'asc',
-          },
-        });
-      } catch (dbError: any) {
-        logger.warn('Database not available or no events found, returning empty array:', dbError.message);
+      const theOddsAPI = getTheOddsAPIService();
+      if (!theOddsAPI) {
+        logger.warn('The Odds API service not configured');
         return [];
       }
 
-      // If no events, return empty array
-      if (!events || events.length === 0) {
-        logger.info('No events found for arbitrage detection');
+      // Get events directly from The Odds API
+      let oddsEvents: any[] = [];
+      try {
+        oddsEvents = await theOddsAPI.getOdds(sport, {
+          regions: ['us', 'uk', 'eu'],
+          markets: ['h2h'],
+          oddsFormat: 'decimal',
+        });
+      } catch (apiError: any) {
+        logger.warn(`Error fetching events from The Odds API for sport ${sport}:`, apiError.message);
+        return [];
+      }
+
+      if (!oddsEvents || oddsEvents.length === 0) {
+        logger.info(`No events found for sport ${sport}`);
         return [];
       }
 
       const allOpportunities: ArbitrageOpportunity[] = [];
 
-      // Check each event for arbitrage
-      for (const event of events) {
+      // Check each event for arbitrage opportunities
+      for (const oddsEvent of oddsEvents.slice(0, limit * 2)) {
         try {
-          const opportunities = await this.detectArbitrageForEvent(
-            event.id,
+          // Detect arbitrage directly from The Odds API data
+          const opportunities = await this.detectArbitrageFromOddsEvent(
+            oddsEvent,
             'h2h',
             minProfitMargin
           );
@@ -370,7 +365,7 @@ class ArbitrageService {
             allOpportunities.push(...opportunities);
           }
         } catch (error: any) {
-          logger.warn(`Error checking arbitrage for event ${event.id}:`, error.message);
+          logger.warn(`Error checking arbitrage for event ${oddsEvent.id}:`, error.message);
           continue;
         }
       }
@@ -381,7 +376,98 @@ class ArbitrageService {
       return allOpportunities.slice(0, limit);
     } catch (error: any) {
       logger.error('Error getting active opportunities:', error);
-      // Return empty array instead of throwing error
+      return [];
+    }
+  }
+
+  /**
+   * Detect arbitrage opportunities directly from The Odds API event data
+   * This method doesn't require the event to be in the database
+   */
+  async detectArbitrageFromOddsEvent(
+    oddsEvent: any,
+    marketType: string = 'h2h',
+    minProfitMargin: number = 0.01
+  ): Promise<ArbitrageOpportunity[]> {
+    try {
+      const theOddsAPI = getTheOddsAPIService();
+      if (!theOddsAPI) {
+        return [];
+      }
+
+      // Get odds comparison from The Odds API
+      let comparison;
+      try {
+        comparison = await theOddsAPI.compareOdds(
+          oddsEvent.sport_key || oddsEvent.sport_title,
+          oddsEvent.id,
+          marketType
+        );
+      } catch (apiError: any) {
+        logger.warn(`Error fetching odds comparison for event ${oddsEvent.id}:`, apiError.message);
+        return [];
+      }
+
+      if (!comparison || !comparison.comparisons) {
+        return [];
+      }
+
+      // Find arbitrage opportunities
+      const opportunities: ArbitrageOpportunity[] = [];
+      const selections = Object.keys(comparison.comparisons);
+      
+      if (selections.length < 2) {
+        return []; // Need at least 2 outcomes for arbitrage
+      }
+
+      // Get all possible combinations of bookmakers for each selection
+      const arbitrageCombinations = this.findArbitrageCombinations(
+        comparison.comparisons,
+        minProfitMargin
+      );
+
+      for (const combination of arbitrageCombinations) {
+        const totalImpliedProb = combination.totalImpliedProbability;
+        const profitMargin = 1 - totalImpliedProb;
+
+        if (profitMargin >= minProfitMargin) {
+          const opportunity: ArbitrageOpportunity = {
+            id: `${oddsEvent.id}-${marketType}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            eventId: oddsEvent.id,
+            event: {
+              id: oddsEvent.id,
+              homeTeam: oddsEvent.home_team || comparison.event?.home_team || 'Unknown',
+              awayTeam: oddsEvent.away_team || comparison.event?.away_team || 'Unknown',
+              startTime: new Date(oddsEvent.commence_time || comparison.event?.commence_time || new Date()),
+              sport: {
+                name: oddsEvent.sport_title || comparison.event?.sport_title || 'Unknown',
+                slug: oddsEvent.sport_key || comparison.event?.sport_key || 'unknown',
+              },
+            },
+            market: {
+              id: `${oddsEvent.id}-${marketType}`,
+              type: this.mapMarketType(marketType),
+              name: this.getMarketName(marketType),
+            },
+            selections: combination.selections,
+            totalImpliedProbability: totalImpliedProb,
+            profitMargin,
+            guaranteedProfit: 0, // Will be calculated with bankroll
+            roi: (profitMargin / totalImpliedProb) * 100,
+            minBankroll: 10, // Minimum €10 to make it worthwhile
+            detectedAt: new Date(),
+            expiresAt: new Date(oddsEvent.commence_time || comparison.event?.commence_time || new Date()),
+            isActive: true,
+          };
+
+          opportunities.push(opportunity);
+        }
+      }
+
+      logger.info(`Detected ${opportunities.length} arbitrage opportunities for event ${oddsEvent.id}`);
+      return opportunities;
+    } catch (error: any) {
+      logger.error('Error detecting arbitrage from odds event:', error);
       return [];
     }
   }
