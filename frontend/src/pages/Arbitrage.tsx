@@ -71,8 +71,8 @@ export default function Arbitrage() {
     setError(null);
     try {
       const data = await arbitrageService.getOpportunities({
-        minProfitMargin: filters.minProfitMargin,
-        sport: filters.sport || undefined,
+        minProfitMargin: debouncedFilters.minProfitMargin,
+        sport: debouncedFilters.sport || undefined,
         limit: 50,
       });
       // Ensure data is always an array
