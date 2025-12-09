@@ -15,13 +15,38 @@ const getSupabaseFunctionsUrl = () => {
   return `${supabaseUrl}/functions/v1`;
 };
 
+// Helper to get Supabase auth token
+const getSupabaseAuthToken = async (): Promise<string | null> => {
+  try {
+    const { supabase } = await import('../config/supabase');
+    if (!supabase) return null;
+    
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error || !session?.access_token) {
+      console.warn('No Supabase session found:', error?.message);
+      return null;
+    }
+    return session.access_token;
+  } catch (error) {
+    console.error('Error getting Supabase auth token:', error);
+    return null;
+  }
+};
+
 // Helper to make API calls (Edge Function or backend)
 const makeApiCall = async (method: string, endpoint: string, data?: any) => {
   const supabaseFunctionsUrl = getSupabaseFunctionsUrl();
   const useSupabase = isSupabaseConfigured() && supabaseFunctionsUrl && import.meta.env.PROD;
   
   if (useSupabase) {
-    const token = useAuthStore.getState().token;
+    // Try to get Supabase auth token first
+    let token = await getSupabaseAuthToken();
+    
+    // Fallback to backend token if Supabase token not available
+    if (!token) {
+      token = useAuthStore.getState().token;
+    }
+    
     if (!token) {
       throw new Error('No authentication token');
     }
