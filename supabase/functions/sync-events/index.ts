@@ -252,10 +252,10 @@ serve(async (req) => {
               // Create new event
               // ⚠️ VERIFICAR: Asegurar que startTime sea futuro
               const commenceTime = new Date(oddsEvent.commence_time);
-              const now = new Date();
+              const currentTime = new Date();
               
               // Solo crear eventos con startTime en el futuro (o muy recientes, dentro de 1 hora)
-              if (commenceTime < new Date(now.getTime() - 60 * 60 * 1000)) {
+              if (commenceTime < new Date(currentTime.getTime() - 60 * 60 * 1000)) {
                 console.log(`Skipping event ${oddsEvent.id}: startTime is in the past (${commenceTime.toISOString()})`);
                 continue;
               }

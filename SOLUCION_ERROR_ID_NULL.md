@@ -1,8 +1,8 @@
-# ✅ Solución: Error "null value in column id"
+# ✅ Solución: Errores "null value in column" (ID, updatedAt)
 
-## ❌ **PROBLEMA IDENTIFICADO**
+## ❌ **PROBLEMAS IDENTIFICADOS**
 
-Los logs mostraban:
+### **Error 1: null value in column "id"**
 ```
 Error creating sport icehockey_nhl: {
   code: "23502",
@@ -10,13 +10,25 @@ Error creating sport icehockey_nhl: {
 }
 ```
 
-**Causa:** Supabase no genera automáticamente el ID cuando se usa `.insert()` directamente. El schema de Prisma tiene `@default(cuid())`, pero esto solo funciona cuando se usa Prisma Client, no cuando se inserta directamente en Supabase.
+### **Error 2: null value in column "updatedAt"**
+```
+Error creating sport icehockey_nhl: {
+  code: "23502",
+  message: 'null value in column "updatedAt" of relation "Sport" violates not-null constraint'
+}
+```
+
+**Causa:** Supabase no genera automáticamente:
+- El ID cuando se usa `.insert()` directamente (aunque el schema tenga `@default(cuid())`)
+- Los campos `createdAt` y `updatedAt` (aunque el schema tenga `@default(now())` y `@updatedAt`)
+
+Estos defaults solo funcionan cuando se usa Prisma Client, no cuando se inserta directamente en Supabase.
 
 ---
 
 ## ✅ **SOLUCIÓN IMPLEMENTADA**
 
-### **1. Generar ID Manualmente para Sport**
+### **1. Generar ID y Timestamps Manualmente para Sport**
 
 **Antes:**
 ```typescript
@@ -30,15 +42,18 @@ Error creating sport icehockey_nhl: {
 **Ahora:**
 ```typescript
 const sportId = crypto.randomUUID();
+const now = new Date().toISOString();
 .insert({
   id: sportId, // ⚠️ CRÍTICO: Especificar ID manualmente
   name: oddsEvent.sport_title,
   slug: oddsEvent.sport_key,
   isActive: true,
+  createdAt: now, // ⚠️ CRÍTICO: Supabase no genera automáticamente
+  updatedAt: now, // ⚠️ CRÍTICO: Supabase no genera automáticamente
 })
 ```
 
-### **2. Generar ID Manualmente para Event**
+### **2. Generar ID y Timestamps Manualmente para Event**
 
 **Antes:**
 ```typescript
@@ -52,11 +67,14 @@ const sportId = crypto.randomUUID();
 **Ahora:**
 ```typescript
 const eventId = crypto.randomUUID();
+const now = new Date().toISOString();
 .insert({
   id: eventId, // ⚠️ CRÍTICO: Especificar ID manualmente
   externalId: oddsEvent.id,
   sportId: sportData.id,
   // ... otros campos
+  createdAt: now, // ⚠️ CRÍTICO: Supabase no genera automáticamente
+  updatedAt: now, // ⚠️ CRÍTICO: Supabase no genera automáticamente
 })
 ```
 
@@ -74,11 +92,13 @@ Si el Sport ya existe (ID duplicado), ahora:
 Después de esta corrección:
 
 1. **Los Sports se crearán correctamente:**
-   - Con ID generado automáticamente
-   - Sin errores de "null value in column id"
+   - Con ID generado manualmente (UUID)
+   - Con `createdAt` y `updatedAt` establecidos
+   - Sin errores de "null value in column"
 
 2. **Los Events se crearán correctamente:**
-   - Con ID generado automáticamente
+   - Con ID generado manualmente (UUID)
+   - Con `createdAt` y `updatedAt` establecidos
    - Con `status = 'SCHEDULED'`
    - Con `isActive = true`
 
@@ -101,7 +121,7 @@ Busca en los logs:
 - ✅ `Created event:` (debería aparecer para cada evento)
 - ✅ `Synced X events for sport Y`
 - ✅ `After sync: Total SCHEDULED events in DB: X` (debería ser > 0)
-- ❌ NO deberías ver errores de "null value in column id"
+- ❌ NO deberías ver errores de "null value in column id" o "null value in column updatedAt"
 
 ### **3. Verificar en Table Editor**
 
@@ -137,8 +157,10 @@ get-events response: { success: true, dataLength: 42 }
 
 ## ✅ **ESTADO**
 
-- ✅ ID generado manualmente para Sport
-- ✅ ID generado manualmente para Event
+- ✅ ID generado manualmente para Sport (UUID)
+- ✅ ID generado manualmente para Event (UUID)
+- ✅ `createdAt` y `updatedAt` establecidos manualmente para Sport
+- ✅ `createdAt` y `updatedAt` establecidos manualmente para Event
 - ✅ Manejo de errores de ID duplicado
 - ✅ Edge Function desplegada
 
