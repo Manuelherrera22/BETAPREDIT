@@ -100,26 +100,30 @@ serve(async (req) => {
           event.bookmakers.forEach((bookmaker: any) => {
             if (bookmaker.markets && Array.isArray(bookmaker.markets)) {
               bookmaker.markets.forEach((marketData: any) => {
-                if (marketData.key === market && marketData.outcomes) {
+                if (marketData.key === market && marketData.outcomes && Array.isArray(marketData.outcomes)) {
                   marketData.outcomes.forEach((outcome: any) => {
                     const key = outcome.name || outcome.description || "unknown";
                     if (!comparisons[key]) {
                       comparisons[key] = {
                         name: key,
-                        bookmakers: {},
+                        allOdds: [],
                         bestOdds: 0,
                         bestBookmaker: "",
                       };
                     }
                     const odds = parseFloat(outcome.price) || 0;
-                    comparisons[key].bookmakers[bookmaker.key] = {
+                    const bookmakerName = bookmaker.title || bookmaker.key;
+                    
+                    // Add to allOdds array (format expected by frontend)
+                    comparisons[key].allOdds.push({
                       odds,
-                      bookmaker: bookmaker.title || bookmaker.key,
-                    };
+                      bookmaker: bookmakerName,
+                    });
+                    
                     if (odds > comparisons[key].bestOdds) {
                       comparisons[key].bestOdds = odds;
-                      comparisons[key].bestBookmaker = bookmaker.title || bookmaker.key;
-                      bestBookmakers[key] = bookmaker.title || bookmaker.key;
+                      comparisons[key].bestBookmaker = bookmakerName;
+                      bestBookmakers[key] = bookmakerName;
                     }
                   });
                 }

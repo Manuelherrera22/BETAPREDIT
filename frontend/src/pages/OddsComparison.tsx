@@ -130,20 +130,31 @@ export default function OddsComparison() {
     const comparisons = oddsComparisons;
     const bookmakers = new Set<string>();
     
-    // Recopilar todos los bookmakers
+    // Recopilar todos los bookmakers (con validación defensiva)
     Object.values(comparisons).forEach(comp => {
-      comp.allOdds.forEach(odd => bookmakers.add(odd.bookmaker));
+      if (comp && comp.allOdds && Array.isArray(comp.allOdds)) {
+        comp.allOdds.forEach((odd: any) => {
+          if (odd && odd.bookmaker) {
+            bookmakers.add(odd.bookmaker);
+          }
+        });
+      }
     });
+
+    // Si no hay comparaciones, retornar array vacío
+    if (bookmakers.size === 0) {
+      return [];
+    }
 
     // Crear estructura de datos para la tabla
     return Array.from(bookmakers).map(bookmaker => {
       const homeComp = comparisons[currentEvent.home_team];
       const awayComp = comparisons[currentEvent.away_team];
-      const drawComp = comparisons['Draw'] || comparisons['draw'];
+      const drawComp = comparisons['Draw'] || comparisons['draw'] || comparisons['Empate'];
 
-      const homeOdd = homeComp?.allOdds.find(o => o.bookmaker === bookmaker)?.odds || null;
-      const awayOdd = awayComp?.allOdds.find(o => o.bookmaker === bookmaker)?.odds || null;
-      const drawOdd = drawComp?.allOdds.find(o => o.bookmaker === bookmaker)?.odds || null;
+      const homeOdd = homeComp?.allOdds?.find((o: any) => o.bookmaker === bookmaker)?.odds || null;
+      const awayOdd = awayComp?.allOdds?.find((o: any) => o.bookmaker === bookmaker)?.odds || null;
+      const drawOdd = drawComp?.allOdds?.find((o: any) => o.bookmaker === bookmaker)?.odds || null;
 
       // Calcular valor promedio (simplificado)
       const validOdds = [homeOdd, awayOdd, drawOdd].filter((odd): odd is number => odd !== null && odd !== undefined);
