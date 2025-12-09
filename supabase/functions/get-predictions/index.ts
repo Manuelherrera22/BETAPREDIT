@@ -57,6 +57,8 @@ serve(async (req) => {
       );
     }
 
+    console.log(`🔍 Fetching predictions for eventId: ${eventId}`);
+
     // Get predictions for the event
     const { data: predictions, error: predictionsError } = await supabase
       .from('Prediction')
@@ -81,7 +83,7 @@ serve(async (req) => {
       .order('predictedProbability', { ascending: false });
 
     if (predictionsError) {
-      console.error('Error fetching predictions:', predictionsError);
+      console.error('❌ Error fetching predictions:', JSON.stringify(predictionsError, null, 2));
       return new Response(
         JSON.stringify({
           success: false,
@@ -89,6 +91,37 @@ serve(async (req) => {
         }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    console.log(`✅ Found ${predictions?.length || 0} predictions for eventId: ${eventId}`);
+    
+    // Debug: Check if there are any predictions in the database for this event
+    if (!predictions || predictions.length === 0) {
+      const { count: totalPredictions } = await supabase
+        .from('Prediction')
+        .select('*', { count: 'exact', head: true });
+      
+      const { count: predictionsForEvent } = await supabase
+        .from('Prediction')
+        .select('*', { count: 'exact', head: true })
+        .eq('eventId', eventId);
+      
+      console.log(`📊 Debug: Total predictions in DB: ${totalPredictions || 0}, Predictions for this event: ${predictionsForEvent || 0}`);
+      
+      // Check if event exists
+      const { data: event, error: eventError } = await supabase
+        .from('Event')
+        .select('id, name, homeTeam, awayTeam')
+        .eq('id', eventId)
+        .maybeSingle();
+      
+      if (eventError) {
+        console.error('❌ Error checking event:', JSON.stringify(eventError, null, 2));
+      } else if (!event) {
+        console.warn(`⚠️ Event ${eventId} does not exist in database`);
+      } else {
+        console.log(`✅ Event exists: ${event.name || `${event.homeTeam} vs ${event.awayTeam}`}`);
+      }
     }
 
     // Transform predictions to match frontend expectations
