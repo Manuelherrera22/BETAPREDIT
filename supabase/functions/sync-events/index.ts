@@ -190,9 +190,14 @@ serve(async (req) => {
 
             if (sportError || !sportData) {
               // Create sport if it doesn't exist
+              // ⚠️ IMPORTANTE: Generar ID manualmente para Supabase
+              // Supabase no genera automáticamente cuid(), necesitamos generarlo
+              const sportId = crypto.randomUUID(); // Usar UUID en lugar de cuid para Supabase
+              
               const { data: newSport, error: createSportError } = await supabase
                 .from('Sport')
                 .insert({
+                  id: sportId, // ⚠️ CRÍTICO: Especificar ID manualmente
                   name: oddsEvent.sport_title,
                   slug: oddsEvent.sport_key,
                   isActive: true,
@@ -202,9 +207,25 @@ serve(async (req) => {
 
               if (createSportError || !newSport) {
                 console.error(`Error creating sport ${oddsEvent.sport_key}:`, createSportError);
-                continue;
+                // Si el error es por ID duplicado, intentar buscar nuevamente
+                if (createSportError?.code === '23505') {
+                  const { data: existingSport } = await supabase
+                    .from('Sport')
+                    .select('id')
+                    .eq('slug', oddsEvent.sport_key)
+                    .limit(1)
+                    .maybeSingle();
+                  if (existingSport) {
+                    sportData = existingSport;
+                  } else {
+                    continue;
+                  }
+                } else {
+                  continue;
+                }
+              } else {
+                sportData = newSport;
               }
-              sportData = newSport;
             }
 
             // Check if event already exists
