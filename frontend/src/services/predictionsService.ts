@@ -1,9 +1,37 @@
 /**
  * Predictions Service
  * Frontend service for prediction accuracy tracking
+ * Uses Supabase Edge Functions in production, backend API in development
  */
 
 import api from './api';
+import { isSupabaseConfigured } from '../config/supabase';
+import { useAuthStore } from '../store/authStore';
+
+// Get Supabase Functions URL
+const getSupabaseFunctionsUrl = () => {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  if (!supabaseUrl) return null;
+  return `${supabaseUrl}/functions/v1`;
+};
+
+// Helper to get Supabase auth token
+const getSupabaseAuthToken = async (): Promise<string | null> => {
+  try {
+    const { supabase } = await import('../config/supabase');
+    if (!supabase) return null;
+    
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error || !session?.access_token) {
+      console.warn('No Supabase session found:', error?.message);
+      return null;
+    }
+    return session.access_token;
+  } catch (error) {
+    console.error('Error getting Supabase auth token:', error);
+    return null;
+  }
+};
 
 export interface PredictionAccuracyStats {
   total: number;
@@ -125,6 +153,58 @@ export const predictionsService = {
   getPredictionFactors: async (predictionId: string): Promise<any> => {
     const { data } = await api.get(`/predictions/${predictionId}/factors`);
     return data.data;
+  },
+
+  /**
+   * Generate predictions for upcoming events
+   * Uses Supabase Edge Function in production, backend API in development
+   */
+  generatePredictions: async (): Promise<{ generated: number; updated: number; errors: number }> => {
+    const supabaseFunctionsUrl = getSupabaseFunctionsUrl();
+    const useSupabase = isSupabaseConfigured() && supabaseFunctionsUrl && import.meta.env.PROD;
+    
+    if (useSupabase) {
+      // Try to get Supabase auth token first
+      let token = await getSupabaseAuthToken();
+      
+      // Fallback to backend token if Supabase token not available
+      if (!token) {
+        token = useAuthStore.getState().token;
+      }
+      
+      if (!token) {
+        throw new Error('No authentication token');
+      }
+
+      const url = `${supabaseFunctionsUrl}/generate-predictions`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { message: errorText };
+        }
+        throw new Error(errorData.error?.message || errorData.message || `HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result.data;
+    } else {
+      // Use backend API
+      const { data } = await api.post('/predictions/generate', {});
+      return data.data;
+    }
   },
 };
 

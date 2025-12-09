@@ -178,8 +178,8 @@ export default function Predictions() {
   // Mutation to generate predictions manually
   const generatePredictionsMutation = useMutation({
     mutationFn: async () => {
-      const { data } = await api.post('/predictions/generate', {});
-      return data;
+      const result = await predictionsService.generatePredictions();
+      return { data: result };
     },
     onSuccess: (data) => {
       if (data.data.generated === 0 && data.data.updated === 0) {
