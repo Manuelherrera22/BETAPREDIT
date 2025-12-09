@@ -7,8 +7,8 @@ import { Link } from 'react-router-dom'
 export default function Events() {
   const { data: events, isLoading } = useQuery({
     queryKey: ['allEvents'],
-    queryFn: () => eventsService.getUpcomingEvents(),
-    refetchInterval: 60000,
+    queryFn: () => eventsService.getUpcomingEvents(undefined, undefined, true), // Use The Odds API
+    refetchInterval: 300000, // 5 minutes (reduced from 60s to save API calls)
   })
 
   if (isLoading) {

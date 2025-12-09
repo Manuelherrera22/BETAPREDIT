@@ -145,6 +145,24 @@ class WebSocketService {
 
     logger.debug(`Arbitrage opportunity emitted for event ${opportunity.eventId}`);
   }
+
+  /**
+   * Broadcast message to all connected clients or specific channel
+   */
+  broadcast(event: string, data: any, channel?: string) {
+    if (!this.io) {
+      logger.warn('WebSocket service not initialized');
+      return;
+    }
+
+    if (channel) {
+      this.io.to(channel).emit(event, data);
+      logger.debug(`Broadcasted ${event} to channel ${channel}`);
+    } else {
+      this.io.emit(event, data);
+      logger.debug(`Broadcasted ${event} to all clients`);
+    }
+  }
 }
 
 // Export singleton

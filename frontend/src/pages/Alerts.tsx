@@ -83,21 +83,9 @@ export default function Alerts() {
         setAlerts(allAlerts);
       } catch (err: any) {
         console.error('Error loading alerts:', err);
-        setError('Error al cargar las alertas. Usando datos de ejemplo.');
-        // Fallback a datos mock si hay error
-        setAlerts([
-          {
-            id: '1',
-            type: 'value_bet',
-            title: 'Value Bet Detectado',
-            message: 'Real Madrid vs Barcelona - Cuota 2.15 con +12% de valor',
-            event: 'Real Madrid vs Barcelona',
-            value: 12,
-            timestamp: new Date().toISOString(),
-            read: false,
-            priority: 'high',
-          },
-        ]);
+        setError('Error al cargar las alertas');
+        // Sin datos mock, mostrar array vacío si hay error
+        setAlerts([]);
       } finally {
         setLoading(false);
       }

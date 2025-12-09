@@ -5,6 +5,7 @@ import ValueBetsHeatmap from '../components/ValueBetsHeatmap';
 import PerformanceHeatmap from '../components/PerformanceHeatmap';
 import TrendAnalysis from '../components/TrendAnalysis';
 import BenchmarkComparison from '../components/BenchmarkComparison';
+import ROITrackingDashboard from '../components/ROITrackingDashboard';
 import { userStatisticsService, type UserStatistics } from '../services/userStatisticsService';
 
 export default function Statistics() {
@@ -58,26 +59,14 @@ export default function Statistics() {
           : `Año ${new Date(stat.periodStart || new Date()).getFullYear()}`,
         value: stat.roi || 0,
       }))
-    : [
-        { label: 'Ene', value: 12 },
-        { label: 'Feb', value: 18 },
-        { label: 'Mar', value: 15 },
-        { label: 'Abr', value: 23 },
-        { label: 'May', value: 19 },
-        { label: 'Jun', value: 27 },
-      ];
+    : []; // Sin datos mock, mostrar vacío si no hay datos
 
   const winRateData = safeStatsByPeriod.length > 0
     ? safeStatsByPeriod.map((stat, index) => ({
         label: timeRange === 'week' ? `Sem ${index + 1}` : `Período ${index + 1}`,
         value: stat.winRate || 0,
       }))
-    : [
-        { label: 'Sem 1', value: 65 },
-        { label: 'Sem 2', value: 72 },
-        { label: 'Sem 3', value: 68 },
-        { label: 'Sem 4', value: 75 },
-      ];
+    : []; // Sin datos mock, mostrar vacío si no hay datos
 
   // Preparar heatmap data desde statsBySport (con validación defensiva)
   const safeStatsBySport = statsBySport && typeof statsBySport === 'object' ? statsBySport : {};
@@ -88,11 +77,7 @@ export default function Statistics() {
         value: data?.averageValue || data?.roi || 0,
         count: data?.totalBets || 0,
       }))
-    : [
-        { sport: 'Fútbol', league: 'La Liga', value: 12.5, count: 45 },
-        { sport: 'Fútbol', league: 'Premier League', value: 10.2, count: 38 },
-        { sport: 'Basketball', league: 'NBA', value: 9.3, count: 28 },
-      ];
+    : []; // Sin datos mock, mostrar vacío si no hay datos
 
   // Calcular porcentajes por deporte (con validación defensiva)
   const totalBetsBySport = Object.values(safeStatsBySport).reduce(
@@ -148,6 +133,11 @@ export default function Statistics() {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* ROI Tracking Dashboard */}
+      <div className="mb-8">
+        <ROITrackingDashboard />
       </div>
 
       {/* Key Stats Grid */}

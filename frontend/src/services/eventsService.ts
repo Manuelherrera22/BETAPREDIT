@@ -44,9 +44,9 @@ export const eventsService = {
     return data.data as Event[]
   },
 
-  getUpcomingEvents: async (sportId?: string, date?: string) => {
+  getUpcomingEvents: async (sportId?: string, date?: string, useTheOddsAPI: boolean = true) => {
     const { data } = await api.get('/events/upcoming', {
-      params: { sportId, date },
+      params: { sportId, date, useTheOddsAPI },
     })
     return data.data as Event[]
   },

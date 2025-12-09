@@ -216,6 +216,7 @@ class GoogleOAuthService {
           avatar: googleUserInfo.avatar,
           verified: googleUserInfo.verified,
           passwordHash: null, // No password for OAuth users
+          preferredMode: 'pro', // Default to pro mode
           oauthData: {
             lastLogin: new Date().toISOString(),
           } as any,

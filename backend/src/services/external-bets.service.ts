@@ -17,6 +17,7 @@ interface RegisterExternalBetData {
   notes?: string;
   tags?: string[];
   metadata?: any;
+  valueBetAlertId?: string; // Para vincular con value bet alert
 }
 
 class ExternalBetsService {
@@ -41,6 +42,20 @@ class ExternalBetsService {
         }
       }
 
+      // Verify value bet alert if provided
+      if (betData.valueBetAlertId) {
+        const valueBetAlert = await prisma.valueBetAlert.findFirst({
+          where: {
+            id: betData.valueBetAlertId,
+            userId, // Ensure it belongs to the user
+          },
+        });
+
+        if (!valueBetAlert) {
+          throw new AppError('Value bet alert not found or does not belong to user', 404);
+        }
+      }
+
       // Create the external bet
       const bet = await prisma.externalBet.create({
         data: {
@@ -60,6 +75,7 @@ class ExternalBetsService {
           tags: betData.tags || [],
           metadata: betData.metadata,
           status: 'PENDING',
+          valueBetAlertId: betData.valueBetAlertId || null,
         },
         include: {
           event: {
@@ -137,21 +153,27 @@ class ExternalBetsService {
       }
     }
 
-    const bets = await prisma.externalBet.findMany({
-      where,
-      include: {
-        event: {
-          include: {
-            sport: true,
+      const bets = await prisma.externalBet.findMany({
+        where,
+        include: {
+          event: {
+            include: {
+              sport: true,
+            },
+          },
+          valueBetAlert: {
+            select: {
+              id: true,
+              valuePercentage: true,
+            },
           },
         },
-      },
-      orderBy: {
-        betPlacedAt: 'desc',
-      },
-      take: limit,
-      skip: offset,
-    });
+        orderBy: {
+          betPlacedAt: 'desc',
+        },
+        take: limit,
+        skip: offset,
+      });
 
     return bets;
   }
@@ -181,13 +203,26 @@ class ExternalBetsService {
         throw new AppError('Bet result already set', 400);
       }
 
+      // Calculate actual win if not provided
+      const calculatedWin = result === 'WON' 
+        ? (actualWin !== undefined ? actualWin : bet.stake * bet.odds)
+        : null;
+
       const updated = await prisma.externalBet.update({
         where: { id: betId },
         data: {
           status: result,
           result: result === 'WON' ? 'WON' : result === 'LOST' ? 'LOST' : 'VOID',
-          actualWin: result === 'WON' ? actualWin || bet.stake * bet.odds : null,
+          actualWin: calculatedWin,
           settledAt: new Date(),
+        },
+        include: {
+          valueBetAlert: {
+            select: {
+              id: true,
+              valuePercentage: true,
+            },
+          },
         },
       });
 

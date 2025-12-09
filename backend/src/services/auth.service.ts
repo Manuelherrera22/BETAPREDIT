@@ -37,6 +37,7 @@ class AuthService {
         passwordHash,
         firstName: userData.firstName,
         lastName: userData.lastName,
+        preferredMode: 'pro', // Default to pro mode
       },
       select: {
         id: true,
@@ -118,6 +119,7 @@ class AuthService {
                 firstName: email.split('@')[0],
                 lastName: '',
                 role: 'USER',
+                preferredMode: 'pro', // Default to pro mode
               },
               select: {
                 id: true,

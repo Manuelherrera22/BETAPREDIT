@@ -36,6 +36,7 @@ model User {
   subscriptionTier      SubscriptionTier @default(FREE)
   subscriptionExpiresAt DateTime?
   alertPreferences      Json? // { valueBetMin: 5, sports: [...], platforms: [...] }
+  preferredMode         String?          @default("pro") // "casual" | "pro" - Modo de uso preferido
 
   // Cached statistics
   totalBets       Int       @default(0)

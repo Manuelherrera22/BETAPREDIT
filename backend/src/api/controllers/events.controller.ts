@@ -18,11 +18,12 @@ class EventsController {
 
   async getUpcomingEvents(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const { sportId, date, limit } = req.query;
+      const { sportId, date, limit, useTheOddsAPI } = req.query;
       const events = await eventsService.getUpcomingEvents({
         sportId: sportId as string,
         date: date as string,
         limit: limit ? parseInt(limit as string) : 50,
+        useTheOddsAPI: useTheOddsAPI !== 'false', // Default to true
       });
       res.json({ success: true, data: events });
     } catch (error) {

@@ -1,34 +1,83 @@
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import StatsCard from '../components/StatsCard';
 import SimpleChart from '../components/SimpleChart';
+import { userStatisticsService, type UserStatistics } from '../services/userStatisticsService';
 
 export default function BankrollAnalysis() {
-  // Mock data
-  const bankrollHistory = [
-    { label: 'Ene', value: 1000 },
-    { label: 'Feb', value: 1150 },
-    { label: 'Mar', value: 1320 },
-    { label: 'Abr', value: 1450 },
-    { label: 'May', value: 1680 },
-    { label: 'Jun', value: 1950 },
-    { label: 'Jul', value: 2240 },
-    { label: 'Ago', value: 2450 },
-  ];
+  const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('month');
+  
+  // Obtener estadísticas reales
+  const { data: currentStats, isLoading: statsLoading } = useQuery({
+    queryKey: ['userStatistics', 'bankroll', timeRange],
+    queryFn: () => userStatisticsService.getMyStatistics(timeRange),
+    refetchInterval: 60000, // Actualizar cada minuto
+  });
 
-  const monthlyROI = [
-    { label: 'Ene', value: 0 },
-    { label: 'Feb', value: 15 },
-    { label: 'Mar', value: 15 },
-    { label: 'Abr', value: 10 },
-    { label: 'May', value: 16 },
-    { label: 'Jun', value: 16 },
-    { label: 'Jul', value: 15 },
-    { label: 'Ago', value: 9 },
-  ];
+  // Obtener estadísticas por período para gráficos
+  const { data: periodStats = [], isLoading: periodLoading } = useQuery({
+    queryKey: ['userStatistics', 'byPeriod', timeRange],
+    queryFn: () => userStatisticsService.getStatisticsByPeriod(timeRange),
+    refetchInterval: 60000,
+  });
 
-  const currentBankroll = 2450;
-  const initialBankroll = 1000;
-  const totalReturn = ((currentBankroll - initialBankroll) / initialBankroll) * 100;
-  const monthlyAverage = totalReturn / 8;
+  // Preparar datos para gráficos
+  const safePeriodStats = Array.isArray(periodStats) ? periodStats : [];
+  
+  // Calcular bankroll history desde estadísticas
+  const bankrollHistory = safePeriodStats.length > 0
+    ? safePeriodStats.map((stat: UserStatistics, index: number) => {
+        const currentBankroll = stat.totalStaked + stat.netProfit;
+        return {
+          label: timeRange === 'week' 
+            ? `Sem ${index + 1}`
+            : timeRange === 'month'
+            ? ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][index] || `Mes ${index + 1}`
+            : `Año ${new Date(stat.periodStart || new Date()).getFullYear()}`,
+          value: currentBankroll,
+        };
+      })
+    : [];
+
+  const monthlyROI = safePeriodStats.length > 0
+    ? safePeriodStats.map((stat: UserStatistics, index: number) => ({
+        label: timeRange === 'week' 
+          ? `Sem ${index + 1}`
+          : timeRange === 'month'
+          ? ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][index] || `Mes ${index + 1}`
+          : `Año ${new Date(stat.periodStart || new Date()).getFullYear()}`,
+        value: stat.roi || 0,
+      }))
+    : [];
+
+  // Calcular valores actuales
+  const currentBankroll = currentStats 
+    ? currentStats.totalStaked + currentStats.netProfit 
+    : 0;
+  const initialBankroll = safePeriodStats.length > 0 && safePeriodStats[0]
+    ? safePeriodStats[0].totalStaked
+    : currentStats?.totalStaked || 0;
+  const totalReturn = initialBankroll > 0 
+    ? ((currentBankroll - initialBankroll) / initialBankroll) * 100 
+    : 0;
+  const monthlyAverage = safePeriodStats.length > 0
+    ? safePeriodStats.reduce((sum: number, stat: UserStatistics) => sum + (stat.roi || 0), 0) / safePeriodStats.length
+    : 0;
+  
+  // Calcular stake promedio
+  const averageStake = currentStats && currentStats.totalBets > 0
+    ? currentStats.totalStaked / currentStats.totalBets
+    : 0;
+
+  if (statsLoading || periodLoading) {
+    return (
+      <div className="px-4 py-6">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-white">Cargando análisis de bankroll...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 py-6">
@@ -74,7 +123,7 @@ export default function BankrollAnalysis() {
         />
         <StatsCard
           title="Stake Promedio"
-          value="€45.20"
+          value={`€${averageStake.toFixed(2)}`}
           subtitle="Por apuesta"
           icon={
             <svg className="w-6 h-6 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -84,15 +133,63 @@ export default function BankrollAnalysis() {
         />
       </div>
 
+      {/* Time Range Selector */}
+      <div className="mb-6 flex gap-2">
+        <button
+          onClick={() => setTimeRange('week')}
+          className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+            timeRange === 'week'
+              ? 'bg-primary-500 text-white'
+              : 'bg-dark-800 text-gray-400 hover:text-white'
+          }`}
+        >
+          Semana
+        </button>
+        <button
+          onClick={() => setTimeRange('month')}
+          className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+            timeRange === 'month'
+              ? 'bg-primary-500 text-white'
+              : 'bg-dark-800 text-gray-400 hover:text-white'
+          }`}
+        >
+          Mes
+        </button>
+        <button
+          onClick={() => setTimeRange('year')}
+          className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+            timeRange === 'year'
+              ? 'bg-primary-500 text-white'
+              : 'bg-dark-800 text-gray-400 hover:text-white'
+          }`}
+        >
+          Año
+        </button>
+      </div>
+
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-6 border border-primary-500/20">
           <h3 className="text-xl font-black text-white mb-4">Evolución del Bankroll</h3>
-          <SimpleChart data={bankrollHistory} color="primary" height={250} />
+          {bankrollHistory.length > 0 ? (
+            <SimpleChart data={bankrollHistory} color="primary" height={250} />
+          ) : (
+            <div className="flex items-center justify-center h-[250px] text-gray-400">
+              <p>No hay datos de bankroll disponibles</p>
+            </div>
+          )}
         </div>
         <div className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-6 border border-primary-500/20">
-          <h3 className="text-xl font-black text-white mb-4">ROI Mensual</h3>
-          <SimpleChart data={monthlyROI} color="accent" height={250} />
+          <h3 className="text-xl font-black text-white mb-4">
+            ROI {timeRange === 'week' ? 'Semanal' : timeRange === 'month' ? 'Mensual' : 'Anual'}
+          </h3>
+          {monthlyROI.length > 0 ? (
+            <SimpleChart data={monthlyROI} color="accent" height={250} />
+          ) : (
+            <div className="flex items-center justify-center h-[250px] text-gray-400">
+              <p>No hay datos de ROI disponibles</p>
+            </div>
+          )}
         </div>
       </div>
 

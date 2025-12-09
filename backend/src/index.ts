@@ -63,6 +63,11 @@ import arbitrageRoutes from './api/routes/arbitrage.routes';
 import oauthRoutes from './api/routes/oauth.routes';
 import referralsRoutes from './api/routes/referrals.routes';
 import twoFactorRoutes from './api/routes/2fa.routes';
+import valueBetDetectionRoutes from './api/routes/value-bet-detection.routes';
+import userPreferencesRoutes from './api/routes/user-preferences.routes';
+import valueBetAnalyticsRoutes from './api/routes/value-bet-analytics.routes';
+import userProfileRoutes from './api/routes/user-profile.routes';
+import roiTrackingRoutes from './api/routes/roi-tracking.routes';
 
 // Swagger
 import swaggerUi from 'swagger-ui-express';
@@ -166,6 +171,11 @@ app.use('/api/arbitrage', arbitrageRoutes);
 app.use('/api/oauth', oauthRoutes);
 app.use('/api/referrals', referralsRoutes);
 app.use('/api/2fa', twoFactorRoutes);
+app.use('/api/value-bet-detection', valueBetDetectionRoutes);
+app.use('/api/user-preferences', userPreferencesRoutes);
+app.use('/api/value-bet-analytics', valueBetAnalyticsRoutes);
+app.use('/api/user/profile', userProfileRoutes);
+app.use('/api/roi-tracking', roiTrackingRoutes);
 
 // WebSocket connection handler
 io.on('connection', (socket) => {
@@ -261,6 +271,9 @@ process.on('uncaughtException', (error: Error) => {
 const gracefulShutdown = async () => {
   logger.info('Shutting down gracefully...');
   
+  // Stop scheduled tasks
+  scheduledTasksService.stop();
+  
   httpServer.close(() => {
     logger.info('HTTP server closed');
   });
@@ -274,10 +287,15 @@ const gracefulShutdown = async () => {
 process.on('SIGTERM', gracefulShutdown);
 process.on('SIGINT', gracefulShutdown);
 
+// Initialize scheduled tasks
+import { scheduledTasksService } from './services/scheduled-tasks.service';
+scheduledTasksService.start();
+
 // Start server
 httpServer.listen(PORT, () => {
   logger.info(`🚀 Server running on port ${PORT}`);
   logger.info(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+  logger.info(`⏰ Scheduled tasks started`);
 });
 
 export { app, io };

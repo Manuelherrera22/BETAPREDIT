@@ -57,6 +57,7 @@ class SupabaseAuthService {
             lastName: userData?.lastName || null,
             password: '', // No password stored locally when using Supabase Auth
             provider: 'supabase',
+            preferredMode: 'pro', // Default to pro mode
             emailVerified: authData.user.email_confirmed_at ? true : false,
             // Handle referral code if provided
             ...(userData?.referralCode && {
@@ -137,6 +138,7 @@ class SupabaseAuthService {
             password: '',
             provider: 'supabase',
             emailVerified: authData.user.email_confirmed_at ? true : false,
+            preferredMode: 'pro', // Default to pro mode
           },
         });
       } else {
@@ -247,6 +249,7 @@ class SupabaseAuthService {
                       sessionData.user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || null,
             password: '',
             provider: 'google',
+            preferredMode: 'pro', // Default to pro mode
             googleId: sessionData.user.id,
             avatar: sessionData.user.user_metadata?.avatar_url || null,
             emailVerified: sessionData.user.email_confirmed_at ? true : false,

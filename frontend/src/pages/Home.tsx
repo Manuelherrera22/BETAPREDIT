@@ -5,43 +5,69 @@ import { es } from 'date-fns/locale'
 import { Link } from 'react-router-dom'
 import ValueBetCalculator from '../components/ValueBetCalculator'
 import StatsCard from '../components/StatsCard'
-import { useLiveEvents, useMockAlerts, generateMockEvents } from '../hooks/useMockData'
 import { useState, useEffect } from 'react'
 import { useOnboarding } from '../hooks/useOnboarding'
 import QuickValueBetDemo from '../components/QuickValueBetDemo'
 import SocialProof from '../components/SocialProof'
+import CasualDashboard from '../components/CasualDashboard'
+import DailyTip from '../components/DailyTip'
+import { useAuthStore } from '../store/authStore'
+import { userStatisticsService } from '../services/userStatisticsService'
+import { valueBetAlertsService } from '../services/valueBetAlertsService'
+import { notificationsService } from '../services/notificationsService'
 
 export default function Home() {
   const { shouldShow } = useOnboarding()
-  // Usar datos mock para el demo
-  const mockLiveEvents = useLiveEvents()
-  const mockAlerts = useMockAlerts()
-  const [mockUpcomingEvents] = useState(() => generateMockEvents(8))
+  const { user } = useAuthStore()
   
-  // Stats dinámicos que se actualizan
-  const [stats, setStats] = useState({
-    winRate: 75,
-    roi: 23,
-    valueBets: 12,
-    bankroll: 2450,
+  // Determinar modo (casual o pro) - por defecto 'pro', se puede cambiar en perfil
+  const userMode = (user as any)?.preferredMode || 'pro'
+  const isCasualMode = userMode === 'casual'
+  
+  // Obtener estadísticas reales
+  const { data: userStats, isLoading: statsLoading } = useQuery({
+    queryKey: ['userStatistics', 'monthly'],
+    queryFn: () => userStatisticsService.getMyStatistics('month'),
+    refetchInterval: 60000, // Actualizar cada minuto
+    enabled: !!user,
   })
+  
+  // Obtener alertas reales
+  const { data: valueBetAlerts } = useQuery({
+    queryKey: ['valueBetAlerts'],
+    queryFn: () => valueBetAlertsService.getMyAlerts({ limit: 5 }),
+    refetchInterval: 30000, // Actualizar cada 30 segundos
+    enabled: !!user,
+  })
+  
+  // Obtener notificaciones reales
+  const { data: notifications } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: () => notificationsService.getMyNotifications({ limit: 5 }),
+    refetchInterval: 30000,
+    enabled: !!user,
+  })
+  
+  // Combinar alertas y notificaciones
+  const allAlerts = [
+    ...(valueBetAlerts || []).map((alert: any) => ({
+      id: alert.id,
+      type: 'value_bet',
+      title: 'Value Bet Detectado',
+      message: `${alert.event?.name || 'Evento'} - ${alert.selection} con +${alert.valuePercentage.toFixed(1)}% de valor`,
+      timestamp: alert.createdAt,
+    })),
+    ...(notifications || []).map((notif: any) => ({
+      id: notif.id,
+      type: notif.type,
+      title: notif.title,
+      message: notif.message,
+      timestamp: notif.createdAt,
+    })),
+  ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 5)
 
-  useEffect(() => {
-    // Simular actualizaciones periódicas de stats
-    const interval = setInterval(() => {
-      setStats(prev => ({
-        winRate: Math.min(100, prev.winRate + (Math.random() - 0.5) * 0.5),
-        roi: prev.roi + (Math.random() - 0.5) * 0.3,
-        valueBets: prev.valueBets + (Math.random() > 0.8 ? 1 : 0),
-        bankroll: prev.bankroll + (Math.random() - 0.4) * 10,
-      }))
-    }, 10000) // Cada 10 segundos
-
-    return () => clearInterval(interval)
-  }, [])
-
-  // Intentar cargar datos reales, pero usar mock como fallback
-  const { data: liveEvents, isLoading } = useQuery({
+  // Cargar eventos reales
+  const { data: liveEvents, isLoading: eventsLoading } = useQuery({
     queryKey: ['liveEvents'],
     queryFn: () => eventsService.getLiveEvents(),
     refetchInterval: 30000,
@@ -51,35 +77,42 @@ export default function Home() {
   const { data: upcomingEvents } = useQuery({
     queryKey: ['upcomingEvents'],
     queryFn: () => eventsService.getUpcomingEvents(),
+    refetchInterval: 30000,
     retry: false,
   })
 
-  // Usar datos mock si no hay datos reales
-  const displayLiveEvents = liveEvents && liveEvents.length > 0 ? liveEvents : mockLiveEvents.map(e => ({
-    id: e.id,
-    homeTeam: e.homeTeam,
-    awayTeam: e.awayTeam,
-    sport: { name: e.homeTeam.includes('vs') ? 'Fútbol' : 'Basketball' },
-    status: e.status,
-    homeScore: e.homeScore,
-    awayScore: e.awayScore,
-    startTime: new Date().toISOString(),
-  }))
+  // Calcular stats para mostrar
+  const displayStats = {
+    winRate: userStats?.winRate || 0,
+    roi: userStats?.roi || 0,
+    valueBets: userStats?.valueBetsFound || 0,
+    bankroll: userStats?.totalStaked || 0,
+  }
 
-  const displayUpcomingEvents = upcomingEvents && upcomingEvents.length > 0 
-    ? upcomingEvents 
-    : mockUpcomingEvents.map(e => ({
-        id: e.id,
-        homeTeam: e.home,
-        awayTeam: e.away,
-        sport: { name: e.sport },
-        startTime: e.startTime,
-      }))
-
-  if (isLoading && !liveEvents) {
+  if (eventsLoading && !liveEvents) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="text-white">Cargando eventos...</div>
+      </div>
+    )
+  }
+  
+  // Si es modo casual, mostrar dashboard simplificado
+  if (isCasualMode) {
+    return (
+      <div className="px-4 py-6">
+        <div className="mb-8">
+          <h1 className="text-4xl font-black text-white mb-2">
+            Tu Dashboard
+          </h1>
+          <p className="text-gray-400">Vista simplificada para apostadores casuales</p>
+        </div>
+        
+        <CasualDashboard />
+        
+        <div className="mt-8">
+          <DailyTip />
+        </div>
       </div>
     )
   }
@@ -101,35 +134,34 @@ export default function Home() {
         </div>
       )}
 
-      {/* Quick Stats - Dinámicos */}
+      {/* Quick Stats - Reales */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <StatsCard
           title="Win Rate"
-          value={`${stats.winRate.toFixed(1)}%`}
-          change="+5% esta semana"
-          trend="up"
+          value={`${displayStats.winRate.toFixed(1)}%`}
+          change={userStats ? `${userStats.totalWins} ganadas de ${userStats.totalBets} apuestas` : 'Sin datos'}
+          trend={displayStats.winRate > 50 ? "up" : "down"}
         />
         <StatsCard
           title="ROI Mensual"
-          value={`+${stats.roi.toFixed(1)}%`}
-          change="+3% vs mes anterior"
-          trend="up"
+          value={`${displayStats.roi >= 0 ? '+' : ''}${displayStats.roi.toFixed(1)}%`}
+          change={userStats ? `€${userStats.netProfit >= 0 ? '+' : ''}${userStats.netProfit.toFixed(2)}` : 'Sin datos'}
+          trend={displayStats.roi > 0 ? "up" : "down"}
         />
         <StatsCard
           title="Value Bets"
-          value={stats.valueBets.toString()}
-          subtitle="Hoy"
+          value={displayStats.valueBets.toString()}
+          subtitle="Este mes"
         />
         <StatsCard
-          title="Bankroll"
-          value={`€${stats.bankroll.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`}
-          change="+18% este mes"
-          trend="up"
+          title="Total Apostado"
+          value={`€${displayStats.bankroll.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`}
+          change={userStats ? `${userStats.totalBets} apuestas` : 'Sin datos'}
         />
       </div>
 
-      {/* Alertas en tiempo real */}
-      {mockAlerts.length > 0 && (
+      {/* Alertas en tiempo real - Reales */}
+      {allAlerts.length > 0 && (
         <div className="mb-8 bg-gradient-to-r from-accent-500/20 to-primary-500/20 rounded-xl p-4 border border-accent-500/40">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-lg font-black text-white flex items-center gap-2">
@@ -139,10 +171,10 @@ export default function Home() {
               </span>
               Alertas en Tiempo Real
             </h3>
-            <span className="text-xs text-gray-400">{mockAlerts.length} nuevas</span>
+            <span className="text-xs text-gray-400">{allAlerts.length} nuevas</span>
           </div>
           <div className="space-y-2">
-            {mockAlerts.slice(0, 3).map((alert) => (
+            {allAlerts.slice(0, 3).map((alert) => (
               <div
                 key={alert.id}
                 className="bg-dark-900/50 rounded-lg p-3 border border-primary-500/20 animate-pulse-slow"
@@ -205,8 +237,8 @@ export default function Home() {
             Eventos en Vivo
           </h2>
           <div className="space-y-4">
-            {displayLiveEvents && displayLiveEvents.length > 0 ? (
-              displayLiveEvents.slice(0, 5).map((event) => (
+            {liveEvents && liveEvents.length > 0 ? (
+              liveEvents.slice(0, 5).map((event) => (
                 <Link
                   key={event.id}
                   to={`/events/${event.id}`}
@@ -255,8 +287,8 @@ export default function Home() {
             Próximos Eventos
           </h2>
           <div className="space-y-4">
-            {displayUpcomingEvents && displayUpcomingEvents.length > 0 ? (
-              displayUpcomingEvents.slice(0, 5).map((event) => (
+            {upcomingEvents && upcomingEvents.length > 0 ? (
+              upcomingEvents.slice(0, 5).map((event) => (
                 <Link
                   key={event.id}
                   to={`/events/${event.id}`}
