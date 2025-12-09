@@ -7,6 +7,9 @@ import TrendAnalysis from '../components/TrendAnalysis';
 import BenchmarkComparison from '../components/BenchmarkComparison';
 import ROITrackingDashboard from '../components/ROITrackingDashboard';
 import { userStatisticsService, type UserStatistics } from '../services/userStatisticsService';
+import { exportToCSV } from '../utils/csvExport';
+import { format } from 'date-fns';
+import toast from 'react-hot-toast';
 
 export default function Statistics() {
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('month');
@@ -111,6 +114,84 @@ export default function Statistics() {
     totalStaked: 0,
   };
 
+  // Exportar estadísticas a CSV
+  const handleExportStatistics = () => {
+    try {
+      // Preparar datos de estadísticas principales
+      const statsData = [{
+        periodo: timeRange === 'week' ? 'Semana' : timeRange === 'month' ? 'Mes' : 'Año',
+        win_rate: `${currentStats.winRate.toFixed(2)}%`,
+        roi: `${currentStats.roi >= 0 ? '+' : ''}${currentStats.roi.toFixed(2)}%`,
+        value_bets_encontrados: currentStats.valueBetsFound || 0,
+        apuestas_totales: currentStats.totalBets || 0,
+        apuestas_ganadas: currentStats.totalWins || 0,
+        apuestas_perdidas: currentStats.totalLosses || 0,
+        ganancia_neta: `${currentStats.netProfit >= 0 ? '+' : ''}€${currentStats.netProfit.toFixed(2)}`,
+        total_apostado: `€${currentStats.totalStaked.toFixed(2)}`,
+        fecha_exportacion: format(new Date(), 'dd/MM/yyyy HH:mm'),
+      }]
+
+      // Preparar datos por período si existen
+      const periodData = safeStatsByPeriod.length > 0
+        ? safeStatsByPeriod.map((stat, index) => ({
+            periodo_numero: index + 1,
+            periodo_fecha: stat.periodStart 
+              ? format(new Date(stat.periodStart), 'dd/MM/yyyy')
+              : `Período ${index + 1}`,
+            win_rate: `${stat.winRate.toFixed(2)}%`,
+            roi: `${stat.roi >= 0 ? '+' : ''}${stat.roi.toFixed(2)}%`,
+            apuestas_totales: stat.totalBets || 0,
+            apuestas_ganadas: stat.totalWins || 0,
+            ganancia_neta: `${stat.netProfit >= 0 ? '+' : ''}€${stat.netProfit.toFixed(2)}`,
+            total_apostado: `€${stat.totalStaked.toFixed(2)}`,
+          }))
+        : []
+
+      // Exportar estadísticas principales
+      exportToCSV(
+        statsData,
+        [
+          { key: 'periodo', label: 'Período' },
+          { key: 'win_rate', label: 'Win Rate' },
+          { key: 'roi', label: 'ROI' },
+          { key: 'value_bets_encontrados', label: 'Value Bets Encontrados' },
+          { key: 'apuestas_totales', label: 'Apuestas Totales' },
+          { key: 'apuestas_ganadas', label: 'Apuestas Ganadas' },
+          { key: 'apuestas_perdidas', label: 'Apuestas Perdidas' },
+          { key: 'ganancia_neta', label: 'Ganancia Neta' },
+          { key: 'total_apostado', label: 'Total Apostado' },
+          { key: 'fecha_exportacion', label: 'Fecha Exportación' },
+        ],
+        `estadisticas_${timeRange}_${format(new Date(), 'yyyy-MM-dd')}.csv`
+      )
+
+      // Si hay datos por período, exportar también
+      if (periodData.length > 0) {
+        setTimeout(() => {
+          exportToCSV(
+            periodData,
+            [
+              { key: 'periodo_numero', label: 'Período Número' },
+              { key: 'periodo_fecha', label: 'Fecha' },
+              { key: 'win_rate', label: 'Win Rate' },
+              { key: 'roi', label: 'ROI' },
+              { key: 'apuestas_totales', label: 'Apuestas Totales' },
+              { key: 'apuestas_ganadas', label: 'Apuestas Ganadas' },
+              { key: 'ganancia_neta', label: 'Ganancia Neta' },
+              { key: 'total_apostado', label: 'Total Apostado' },
+            ],
+            `estadisticas_por_periodo_${timeRange}_${format(new Date(), 'yyyy-MM-dd')}.csv`
+          )
+        }, 500)
+      }
+
+      toast.success('Estadísticas exportadas a CSV')
+    } catch (error) {
+      console.error('Error exportando estadísticas:', error)
+      toast.error('Error al exportar estadísticas')
+    }
+  }
+
   return (
     <div className="px-4 py-6">
       <div className="mb-8 flex items-center justify-between">
@@ -132,6 +213,15 @@ export default function Statistics() {
               {range === 'week' ? 'Semana' : range === 'month' ? 'Mes' : 'Año'}
             </button>
           ))}
+          <button
+            onClick={handleExportStatistics}
+            className="px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-accent-500 text-white hover:bg-accent-400 flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Exportar CSV
+          </button>
         </div>
       </div>
 

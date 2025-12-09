@@ -14,8 +14,14 @@
     "generate": "prisma generate",
     "verify-db": "node scripts/verify-supabase-connection.js",
     "verify-oauth": "node scripts/verify-google-oauth.js",
+    "verify-prisma": "node scripts/verify-prisma-supabase.js",
+    "test:external-bets": "node scripts/test-external-bets-api.js",
+    "test:deploy": "node scripts/test-backend-deploy.js",
     "db:push": "prisma db push",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "db:migrate": "prisma migrate deploy",
+    "db:migrate:dev": "prisma migrate dev",
+    "db:status": "prisma migrate status"
   },
   "dependencies": {
     "@prisma/client": "^5.7.1",

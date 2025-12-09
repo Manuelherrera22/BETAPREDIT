@@ -2,18 +2,98 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { externalBetsService, type ExternalBet } from '../services/externalBetsService'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
+import RegisterBetForm from '../components/RegisterBetForm'
+import ImportBetsModal from '../components/ImportBetsModal'
+import { exportToCSV } from '../utils/csvExport'
 
 export default function MyBets() {
   const queryClient = useQueryClient()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
   const [resolvingBetId, setResolvingBetId] = useState<string | null>(null)
+  const [isRegisterFormOpen, setIsRegisterFormOpen] = useState(false)
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
+  
+  // Filtros
+  const [filters, setFilters] = useState({
+    platform: 'all',
+    status: 'all',
+    dateRange: 'all',
+    search: '',
+  })
+  
+  // Detectar query param para abrir formulario automáticamente (desde QuickAddBet)
+  useEffect(() => {
+    const action = searchParams.get('action')
+    if (action === 'add') {
+      setIsRegisterFormOpen(true)
+      // Limpiar query param
+      setSearchParams({})
+    } else if (action === 'import') {
+      setIsImportModalOpen(true)
+      // Limpiar query param
+      setSearchParams({})
+    }
+  }, [searchParams, setSearchParams])
+  
+  // Calcular fechas para filtro
+  const getDateRange = (range: string) => {
+    const now = new Date()
+    switch (range) {
+      case 'week':
+        return {
+          startDate: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+          endDate: now.toISOString(),
+        }
+      case 'month':
+        return {
+          startDate: new Date(now.getFullYear(), now.getMonth(), 1).toISOString(),
+          endDate: now.toISOString(),
+        }
+      case 'year':
+        return {
+          startDate: new Date(now.getFullYear(), 0, 1).toISOString(),
+          endDate: now.toISOString(),
+        }
+      default:
+        return {}
+    }
+  }
+  
+  // Preparar filtros para API
+  const apiFilters = {
+    limit: 100,
+    ...(filters.platform !== 'all' && { platform: filters.platform }),
+    ...(filters.status !== 'all' && { status: filters.status }),
+    ...getDateRange(filters.dateRange),
+  }
   
   const { data: bets, isLoading } = useQuery({
-    queryKey: ['externalBets'],
-    queryFn: () => externalBetsService.getMyBets({ limit: 100 }),
+    queryKey: ['externalBets', apiFilters],
+    queryFn: () => externalBetsService.getMyBets(apiFilters),
     refetchInterval: 30000,
   })
+  
+  // Filtrar por búsqueda de texto (client-side)
+  const filteredBets = bets?.filter((bet: ExternalBet) => {
+    if (!filters.search) return true
+    
+    const searchLower = filters.search.toLowerCase()
+    const eventName = bet.event 
+      ? `${bet.event.homeTeam} ${bet.event.awayTeam}`.toLowerCase()
+      : ''
+    const selection = bet.selection.toLowerCase()
+    const platform = bet.platform.toLowerCase()
+    
+    return (
+      eventName.includes(searchLower) ||
+      selection.includes(searchLower) ||
+      platform.includes(searchLower)
+    )
+  }) || []
 
   // Mutation para resolver apuesta
   const resolveBetMutation = useMutation({
@@ -35,6 +115,59 @@ export default function MyBets() {
   const handleResolveBet = (betId: string, result: 'WON' | 'LOST' | 'VOID', actualWin?: number) => {
     setResolvingBetId(betId)
     resolveBetMutation.mutate({ betId, result, actualWin })
+  }
+
+  // Exportar apuestas a CSV
+  const handleExportBets = () => {
+    if (!filteredBets || filteredBets.length === 0) {
+      toast.error('No hay apuestas para exportar')
+      return
+    }
+
+    try {
+      const csvData = filteredBets.map((bet) => ({
+        fecha: format(new Date(bet.betPlacedAt), 'dd/MM/yyyy HH:mm'),
+        evento: bet.event ? `${bet.event.homeTeam} vs ${bet.event.awayTeam}` : bet.selection,
+        seleccion: bet.selection,
+        mercado: bet.marketType,
+        plataforma: bet.platform,
+        cuota: bet.odds.toFixed(2),
+        stake: bet.stake.toFixed(2),
+        moneda: bet.currency,
+        ganancia_potencial: ((bet.stake * bet.odds) - bet.stake).toFixed(2),
+        estado: getStatusLabel(bet.status),
+        resultado: bet.result ? getStatusLabel(bet.result) : '',
+        ganancia_real: bet.actualWin ? (bet.actualWin - bet.stake).toFixed(2) : '',
+        fecha_resolucion: bet.settledAt ? format(new Date(bet.settledAt), 'dd/MM/yyyy HH:mm') : '',
+        notas: bet.notes || '',
+        tags: bet.tags.join('; '),
+        link: bet.platformUrl || '',
+      }))
+
+      exportToCSV(csvData, [
+        { key: 'fecha', label: 'Fecha' },
+        { key: 'evento', label: 'Evento' },
+        { key: 'seleccion', label: 'Selección' },
+        { key: 'mercado', label: 'Mercado' },
+        { key: 'plataforma', label: 'Plataforma' },
+        { key: 'cuota', label: 'Cuota' },
+        { key: 'stake', label: 'Stake' },
+        { key: 'moneda', label: 'Moneda' },
+        { key: 'ganancia_potencial', label: 'Ganancia Potencial' },
+        { key: 'estado', label: 'Estado' },
+        { key: 'resultado', label: 'Resultado' },
+        { key: 'ganancia_real', label: 'Ganancia Real' },
+        { key: 'fecha_resolucion', label: 'Fecha Resolución' },
+        { key: 'notas', label: 'Notas' },
+        { key: 'tags', label: 'Tags' },
+        { key: 'link', label: 'Link' },
+      ], `apuestas_${format(new Date(), 'yyyy-MM-dd')}.csv`)
+
+      toast.success(`Exportadas ${filteredBets.length} apuestas a CSV`)
+    } catch (error) {
+      console.error('Error exportando apuestas:', error)
+      toast.error('Error al exportar apuestas')
+    }
   }
 
   if (isLoading) {
@@ -75,14 +208,146 @@ export default function MyBets() {
 
   return (
     <div className="px-4 py-6">
-      <div className="mb-8">
-        <h1 className="text-4xl font-black text-white mb-2">Mis Apuestas</h1>
-        <p className="text-gray-400">Registra y gestiona tus apuestas externas</p>
+      <div className="mb-8 flex justify-between items-start">
+        <div>
+          <h1 className="text-4xl font-black text-white mb-2">Mis Apuestas</h1>
+          <p className="text-gray-400">Registra y gestiona tus apuestas externas</p>
+        </div>
+        <div className="flex gap-3">
+          {filteredBets && filteredBets.length > 0 && (
+            <button
+              onClick={handleExportBets}
+              className="px-6 py-3 bg-gradient-to-r from-accent-500 to-accent-600 text-white rounded-lg font-semibold hover:from-accent-400 hover:to-accent-500 transition-all flex items-center gap-2 shadow-lg shadow-accent-500/20"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Exportar CSV
+            </button>
+          )}
+          <button
+            onClick={() => setIsRegisterFormOpen(true)}
+            className="px-6 py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-lg font-semibold hover:from-primary-400 hover:to-primary-500 transition-all flex items-center gap-2 shadow-lg shadow-primary-500/20"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Registrar Apuesta
+          </button>
+        </div>
       </div>
 
-      {bets && bets.length > 0 ? (
+      {/* Filtros */}
+      <div className="mb-6 bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-6 border border-primary-500/20">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Búsqueda */}
+          <div className="md:col-span-2">
+            <label className="block text-sm font-semibold text-gray-400 mb-2">
+              Buscar
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={filters.search}
+                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                placeholder="Buscar por evento, selección, plataforma..."
+                className="w-full px-4 py-3 pl-10 bg-dark-800 border border-primary-500/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-500/20"
+              />
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+          </div>
+          
+          {/* Filtro por Plataforma */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-400 mb-2">
+              Plataforma
+            </label>
+            <select
+              value={filters.platform}
+              onChange={(e) => setFilters({ ...filters, platform: e.target.value })}
+              className="w-full px-4 py-3 bg-dark-800 border border-primary-500/30 rounded-lg text-white focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-500/20"
+            >
+              <option value="all">Todas</option>
+              <option value="Bet365">Bet365</option>
+              <option value="Betfair">Betfair</option>
+              <option value="Pinnacle">Pinnacle</option>
+              <option value="William Hill">William Hill</option>
+              <option value="DraftKings">DraftKings</option>
+              <option value="FanDuel">FanDuel</option>
+              <option value="BetMGM">BetMGM</option>
+              <option value="Caesars">Caesars</option>
+              <option value="Unibet">Unibet</option>
+              <option value="888sport">888sport</option>
+              <option value="Betway">Betway</option>
+            </select>
+          </div>
+          
+          {/* Filtro por Estado */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-400 mb-2">
+              Estado
+            </label>
+            <select
+              value={filters.status}
+              onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+              className="w-full px-4 py-3 bg-dark-800 border border-primary-500/30 rounded-lg text-white focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-500/20"
+            >
+              <option value="all">Todos</option>
+              <option value="PENDING">Pendiente</option>
+              <option value="WON">Ganada</option>
+              <option value="LOST">Perdida</option>
+              <option value="VOID">Anulada</option>
+              <option value="CANCELLED">Cancelada</option>
+            </select>
+          </div>
+        </div>
+        
+        {/* Filtro por Fecha */}
+        <div className="mt-4">
+          <label className="block text-sm font-semibold text-gray-400 mb-2">
+            Período
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { value: 'all', label: 'Todas' },
+              { value: 'week', label: 'Última Semana' },
+              { value: 'month', label: 'Este Mes' },
+              { value: 'year', label: 'Este Año' },
+            ].map((option) => (
+              <button
+                key={option.value}
+                onClick={() => setFilters({ ...filters, dateRange: option.value })}
+                className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                  filters.dateRange === option.value
+                    ? 'bg-primary-500/20 border border-primary-500/40 text-primary-300'
+                    : 'bg-dark-800 border border-gray-600 text-gray-300 hover:border-primary-500/40'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        {/* Contador de resultados */}
+        {bets && (
+          <div className="mt-4 pt-4 border-t border-primary-500/20">
+            <p className="text-sm text-gray-400">
+              Mostrando <span className="text-white font-semibold">{filteredBets.length}</span> de{' '}
+              <span className="text-white font-semibold">{bets.length}</span> apuestas
+              {filters.platform !== 'all' || filters.status !== 'all' || filters.dateRange !== 'all' || filters.search
+                ? ' (filtradas)'
+                : ''}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {filteredBets && filteredBets.length > 0 ? (
         <div className="space-y-4">
-          {bets.map((bet: ExternalBet) => {
+          {filteredBets.map((bet: ExternalBet) => {
             const potentialWin = bet.stake * bet.odds - bet.stake
             const isResolving = resolvingBetId === bet.id
             
@@ -224,6 +489,19 @@ export default function MyBets() {
             )
           })}
         </div>
+      ) : bets && bets.length > 0 ? (
+        <div className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-8 border border-primary-500/20 text-center">
+          <p className="text-gray-400 mb-2">No hay apuestas que coincidan con los filtros</p>
+          <p className="text-sm text-gray-500 mb-4">
+            Intenta ajustar los filtros para ver más resultados
+          </p>
+          <button
+            onClick={() => setFilters({ platform: 'all', status: 'all', dateRange: 'all', search: '' })}
+            className="px-4 py-2 bg-primary-500/20 border border-primary-500/40 text-primary-300 rounded-lg hover:bg-primary-500/30 transition-colors"
+          >
+            Limpiar Filtros
+          </button>
+        </div>
       ) : (
         <div className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-8 border border-primary-500/20 text-center">
           <p className="text-gray-400 mb-2">No tienes apuestas registradas aún</p>
@@ -232,6 +510,30 @@ export default function MyBets() {
           </p>
         </div>
       )}
+
+      {/* Register Bet Form Modal */}
+      <RegisterBetForm
+        isOpen={isRegisterFormOpen}
+        onClose={() => {
+          setIsRegisterFormOpen(false)
+          // Limpiar query params si existen
+          if (searchParams.get('action')) {
+            navigate('/my-bets', { replace: true })
+          }
+        }}
+      />
+
+      {/* Import Bets Modal */}
+      <ImportBetsModal
+        isOpen={isImportModalOpen}
+        onClose={() => {
+          setIsImportModalOpen(false)
+          // Limpiar query params si existen
+          if (searchParams.get('action')) {
+            navigate('/my-bets', { replace: true })
+          }
+        }}
+      />
     </div>
   )
 }
