@@ -307,11 +307,17 @@ serve(async (req) => {
   }
 
   try {
+    console.log('🔄 Starting automatic sync...');
+
     // Create Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || Deno.env.get('SUPABASE_PROJECT_URL') || '';
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     
+    console.log('Supabase URL:', supabaseUrl ? '✅ Configured' : '❌ Missing');
+    console.log('Supabase Key:', supabaseKey ? '✅ Configured' : '❌ Missing');
+    
     if (!supabaseUrl || !supabaseKey) {
+      console.error('❌ Supabase configuration missing');
       return new Response(
         JSON.stringify({ success: false, error: { message: 'Supabase configuration missing' } }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -395,7 +401,21 @@ serve(async (req) => {
           continue;
         }
 
-        const oddsEvents: OddsEvent[] = await oddsResponse.json();
+        let oddsEvents: OddsEvent[];
+        try {
+          oddsEvents = await oddsResponse.json();
+        } catch (jsonError) {
+          const errorText = await oddsResponse.text();
+          console.error(`Error parsing JSON response for ${sport}:`, errorText);
+          results.push({ sport, count: 0, error: `Invalid JSON response: ${errorText.substring(0, 100)}` });
+          continue;
+        }
+        
+        if (!Array.isArray(oddsEvents)) {
+          console.error(`Invalid response format for ${sport}:`, typeof oddsEvents);
+          results.push({ sport, count: 0, error: 'Invalid response format' });
+          continue;
+        }
         if (!oddsEvents || oddsEvents.length === 0) continue;
 
         // Find or create sport
@@ -516,11 +536,15 @@ serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
-    console.error('Error in auto-sync:', error);
+    console.error('❌ Error in auto-sync:', error);
+    console.error('Error details:', JSON.stringify(error, null, 2));
+    
+    const errorMessage = error?.message || error?.toString() || 'Internal server error';
+    
     return new Response(
       JSON.stringify({
         success: false,
-        error: { message: error.message || 'Internal server error' },
+        error: { message: errorMessage },
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
