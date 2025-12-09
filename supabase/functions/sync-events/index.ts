@@ -21,8 +21,11 @@ async function syncMarketsAndOdds(
   oddsEvent: OddsEvent
 ) {
   try {
+    console.log(`🔄 Syncing markets/odds for event ${eventId} (${oddsEvent.home_team} vs ${oddsEvent.away_team})`);
+    console.log(`   Bookmakers available: ${oddsEvent.bookmakers?.length || 0}`);
+    
     if (!oddsEvent.bookmakers || oddsEvent.bookmakers.length === 0) {
-      console.log(`No bookmakers/odds available for event ${eventId}`);
+      console.log(`⚠️ No bookmakers/odds available for event ${eventId}`);
       return;
     }
 
@@ -69,14 +72,27 @@ async function syncMarketsAndOdds(
     const oddsToInsert: any[] = [];
     const currentTime = new Date().toISOString();
 
+    console.log(`   Processing ${oddsEvent.bookmakers.length} bookmakers...`);
+
     for (const bookmaker of oddsEvent.bookmakers) {
-      if (!bookmaker.markets || bookmaker.markets.length === 0) continue;
+      if (!bookmaker.markets || bookmaker.markets.length === 0) {
+        console.log(`   ⚠️ Bookmaker ${bookmaker.key || 'unknown'} has no markets`);
+        continue;
+      }
 
       const h2hMarket = bookmaker.markets.find((m: any) => m.key === 'h2h');
-      if (!h2hMarket || !h2hMarket.outcomes) continue;
+      if (!h2hMarket || !h2hMarket.outcomes) {
+        console.log(`   ⚠️ Bookmaker ${bookmaker.key || 'unknown'} has no h2h market or outcomes`);
+        continue;
+      }
+
+      console.log(`   ✅ Processing ${h2hMarket.outcomes.length} outcomes from ${bookmaker.key || 'unknown'}`);
 
       for (const outcome of h2hMarket.outcomes) {
-        if (!outcome.price || outcome.price <= 0) continue;
+        if (!outcome.price || outcome.price <= 0) {
+          console.log(`   ⚠️ Skipping outcome ${outcome.name}: invalid price ${outcome.price}`);
+          continue;
+        }
 
         // Normalize selection name
         let selection = outcome.name;
@@ -111,9 +127,11 @@ async function syncMarketsAndOdds(
     }
 
     if (oddsToInsert.length === 0) {
-      console.log(`No valid odds to insert for event ${eventId}`);
+      console.log(`⚠️ No valid odds to insert for event ${eventId} (processed ${oddsEvent.bookmakers.length} bookmakers)`);
       return;
     }
+
+    console.log(`   📊 Prepared ${oddsToInsert.length} odds to insert for event ${eventId}`);
 
     // Deactivate old odds for this market
     await supabase
