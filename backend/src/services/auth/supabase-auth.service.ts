@@ -184,7 +184,7 @@ class SupabaseAuthService {
     const callbackUrl = redirectTo || `${frontendUrl}/auth/callback`;
 
     // Generate OAuth URL using Supabase
-    const { data, error } = supabase.auth.signInWithOAuth({
+    const result = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: callbackUrl,

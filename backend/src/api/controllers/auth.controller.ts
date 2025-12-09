@@ -49,7 +49,8 @@ class AuthController {
       if (isSupabaseConfigured()) {
         logger.info('Using Supabase Auth for login');
         const result = await supabaseAuthService.signIn(email, password);
-        return res.json({ success: true, data: result });
+        res.json({ success: true, data: result });
+        return;
       }
 
       // Fallback to manual auth

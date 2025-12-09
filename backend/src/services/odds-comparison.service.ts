@@ -70,8 +70,22 @@ class OddsComparisonService {
         }
 
         if (!dbEvent) {
-          logger.warn(`Event ${eventId} not found in database, skipping comparison update`);
-          continue;
+          // Intentar sincronizar el evento desde The Odds API
+          try {
+            const { eventSyncService } = await import('./event-sync.service');
+            dbEvent = await eventSyncService.syncEventFromTheOddsAPI(
+              eventId,
+              comparison.event.sport_key || sport,
+              comparison.event.sport_title || sport,
+              comparison.event.home_team,
+              comparison.event.away_team,
+              comparison.event.commence_time || new Date().toISOString()
+            );
+            logger.info(`Auto-synced event ${eventId} from The Odds API`);
+          } catch (syncError: any) {
+            logger.warn(`Event ${eventId} not found in database and sync failed:`, syncError.message);
+            continue;
+          }
         }
 
         // Find or create market

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { theOddsAPIController } from '../controllers/the-odds-api.controller';
+import { eventSyncService } from '../../services/event-sync.service';
 
 const router = Router();
 

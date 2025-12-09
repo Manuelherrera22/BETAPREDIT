@@ -25,13 +25,24 @@ class TheOddsAPIController {
       }
 
       const { sport } = req.params;
-      const { regions, markets, oddsFormat } = req.query;
+      const { regions, markets, oddsFormat, sync } = req.query;
 
       const odds = await theOddsAPI.getOdds(sport, {
         regions: regions ? (regions as string).split(',') : undefined,
         markets: markets ? (markets as string).split(',') : undefined,
         oddsFormat: oddsFormat as 'decimal' | 'american' | undefined,
       });
+
+      // Sincronizar eventos a Supabase si se solicita
+      if (sync === 'true' && Array.isArray(odds)) {
+        try {
+          const { eventSyncService } = await import('../../services/event-sync.service');
+          await eventSyncService.syncEventsFromOddsData(odds);
+        } catch (syncError: any) {
+          // No fallar si la sincronización falla, solo loguear
+          console.warn('Failed to sync events:', syncError.message);
+        }
+      }
 
       res.json({ success: true, data: odds });
     } catch (error) {
@@ -47,7 +58,7 @@ class TheOddsAPIController {
       }
 
       const { sport, eventId } = req.params;
-      const { market } = req.query;
+      const { market, save } = req.query;
 
       const comparison = await theOddsAPI.compareOdds(
         sport,
@@ -57,6 +68,21 @@ class TheOddsAPIController {
 
       if (!comparison) {
         throw new AppError('Event not found', 404);
+      }
+
+      // Guardar comparación en Supabase si se solicita
+      if (save === 'true') {
+        try {
+          const { oddsComparisonService } = await import('../../services/odds-comparison.service');
+          await oddsComparisonService.fetchAndUpdateComparison(
+            sport,
+            eventId,
+            (market as string) || 'h2h'
+          );
+        } catch (saveError: any) {
+          // No fallar si el guardado falla, solo loguear
+          console.warn('Failed to save comparison:', saveError.message);
+        }
       }
 
       res.json({ success: true, data: comparison });
