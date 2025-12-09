@@ -14,13 +14,22 @@ import { useAuthStore } from '../store/authStore'
 import { userStatisticsService } from '../services/userStatisticsService'
 import { valueBetAlertsService } from '../services/valueBetAlertsService'
 import { notificationsService } from '../services/notificationsService'
+import { userProfileService } from '../services/userProfileService'
 
 export default function Home() {
   const { shouldShow } = useOnboarding()
   const { user } = useAuthStore()
   
-  // Determinar modo (casual o pro) - por defecto 'pro', se puede cambiar en perfil
-  const userMode = (user as any)?.preferredMode || 'pro'
+  // Obtener perfil completo para modo
+  const { data: userProfile } = useQuery({
+    queryKey: ['userProfile'],
+    queryFn: () => userProfileService.getProfile(),
+    enabled: !!user,
+    staleTime: 30000, // Cache por 30 segundos
+  })
+  
+  // Determinar modo (casual o pro) - usar perfil completo o fallback
+  const userMode = userProfile?.preferredMode || (user as any)?.preferredMode || 'pro'
   const isCasualMode = userMode === 'casual'
   
   // Obtener estadísticas reales

@@ -25,11 +25,36 @@ export default function Profile() {
       if (user) {
         setUser({ ...user, ...updatedProfile });
       }
+      // Actualizar formData con los datos actualizados
+      setFormData({
+        firstName: updatedProfile.firstName || '',
+        lastName: updatedProfile.lastName || '',
+        phone: updatedProfile.phone || '',
+        timezone: updatedProfile.timezone || 'UTC',
+        preferredCurrency: updatedProfile.preferredCurrency || 'EUR',
+        preferredMode: updatedProfile.preferredMode || 'pro',
+      });
+      // Invalidar queries para actualizar dashboard
       queryClient.invalidateQueries({ queryKey: ['userProfile'] });
-      toast.success('Perfil actualizado correctamente');
+      queryClient.invalidateQueries({ queryKey: ['userStatistics'] });
+      // Mostrar mensaje de éxito
+      if (updatedProfile.preferredMode) {
+        toast.success(`Modo cambiado a ${updatedProfile.preferredMode === 'casual' ? 'Casual' : 'Pro'}. El dashboard se actualizará automáticamente.`, {
+          duration: 3000,
+          icon: '✅',
+        });
+      } else {
+        toast.success('Perfil actualizado correctamente', {
+          duration: 2000,
+          icon: '✅',
+        });
+      }
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.error?.message || 'Error al actualizar perfil');
+      toast.error(error?.response?.data?.error?.message || 'Error al actualizar perfil', {
+        duration: 3000,
+        icon: '❌',
+      });
     },
   });
   
@@ -155,12 +180,18 @@ export default function Profile() {
                 <label className="block text-sm font-semibold text-gray-400 mb-2">Modo de Uso</label>
                 <div className="grid grid-cols-2 gap-4">
                   <button
-                    onClick={() => setFormData({ ...formData, preferredMode: 'casual' })}
+                    onClick={() => {
+                      const newMode = 'casual';
+                      setFormData({ ...formData, preferredMode: newMode });
+                      // Guardar automáticamente
+                      updateProfileMutation.mutate({ ...formData, preferredMode: newMode });
+                    }}
+                    disabled={updateProfileMutation.isPending}
                     className={`p-4 rounded-lg border-2 transition-all ${
                       formData.preferredMode === 'casual'
-                        ? 'border-primary-400 bg-primary-500/20'
+                        ? 'border-primary-400 bg-primary-500/20 scale-105'
                         : 'border-primary-500/30 bg-dark-800/50 hover:border-primary-500/50'
-                    }`}
+                    } ${updateProfileMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <div className="text-center">
                       <div className="text-2xl mb-2">🎮</div>
@@ -169,12 +200,18 @@ export default function Profile() {
                     </div>
                   </button>
                   <button
-                    onClick={() => setFormData({ ...formData, preferredMode: 'pro' })}
+                    onClick={() => {
+                      const newMode = 'pro';
+                      setFormData({ ...formData, preferredMode: newMode });
+                      // Guardar automáticamente
+                      updateProfileMutation.mutate({ ...formData, preferredMode: newMode });
+                    }}
+                    disabled={updateProfileMutation.isPending}
                     className={`p-4 rounded-lg border-2 transition-all ${
                       formData.preferredMode === 'pro'
-                        ? 'border-primary-400 bg-primary-500/20'
+                        ? 'border-primary-400 bg-primary-500/20 scale-105'
                         : 'border-primary-500/30 bg-dark-800/50 hover:border-primary-500/50'
-                    }`}
+                    } ${updateProfileMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <div className="text-center">
                       <div className="text-2xl mb-2">⚡</div>
@@ -218,10 +255,28 @@ export default function Profile() {
               <button
                 onClick={handleSaveProfile}
                 disabled={updateProfileMutation.isPending}
-                className="px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                {updateProfileMutation.isPending ? 'Guardando...' : 'Guardar Configuración'}
+                {updateProfileMutation.isPending ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Guardando...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Guardar Configuración
+                  </>
+                )}
               </button>
+              <p className="text-xs text-gray-500 mt-2">
+                💡 El modo de uso se guarda automáticamente al seleccionarlo. Los demás cambios requieren guardar manualmente.
+              </p>
             </div>
           </div>
         )}

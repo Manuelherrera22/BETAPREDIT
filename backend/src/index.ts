@@ -68,6 +68,7 @@ import userPreferencesRoutes from './api/routes/user-preferences.routes';
 import valueBetAnalyticsRoutes from './api/routes/value-bet-analytics.routes';
 import userProfileRoutes from './api/routes/user-profile.routes';
 import roiTrackingRoutes from './api/routes/roi-tracking.routes';
+import platformMetricsRoutes from './api/routes/platform-metrics.routes';
 
 // Swagger
 import swaggerUi from 'swagger-ui-express';
@@ -176,6 +177,7 @@ app.use('/api/user-preferences', userPreferencesRoutes);
 app.use('/api/value-bet-analytics', valueBetAnalyticsRoutes);
 app.use('/api/user/profile', userProfileRoutes);
 app.use('/api/roi-tracking', roiTrackingRoutes);
+app.use('/api/platform/metrics', platformMetricsRoutes);
 
 // WebSocket connection handler
 io.on('connection', (socket) => {

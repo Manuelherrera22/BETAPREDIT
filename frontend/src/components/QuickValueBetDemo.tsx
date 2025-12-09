@@ -3,48 +3,27 @@
  * Shows a demo value bet immediately to new users
  */
 
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-
-interface DemoValueBet {
-  id: string;
-  event: string;
-  selection: string;
-  bookmaker: string;
-  odds: number;
-  predictedProbability: number;
-  valuePercentage: number;
-  confidence: number;
-}
+import { valueBetAlertsService } from '../services/valueBetAlertsService';
 
 export default function QuickValueBetDemo() {
-  const [demoBet, setDemoBet] = useState<DemoValueBet | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Obtener el primer value bet alert real del usuario
+  const { data: alerts, isLoading } = useQuery({
+    queryKey: ['valueBetAlerts', 'demo'],
+    queryFn: () => valueBetAlertsService.getMyAlerts({ status: 'ACTIVE' }),
+    refetchInterval: 30000,
+  });
 
-  useEffect(() => {
-    // Simulate finding a value bet
-    setTimeout(() => {
-      setDemoBet({
-        id: 'demo-1',
-        event: 'Real Madrid vs Barcelona',
-        selection: 'Real Madrid Win',
-        bookmaker: 'Bet365',
-        odds: 2.15,
-        predictedProbability: 0.52,
-        valuePercentage: 11.8,
-        confidence: 0.85,
-      });
-      setLoading(false);
-    }, 1500);
-  }, []);
+  const firstAlert = alerts && alerts.length > 0 ? alerts[0] : null;
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="bg-gradient-to-br from-gold-500/20 to-accent-500/20 rounded-xl p-6 border-2 border-gold-500/40 animate-pulse">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-8 h-8 border-4 border-gold-400 border-t-transparent rounded-full animate-spin"></div>
           <div>
-            <h3 className="text-lg font-black text-white">Buscando tu primer Value Bet...</h3>
+            <h3 className="text-lg font-black text-white">Buscando Value Bets...</h3>
             <p className="text-sm text-gray-300">Analizando cuotas en tiempo real</p>
           </div>
         </div>
@@ -52,7 +31,33 @@ export default function QuickValueBetDemo() {
     );
   }
 
-  if (!demoBet) return null;
+  // Si no hay alertas, mostrar mensaje motivacional
+  if (!firstAlert) {
+    return (
+      <div className="bg-gradient-to-br from-primary-500/20 to-accent-500/20 rounded-xl p-6 border-2 border-primary-500/40">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-12 h-12 bg-primary-500/30 rounded-full flex items-center justify-center">
+            <svg className="w-6 h-6 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <div>
+            <h3 className="text-xl font-black text-white mb-1">¡Estamos buscando oportunidades para ti! 🎯</h3>
+            <p className="text-sm text-gray-300">Nuestro sistema está analizando miles de cuotas en tiempo real</p>
+          </div>
+        </div>
+        <p className="text-sm text-gray-400 mb-4">
+          Cuando encontremos un value bet, recibirás una notificación inmediata. Mientras tanto, puedes explorar el comparador de cuotas.
+        </p>
+        <Link
+          to="/odds-comparison"
+          className="inline-block px-4 py-3 bg-gradient-to-r from-primary-500 to-accent-500 hover:from-primary-600 hover:to-accent-600 text-white rounded-lg font-bold transition-all shadow-lg shadow-primary-500/30"
+        >
+          Explorar Comparador de Cuotas
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gradient-to-br from-gold-500/20 to-accent-500/20 rounded-xl p-6 border-2 border-gold-500/40 shadow-2xl shadow-gold-500/20 animate-fade-in">
@@ -75,11 +80,11 @@ export default function QuickValueBetDemo() {
           </div>
           <div>
             <h3 className="text-xl font-black text-white mb-1">¡Value Bet Encontrado! 🎯</h3>
-            <p className="text-sm text-gray-300">Tu primera oportunidad de valor</p>
+            <p className="text-sm text-gray-300">Oportunidad de valor detectada</p>
           </div>
         </div>
         <span className="px-3 py-1 bg-gold-500/30 text-gold-300 rounded-full text-xs font-bold">
-          +{demoBet.valuePercentage.toFixed(1)}% Valor
+          +{firstAlert.valuePercentage.toFixed(1)}% Valor
         </span>
       </div>
 
@@ -87,22 +92,24 @@ export default function QuickValueBetDemo() {
         <div className="flex items-center justify-between mb-3">
           <div>
             <p className="text-sm text-gray-400 mb-1">Evento</p>
-            <p className="text-lg font-bold text-white">{demoBet.event}</p>
+            <p className="text-lg font-bold text-white">
+              {firstAlert.event?.name || `${firstAlert.event?.homeTeam || ''} vs ${firstAlert.event?.awayTeam || ''}`}
+            </p>
           </div>
           <div className="text-right">
             <p className="text-sm text-gray-400 mb-1">Cuota</p>
-            <p className="text-2xl font-black text-gold-400">{demoBet.odds.toFixed(2)}</p>
+            <p className="text-2xl font-black text-gold-400">{firstAlert.bookmakerOdds.toFixed(2)}</p>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4 pt-4 border-t border-primary-500/20">
           <div>
             <p className="text-xs text-gray-400 mb-1">Selección</p>
-            <p className="text-sm font-semibold text-white">{demoBet.selection}</p>
+            <p className="text-sm font-semibold text-white">{firstAlert.selection}</p>
           </div>
           <div>
             <p className="text-xs text-gray-400 mb-1">Casa de Apuestas</p>
-            <p className="text-sm font-semibold text-accent-400">{demoBet.bookmaker}</p>
+            <p className="text-sm font-semibold text-accent-400">{firstAlert.bookmakerPlatform}</p>
           </div>
         </div>
 
@@ -111,13 +118,13 @@ export default function QuickValueBetDemo() {
             <div>
               <p className="text-xs text-gray-400 mb-1">Probabilidad Predicha</p>
               <p className="text-sm font-semibold text-white">
-                {(demoBet.predictedProbability * 100).toFixed(1)}%
+                {(firstAlert.predictedProbability * 100).toFixed(1)}%
               </p>
             </div>
             <div className="text-right">
               <p className="text-xs text-gray-400 mb-1">Confianza</p>
               <p className="text-sm font-semibold text-primary-400">
-                {(demoBet.confidence * 100).toFixed(0)}%
+                {(firstAlert.confidence * 100).toFixed(0)}%
               </p>
             </div>
           </div>
@@ -137,7 +144,7 @@ export default function QuickValueBetDemo() {
       </div>
 
       <p className="text-xs text-gray-400 text-center mt-4">
-        💡 Este es un ejemplo. Encuentra value bets reales en tiempo real en la plataforma.
+        💡 Este es un value bet real detectado por nuestro sistema. Recibirás notificaciones cuando encontremos más oportunidades.
       </p>
     </div>
   );

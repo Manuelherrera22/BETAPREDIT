@@ -3,7 +3,9 @@
  * Shows testimonials, success stories, and platform metrics
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { platformMetricsService } from '../services/platformMetricsService';
 
 interface Testimonial {
   id: string;
@@ -27,7 +29,13 @@ interface PlatformMetric {
 }
 
 export default function SocialProof() {
-  const [metrics, setMetrics] = useState<PlatformMetric[]>([]);
+  // Obtener métricas reales de la plataforma
+  const { data: platformMetrics, isLoading } = useQuery({
+    queryKey: ['platformMetrics'],
+    queryFn: () => platformMetricsService.getMetrics(),
+    refetchInterval: 60000, // Actualizar cada minuto
+  });
+
   const [testimonials] = useState<Testimonial[]>([
     {
       id: '1',
@@ -67,64 +75,70 @@ export default function SocialProof() {
     },
   ]);
 
-  useEffect(() => {
-    // Simulate real-time metrics
-    const updateMetrics = () => {
-      setMetrics([
+  // Convertir métricas reales al formato de UI
+  const metrics: PlatformMetric[] = platformMetrics
+    ? [
         {
           label: 'Value Bets Encontrados Hoy',
-          value: '1,247',
-          change: '+12% vs ayer',
-          trend: 'up',
+          value: platformMetrics.valueBetsFoundToday.toLocaleString('es-ES'),
+          change: platformMetrics.trends.valueBetsChange,
+          trend: platformMetrics.trends.valueBetsChange.startsWith('+') ? 'up' : 'down',
         },
         {
           label: 'Usuarios Activos',
-          value: '2,458',
-          change: '+8% este mes',
-          trend: 'up',
+          value: platformMetrics.activeUsers.toLocaleString('es-ES'),
+          change: platformMetrics.trends.usersChange,
+          trend: platformMetrics.trends.usersChange.startsWith('+') ? 'up' : 'down',
         },
         {
           label: 'ROI Promedio',
-          value: '+15.3%',
-          change: '+2.1% vs mes anterior',
-          trend: 'up',
+          value: `${platformMetrics.averageROI >= 0 ? '+' : ''}${platformMetrics.averageROI.toFixed(1)}%`,
+          change: platformMetrics.trends.roiChange,
+          trend: platformMetrics.trends.roiChange.startsWith('+') ? 'up' : 'down',
         },
         {
           label: 'Accuracy Promedio',
-          value: '68.5%',
-          change: '+3.2%',
-          trend: 'up',
+          value: `${platformMetrics.averageAccuracy.toFixed(1)}%`,
+          change: platformMetrics.trends.accuracyChange,
+          trend: platformMetrics.trends.accuracyChange.startsWith('+') ? 'up' : 'down',
         },
-      ]);
-    };
-
-    updateMetrics();
-    const interval = setInterval(updateMetrics, 30000); // Update every 30 seconds
-    return () => clearInterval(interval);
-  }, []);
+      ]
+    : [];
 
   return (
     <div className="space-y-8">
       {/* Platform Metrics */}
       <div className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-6 border border-primary-500/20">
         <h3 className="text-xl font-black text-white mb-4">Métricas de la Plataforma</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {metrics.map((metric, index) => (
-            <div key={index} className="text-center">
-              <p className="text-2xl font-black text-white mb-1">{metric.value}</p>
-              <p className="text-xs text-gray-400 mb-1">{metric.label}</p>
-              {metric.change && (
-                <p
-                  className={`text-xs font-semibold ${
-                    metric.trend === 'up' ? 'text-green-400' : 'text-red-400'
-                  }`}
-                >
-                  {metric.change}
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="text-center animate-pulse">
+                <div className="h-8 bg-dark-800 rounded mb-2"></div>
+                <div className="h-4 bg-dark-800 rounded mb-1"></div>
+                <div className="h-3 bg-dark-800 rounded w-2/3 mx-auto"></div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {metrics.map((metric, index) => (
+              <div key={index} className="text-center">
+                <p className="text-2xl font-black text-white mb-1">{metric.value}</p>
+                <p className="text-xs text-gray-400 mb-1">{metric.label}</p>
+                {metric.change && (
+                  <p
+                    className={`text-xs font-semibold ${
+                      metric.trend === 'up' ? 'text-green-400' : 'text-red-400'
+                    }`}
+                  >
+                    {metric.change}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Testimonials */}
