@@ -51,6 +51,21 @@ export default function Events() {
     toast.success('Eventos actualizados')
   }
 
+  const handleSyncEvents = async () => {
+    try {
+      toast.loading('Sincronizando eventos desde The Odds API...')
+      await eventsService.syncEvents()
+      toast.dismiss()
+      toast.success('Eventos sincronizados correctamente')
+      // Refetch events after sync
+      await queryClient.invalidateQueries({ queryKey: ['allEvents'] })
+      await refetch()
+    } catch (error: any) {
+      toast.dismiss()
+      toast.error(`Error al sincronizar: ${error.message || 'Error desconocido'}`)
+    }
+  }
+
   if (isLoading && !events) {
     return (
       <div className="px-4 py-6">
@@ -225,14 +240,22 @@ export default function Events() {
             <p className="text-sm text-gray-500 mb-4">
               {viewMode === 'live'
                 ? 'No hay eventos en vivo en este momento. Intenta cambiar a "Próximos" para ver eventos programados.'
-                : 'Los eventos se actualizan automáticamente. Intenta cambiar el filtro de deporte o recargar la página.'}
+                : 'Los eventos se actualizan automáticamente. Si no ves eventos, intenta sincronizar desde The Odds API.'}
             </p>
-            <button
-              onClick={handleRefresh}
-              className="px-4 py-2 bg-primary-500/20 border border-primary-500/40 text-primary-300 rounded-lg hover:bg-primary-500/30 transition-colors text-sm font-semibold"
-            >
-              🔄 Recargar Eventos
-            </button>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={handleSyncEvents}
+                className="px-4 py-2 bg-green-500/20 border border-green-500/40 text-green-300 rounded-lg hover:bg-green-500/30 transition-colors text-sm font-semibold"
+              >
+                🔄 Sincronizar desde API
+              </button>
+              <button
+                onClick={handleRefresh}
+                className="px-4 py-2 bg-primary-500/20 border border-primary-500/40 text-primary-300 rounded-lg hover:bg-primary-500/30 transition-colors text-sm font-semibold"
+              >
+                🔄 Recargar Eventos
+              </button>
+            </div>
           </div>
         )}
       </div>

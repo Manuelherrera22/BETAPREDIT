@@ -19,5 +19,8 @@ router.get('/sport/:sportId', authenticate, eventsController.getEventsBySport);
 // Search events
 router.get('/search/:query', authenticate, eventsController.searchEvents);
 
+// Sync events manually (admin or for testing)
+router.post('/sync', authenticate, eventsController.syncEvents);
+
 export default router;
 

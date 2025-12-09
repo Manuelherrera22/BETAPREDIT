@@ -101,7 +101,6 @@ class EventSyncService {
             awayTeam: awayTeam,
             startTime: new Date(commenceTime),
             status: 'SCHEDULED',
-            isActive: true,
           },
         });
         logger.info(`Created new event: ${homeTeam} vs ${awayTeam} (${externalId})`);

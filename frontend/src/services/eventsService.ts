@@ -65,5 +65,10 @@ export const eventsService = {
     const { data } = await api.get(`/events/search/${query}`)
     return data.data as Event[]
   },
+
+  syncEvents: async (sportKey?: string) => {
+    const { data } = await api.post('/events/sync', { sportKey })
+    return data
+  },
 }
 
