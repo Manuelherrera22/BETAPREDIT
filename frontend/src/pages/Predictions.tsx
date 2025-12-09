@@ -185,9 +185,13 @@ export default function Predictions() {
     },
     onSuccess: (data) => {
       if (data.data.generated === 0 && data.data.updated === 0) {
-        toast('No se generaron predicciones. Verifica que hay eventos próximos con odds disponibles.', {
+        const message = data.data.suggestion === 'sync_events_first'
+          ? 'No se generaron predicciones. Primero sincroniza los eventos desde la página de Eventos para obtener las odds.'
+          : 'No se generaron predicciones. Verifica que hay eventos próximos con odds disponibles.';
+        
+        toast(message, {
           icon: 'ℹ️',
-          duration: 4000,
+          duration: 6000,
         });
       } else {
         toast.success(`Predicciones generadas: ${data.data.generated} nuevas, ${data.data.updated} actualizadas`);

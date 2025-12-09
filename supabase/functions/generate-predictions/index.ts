@@ -235,7 +235,7 @@ serve(async (req) => {
               }
               market = newMarket;
               // Market created but has no odds, skip
-              console.log(`Market created for event ${event.id} but no odds available yet`);
+              console.log(`⚠️ Market created for event ${event.id} but no odds available yet. Event needs to be synced first.`);
               continue;
             }
 
@@ -247,7 +247,7 @@ serve(async (req) => {
               const activeOdds = market.Odds.filter((odd: any) => odd.isActive !== false && odd.decimal && odd.decimal > 0);
               
               if (activeOdds.length === 0) {
-                console.log(`No active odds available for event ${event.id}`);
+                console.log(`⚠️ No active odds available for event ${event.id}. Event needs to be synced first.`);
                 continue;
               }
               
@@ -259,7 +259,7 @@ serve(async (req) => {
               }
             } else {
               // No odds in database, skip this event
-              console.log(`No odds available for event ${event.id} (market has ${market.Odds?.length || 0} odds)`);
+              console.log(`⚠️ No odds available for event ${event.id} (market has ${market.Odds?.length || 0} odds). Event needs to be synced first.`);
               continue;
             }
 
@@ -359,6 +359,23 @@ serve(async (req) => {
     }
 
     console.log(`Prediction generation completed: ${totalGenerated} generated, ${totalUpdated} updated, ${totalErrors} errors`);
+
+    // If no predictions were generated, provide helpful message
+    if (totalGenerated === 0 && totalUpdated === 0) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'No se generaron predicciones. Los eventos necesitan tener odds sincronizadas primero. Por favor, sincroniza los eventos desde la página de Eventos.',
+          data: {
+            generated: totalGenerated,
+            updated: totalUpdated,
+            errors: totalErrors,
+            suggestion: 'sync_events_first',
+          },
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     return new Response(
       JSON.stringify({
