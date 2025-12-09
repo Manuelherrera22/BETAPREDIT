@@ -8,7 +8,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { predictionsService } from '../services/predictionsService';
 import { eventsService } from '../services/eventsService';
 import { theOddsApiService } from '../services/theOddsApiService';
-import api from '../services/api';
 import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
@@ -185,7 +184,10 @@ export default function Predictions() {
     },
     onSuccess: (data) => {
       if (data.data.generated === 0 && data.data.updated === 0) {
-        toast.info(data.message || 'No se generaron predicciones. Verifica que hay eventos próximos con odds disponibles.');
+        toast('No se generaron predicciones. Verifica que hay eventos próximos con odds disponibles.', {
+          icon: 'ℹ️',
+          duration: 4000,
+        });
       } else {
         toast.success(`Predicciones generadas: ${data.data.generated} nuevas, ${data.data.updated} actualizadas`);
       }
