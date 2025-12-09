@@ -197,8 +197,11 @@ export default function Predictions() {
       } else {
         toast.success(`Predicciones generadas: ${data.data.generated} nuevas, ${data.data.updated} actualizadas`);
       }
-      // Refetch predictions after generation
+      // Force immediate refetch of predictions after generation
+      console.log('🔄 Invalidating queries and refetching...');
       queryClient.invalidateQueries({ queryKey: ['eventsWithPredictions'] });
+      // Also refetch immediately
+      queryClient.refetchQueries({ queryKey: ['eventsWithPredictions'] });
     },
     onError: (error: any) => {
       console.error('Error generating predictions:', error);

@@ -120,18 +120,36 @@ serve(async (req) => {
     }
 
     console.log(`📊 Found ${allPredictions?.length || 0} total predictions for eventId: ${eventId}`);
+    
+    // Debug: Log first few predictions if any
+    if (allPredictions && allPredictions.length > 0) {
+      console.log(`📋 Sample predictions:`, JSON.stringify(allPredictions.slice(0, 2).map((p: any) => ({
+        id: p.id,
+        selection: p.selection,
+        probability: p.predictedProbability,
+        confidence: p.confidence,
+        marketId: p.marketId,
+        market: p.Market ? { id: p.Market.id, isActive: p.Market.isActive } : null,
+      })), null, 2));
+    }
 
     // Filter predictions: only show for active events that are scheduled and upcoming
     let predictions = allPredictions || [];
     
     // Only filter by event status if event is not active or not scheduled
-    if (event.isActive && event.status === 'SCHEDULED' && new Date(event.startTime) >= new Date()) {
+    const now = new Date();
+    const startTime = new Date(event.startTime);
+    const isUpcoming = startTime >= now;
+    
+    console.log(`⏰ Time check: startTime=${startTime.toISOString()}, now=${now.toISOString()}, isUpcoming=${isUpcoming}`);
+    
+    if (event.isActive && event.status === 'SCHEDULED' && isUpcoming) {
       // Event is valid, show all predictions (filter by market later)
       console.log(`✅ Event is active and upcoming, showing all predictions`);
     } else {
       // Event is not valid, return empty
       console.log(`⚠️ Event is not active/upcoming. Filtering out predictions.`);
-      console.log(`   isActive: ${event.isActive}, status: ${event.status}, startTime: ${new Date(event.startTime).toISOString()}, now: ${new Date().toISOString()}`);
+      console.log(`   isActive: ${event.isActive}, status: ${event.status}, startTime: ${startTime.toISOString()}, now: ${now.toISOString()}, isUpcoming: ${isUpcoming}`);
       return new Response(
         JSON.stringify({
           success: true,
@@ -157,6 +175,15 @@ serve(async (req) => {
     });
 
     console.log(`📊 Filtered: ${predictions.length} total → ${activePredictions.length} with active markets`);
+    
+    // Final debug log
+    if (activePredictions.length > 0) {
+      console.log(`✅ Returning ${activePredictions.length} active predictions to frontend`);
+    } else if (predictions.length > 0) {
+      console.log(`⚠️ All ${predictions.length} predictions were filtered out (inactive markets)`);
+    } else {
+      console.log(`ℹ️ No predictions found for this event`);
+    }
 
     // Transform predictions to match frontend expectations (only active ones)
     const transformedPredictions = activePredictions.map((pred: any) => ({
