@@ -89,6 +89,179 @@ class PredictionsService {
   }
 
   /**
+   * Submit user feedback on a prediction
+   */
+  async submitUserFeedback(
+    predictionId: string,
+    userId: string,
+    feedback: {
+      wasCorrect: boolean;
+      userConfidence?: number; // User's assessment of prediction quality (0-1)
+      notes?: string;
+    }
+  ) {
+    try {
+      const prediction = await prisma.prediction.findUnique({
+        where: { id: predictionId },
+      });
+
+      if (!prediction) {
+        throw new AppError('Prediction not found', 404);
+      }
+
+      // Store feedback in factors JSON (or create a separate feedback table if needed)
+      const currentFactors = (prediction.factors || {}) as any;
+      const userFeedback = {
+        userId,
+        wasCorrect: feedback.wasCorrect,
+        userConfidence: feedback.userConfidence,
+        notes: feedback.notes,
+        submittedAt: new Date().toISOString(),
+      };
+
+      // Store feedback in factors for now (could be moved to separate table)
+      const updatedFactors = {
+        ...currentFactors,
+        userFeedback: userFeedback,
+      };
+
+      const updated = await prisma.prediction.update({
+        where: { id: predictionId },
+        data: {
+          factors: updatedFactors,
+        },
+      });
+
+      logger.info(`User feedback submitted for prediction ${predictionId} by user ${userId}`);
+      return updated;
+    } catch (error: any) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+      logger.error('Error submitting user feedback:', error);
+      throw new AppError('Failed to submit user feedback', 500);
+    }
+  }
+
+  /**
+   * Get prediction with detailed factors explanation
+   */
+  async getPredictionWithFactors(predictionId: string) {
+    try {
+      const prediction = await prisma.prediction.findUnique({
+        where: { id: predictionId },
+        include: {
+          event: {
+            include: {
+              sport: true,
+            },
+          },
+          market: true,
+        },
+      });
+
+      if (!prediction) {
+        throw new AppError('Prediction not found', 404);
+      }
+
+      // Parse factors for better display
+      const factors = (prediction.factors || {}) as any;
+      const factorExplanation = this.explainFactors(factors, prediction);
+
+      return {
+        ...prediction,
+        factorExplanation,
+      };
+    } catch (error: any) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+      logger.error('Error getting prediction with factors:', error);
+      throw new AppError('Failed to get prediction with factors', 500);
+    }
+  }
+
+  /**
+   * Explain factors that influenced the prediction
+   */
+  private explainFactors(factors: any, prediction: any): {
+    keyFactors: Array<{ name: string; impact: number; description: string }>;
+    confidenceFactors: Array<{ name: string; value: number; description: string }>;
+    riskFactors: Array<{ name: string; level: 'low' | 'medium' | 'high'; description: string }>;
+  } {
+    const keyFactors: Array<{ name: string; impact: number; description: string }> = [];
+    const confidenceFactors: Array<{ name: string; value: number; description: string }> = [];
+    const riskFactors: Array<{ name: string; level: 'low' | 'medium' | 'high'; description: string }> = [];
+
+    // Parse common factor types
+    if (factors) {
+      // Historical performance
+      if (factors.historicalPerformance) {
+        keyFactors.push({
+          name: 'Rendimiento Histórico',
+          impact: factors.historicalPerformance.impact || 0.3,
+          description: `El equipo tiene un ${(factors.historicalPerformance.winRate * 100).toFixed(0)}% de victorias en los últimos encuentros`,
+        });
+      }
+
+      // Form (recent results)
+      if (factors.form) {
+        keyFactors.push({
+          name: 'Forma Reciente',
+          impact: factors.form.impact || 0.25,
+          description: factors.form.description || 'Basado en resultados recientes',
+        });
+      }
+
+      // Head-to-head
+      if (factors.headToHead) {
+        keyFactors.push({
+          name: 'Historial Directo',
+          impact: factors.headToHead.impact || 0.2,
+          description: factors.headToHead.description || 'Resultados en enfrentamientos previos',
+        });
+      }
+
+      // Market odds
+      if (factors.marketOdds) {
+        confidenceFactors.push({
+          name: 'Cuotas del Mercado',
+          value: factors.marketOdds.impliedProbability || 0.5,
+          description: `El mercado sugiere una probabilidad del ${((factors.marketOdds.impliedProbability || 0.5) * 100).toFixed(0)}%`,
+        });
+      }
+
+      // Injuries/Suspensions
+      if (factors.injuries) {
+        const riskLevel = factors.injuries.count > 3 ? 'high' : factors.injuries.count > 1 ? 'medium' : 'low';
+        riskFactors.push({
+          name: 'Lesiones/Suspensiones',
+          level: riskLevel,
+          description: `${factors.injuries.count} jugador(es) clave afectado(s)`,
+        });
+      }
+
+      // Weather conditions (for outdoor sports)
+      if (factors.weather) {
+        riskFactors.push({
+          name: 'Condiciones Climáticas',
+          level: factors.weather.risk || 'low',
+          description: factors.weather.description || 'Condiciones normales',
+        });
+      }
+    }
+
+    // Sort by impact
+    keyFactors.sort((a, b) => b.impact - a.impact);
+
+    return {
+      keyFactors,
+      confidenceFactors,
+      riskFactors,
+    };
+  }
+
+  /**
    * Update prediction result when event finishes
    */
   async updatePredictionResult(

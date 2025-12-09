@@ -66,6 +66,49 @@ class PredictionsController {
       next(error);
     }
   }
+
+  /**
+   * Submit user feedback on a prediction
+   * POST /api/predictions/:predictionId/feedback
+   */
+  async submitFeedback(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { predictionId } = req.params;
+      const userId = req.user!.id;
+      const { wasCorrect, userConfidence, notes } = req.body;
+
+      if (wasCorrect === undefined) {
+        return res.status(400).json({
+          success: false,
+          error: { message: 'wasCorrect is required' },
+        });
+      }
+
+      const updated = await predictionsService.submitUserFeedback(predictionId, userId, {
+        wasCorrect,
+        userConfidence,
+        notes,
+      });
+
+      res.json({ success: true, data: updated });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Get prediction with detailed factors
+   * GET /api/predictions/:predictionId/factors
+   */
+  async getPredictionFactors(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { predictionId } = req.params;
+      const prediction = await predictionsService.getPredictionWithFactors(predictionId);
+      res.json({ success: true, data: prediction });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const predictionsController = new PredictionsController();

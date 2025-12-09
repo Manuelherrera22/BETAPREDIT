@@ -32,5 +32,19 @@ router.get('/event/:eventId', predictionsController.getEventPredictions.bind(pre
  */
 router.get('/stats', predictionsController.getPredictionStats.bind(predictionsController));
 
+/**
+ * @route   POST /api/predictions/:predictionId/feedback
+ * @desc    Submit user feedback on a prediction
+ * @access  Private
+ */
+router.post('/:predictionId/feedback', predictionsController.submitFeedback.bind(predictionsController));
+
+/**
+ * @route   GET /api/predictions/:predictionId/factors
+ * @desc    Get prediction with detailed factors explanation
+ * @access  Private
+ */
+router.get('/:predictionId/factors', predictionsController.getPredictionFactors.bind(predictionsController));
+
 export default router;
 

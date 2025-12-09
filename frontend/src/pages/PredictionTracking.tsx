@@ -6,6 +6,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { predictionsService } from '../services/predictionsService';
 import SimpleChart from '../components/SimpleChart';
+import PredictionRow from '../components/PredictionRow';
 
 export default function PredictionTracking() {
   const filters = {
@@ -162,32 +163,12 @@ export default function PredictionTracking() {
                   <th className="text-center py-3 px-4 text-sm font-semibold text-gray-400">Confianza</th>
                   <th className="text-center py-3 px-4 text-sm font-semibold text-gray-400">Resultado</th>
                   <th className="text-center py-3 px-4 text-sm font-semibold text-gray-400">Precisión</th>
+                  <th className="text-center py-3 px-4 text-sm font-semibold text-gray-400">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {accuracyStats.recentPredictions.map((pred) => (
-                  <tr key={pred.id} className="border-b border-primary-500/10">
-                    <td className="py-3 px-4 text-white text-sm">{pred.eventName}</td>
-                    <td className="py-3 px-4 text-gray-300 text-sm">{pred.selection}</td>
-                    <td className="py-3 px-4 text-center text-white text-sm">
-                      {(pred.predictedProbability * 100).toFixed(1)}%
-                    </td>
-                    <td className="py-3 px-4 text-center text-gray-300 text-sm">
-                      {(pred.confidence * 100).toFixed(0)}%
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      {pred.wasCorrect === null ? (
-                        <span className="text-gray-500 text-sm">Pendiente</span>
-                      ) : pred.wasCorrect ? (
-                        <span className="text-green-400 font-semibold text-sm">✓ Correcta</span>
-                      ) : (
-                        <span className="text-red-400 font-semibold text-sm">✗ Incorrecta</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-center text-gray-300 text-sm">
-                      {pred.accuracy !== null ? `${(pred.accuracy * 100).toFixed(1)}%` : '-'}
-                    </td>
-                  </tr>
+                  <PredictionRow key={pred.id} prediction={pred} />
                 ))}
               </tbody>
             </table>

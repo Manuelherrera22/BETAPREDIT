@@ -103,5 +103,28 @@ export const predictionsService = {
     });
     return data.data as PredictionStats;
   },
+
+  /**
+   * Submit user feedback on a prediction
+   */
+  submitFeedback: async (
+    predictionId: string,
+    feedback: {
+      wasCorrect: boolean;
+      userConfidence?: number;
+      notes?: string;
+    }
+  ): Promise<any> => {
+    const { data } = await api.post(`/predictions/${predictionId}/feedback`, feedback);
+    return data.data;
+  },
+
+  /**
+   * Get prediction with detailed factors explanation
+   */
+  getPredictionFactors: async (predictionId: string): Promise<any> => {
+    const { data } = await api.get(`/predictions/${predictionId}/factors`);
+    return data.data;
+  },
 };
 
