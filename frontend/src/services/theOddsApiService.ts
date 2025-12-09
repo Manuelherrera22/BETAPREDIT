@@ -82,12 +82,25 @@ class TheOddsAPIService {
       const useSupabase = isSupabaseConfigured() && supabaseFunctionsUrl && import.meta.env.PROD;
       
       if (useSupabase) {
+        const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        if (!anonKey) {
+          console.error('❌ VITE_SUPABASE_ANON_KEY no está definida');
+          return [];
+        }
+        
         const response = await fetch(`${supabaseFunctionsUrl}/the-odds-api/sports`, {
           headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+            'Authorization': `Bearer ${anonKey}`,
+            'apikey': anonKey,
+            'Content-Type': 'application/json',
           },
         });
+        
+        if (!response.ok) {
+          console.error(`❌ Error ${response.status} en Edge Function:`, response.statusText);
+          return [];
+        }
+        
         const result = await response.json();
         return result.success ? result.data : [];
       } else {
@@ -127,12 +140,25 @@ class TheOddsAPIService {
         });
         if (sync) params.set('sync', 'true');
         
+        const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        if (!anonKey) {
+          console.error('❌ VITE_SUPABASE_ANON_KEY no está definida');
+          return [];
+        }
+        
         const response = await fetch(`${supabaseFunctionsUrl}/the-odds-api/sports/${sport}/odds?${params}`, {
           headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+            'Authorization': `Bearer ${anonKey}`,
+            'apikey': anonKey,
+            'Content-Type': 'application/json',
           },
         });
+        
+        if (!response.ok) {
+          console.error(`❌ Error ${response.status} en Edge Function:`, response.statusText);
+          return [];
+        }
+        
         const result = await response.json();
         return result.success ? result.data : [];
       } else {
@@ -178,12 +204,27 @@ class TheOddsAPIService {
         const params = new URLSearchParams({ market });
         if (save) params.set('save', 'true');
         
+        const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        if (!anonKey) {
+          console.error('❌ VITE_SUPABASE_ANON_KEY no está definida');
+          return null;
+        }
+        
         const response = await fetch(`${supabaseFunctionsUrl}/the-odds-api/sports/${sport}/events/${eventId}/compare?${params}`, {
           headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+            'Authorization': `Bearer ${anonKey}`,
+            'apikey': anonKey,
+            'Content-Type': 'application/json',
           },
         });
+        
+        if (!response.ok) {
+          console.error(`❌ Error ${response.status} en Edge Function:`, response.statusText);
+          const errorText = await response.text();
+          console.error('Error details:', errorText);
+          return null;
+        }
+        
         const result = await response.json();
         return result.success ? result.data : null;
       } else {
