@@ -110,7 +110,10 @@ class TheOddsAPIService {
   async compareOdds(
     sport: string,
     eventId: string,
-    market: string = 'h2h'
+    market: string = 'h2h',
+    options: {
+      save?: boolean; // Guardar comparación en Supabase
+    } = {}
   ): Promise<{
     event: OddsEvent;
     comparisons: Record<string, OddsComparison>;
@@ -118,7 +121,10 @@ class TheOddsAPIService {
   } | null> {
     try {
       const { data } = await api.get(`/the-odds-api/sports/${sport}/events/${eventId}/compare`, {
-        params: { market },
+        params: { 
+          market,
+          save: options.save !== false ? 'true' : undefined, // Por defecto guarda
+        },
       });
       return data.success ? data.data : null;
     } catch (error) {
