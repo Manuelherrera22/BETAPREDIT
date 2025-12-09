@@ -67,7 +67,6 @@ import valueBetDetectionRoutes from './api/routes/value-bet-detection.routes';
 import userPreferencesRoutes from './api/routes/user-preferences.routes';
 import valueBetAnalyticsRoutes from './api/routes/value-bet-analytics.routes';
 import userProfileRoutes from './api/routes/user-profile.routes';
-import userPreferencesRoutes from './api/routes/user-preferences.routes';
 import roiTrackingRoutes from './api/routes/roi-tracking.routes';
 import platformMetricsRoutes from './api/routes/platform-metrics.routes';
 import predictionsRoutes from './api/routes/predictions.routes';

@@ -241,15 +241,15 @@ class ValueBetDetectionService {
                 impliedProbability,
                 predictedProbability,
                 valuePercentage, // Margin and confidence adjusted
-                expectedValue, // Raw EV
-                adjustedExpectedValue, // Adjusted EV
+                expectedValue: adjustedExpectedValue, // Use adjusted EV as main expectedValue
                 confidence,
-                kellyPercentage, // Optimal stake percentage
                 factors: {
                   ...factors,
                   rawValue: rawValue * 100,
+                  rawExpectedValue: expectedValue, // Store raw EV in factors
                   marginAdjustedValue: marginAdjustedValue * 100,
                   estimatedMargin: estimatedMargin * 100,
+                  kellyPercentage, // Store Kelly in factors
                 },
               });
 
