@@ -49,15 +49,38 @@ serve(async (req) => {
 
     // This function is deployed with --no-verify-jwt, so it's public
     // We don't need to verify authentication for this proxy function
-
-    // Parse request
+    
+    // Parse request URL
     const url = new URL(req.url);
     let path = url.pathname.replace("/the-odds-api", "");
     
+    // Handle Supabase client POST requests (they send path in body)
+    if (req.method === 'POST') {
+      try {
+        const contentType = req.headers.get('content-type');
+        if (contentType?.includes('application/json')) {
+          const body = await req.json();
+          if (body.path) {
+            // Remove leading / if present and /the-odds-api prefix
+            path = body.path.replace(/^\/?the-odds-api\/?/, '').replace(/^\//, '');
+          }
+        }
+      } catch (e) {
+        // If body parsing fails, use URL path
+      }
+    }
+    
+    // If path starts with /, remove it
+    if (path.startsWith('/')) {
+      path = path.substring(1);
+    }
+    
     // Handle /compare endpoint (custom logic, not in The Odds API)
-    if (path.includes("/events/") && path.includes("/compare")) {
+    // Support both formats: /sports/{sport}/events/{eventId}/compare and sports/{sport}/events/{eventId}/compare
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    if (normalizedPath.includes("/events/") && normalizedPath.includes("/compare")) {
       // Extract sport and eventId from path: /sports/{sport}/events/{eventId}/compare
-      const pathParts = path.split("/").filter(p => p); // Remove empty strings
+      const pathParts = normalizedPath.split("/").filter(p => p); // Remove empty strings
       const sportIndex = pathParts.indexOf("sports");
       const eventsIndex = pathParts.indexOf("events");
       

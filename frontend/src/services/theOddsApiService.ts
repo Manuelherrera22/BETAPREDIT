@@ -88,7 +88,9 @@ class TheOddsAPIService {
           return [];
         }
         
+        // Use direct fetch with proper headers
         const response = await fetch(`${supabaseFunctionsUrl}/the-odds-api/sports`, {
+          method: 'GET',
           headers: {
             'Authorization': `Bearer ${anonKey}`,
             'apikey': anonKey,
@@ -97,7 +99,8 @@ class TheOddsAPIService {
         });
         
         if (!response.ok) {
-          console.error(`❌ Error ${response.status} en Edge Function:`, response.statusText);
+          const errorText = await response.text();
+          console.error(`❌ Error ${response.status} en Edge Function:`, errorText);
           return [];
         }
         
@@ -147,6 +150,7 @@ class TheOddsAPIService {
         }
         
         const response = await fetch(`${supabaseFunctionsUrl}/the-odds-api/sports/${sport}/odds?${params}`, {
+          method: 'GET',
           headers: {
             'Authorization': `Bearer ${anonKey}`,
             'apikey': anonKey,
@@ -155,7 +159,8 @@ class TheOddsAPIService {
         });
         
         if (!response.ok) {
-          console.error(`❌ Error ${response.status} en Edge Function:`, response.statusText);
+          const errorText = await response.text();
+          console.error(`❌ Error ${response.status} en Edge Function:`, errorText);
           return [];
         }
         
