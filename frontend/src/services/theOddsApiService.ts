@@ -79,6 +79,19 @@ class TheOddsAPIService {
    */
   async getSports(): Promise<Sport[]> {
     try {
+      // Check cache first (sports don't change often)
+      const cacheKey = 'theodds_sports';
+      const cached = apiCache.get<Sport[]>(cacheKey);
+      if (cached) {
+        return cached; // Cache hit - no API call needed
+      }
+
+      // Check if we can make API call
+      if (!apiUsageMonitor.canMakeCall()) {
+        console.warn('⚠️ API usage limit reached. Using cached data if available.');
+        return cached || [];
+      }
+
       // Use Supabase Edge Function if available, otherwise use backend API
       const supabaseFunctionsUrl = getSupabaseFunctionsUrl();
       const useSupabase = isSupabaseConfigured() && supabaseFunctionsUrl && import.meta.env.PROD;
@@ -107,7 +120,17 @@ class TheOddsAPIService {
         }
         
         const result = await response.json();
-        return result.success ? result.data : [];
+        const data = result.success ? result.data : [];
+        
+        // Record API call
+        apiUsageMonitor.recordCall('getSports');
+        
+        // Cache for 1 hour (sports don't change often)
+        if (data.length > 0) {
+          apiCache.set(cacheKey, data, 3600);
+        }
+        
+        return data;
       } else {
         const { data } = await api.get('/the-odds-api/sports');
         const sportsData = data.success ? data.data : [];
