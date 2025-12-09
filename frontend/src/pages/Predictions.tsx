@@ -32,8 +32,8 @@ interface EventPrediction {
 
 export default function Predictions() {
   const [selectedSport, setSelectedSport] = useState<string>('soccer_epl');
-  const [minConfidence, setMinConfidence] = useState<number>(0.7);
-  const [minValue, setMinValue] = useState<number>(0.05);
+  const [minConfidence, setMinConfidence] = useState<number>(0.5); // Reduced from 0.7 to show more predictions
+  const [minValue, setMinValue] = useState<number>(0); // Reduced from 0.05 to show more predictions
 
   // Get available sports
   const { data: sports } = useQuery({
@@ -63,7 +63,9 @@ export default function Predictions() {
             // Get predictions for this event
             const predictions = await predictionsService.getEventPredictions(event.id);
             
-            if (predictions.length > 0) {
+            console.log(`Event ${event.id}: Found ${predictions.length} predictions`);
+            
+            if (predictions && predictions.length > 0) {
               // Get event details with odds
               const eventDetails = await eventsService.getEventDetails(event.id);
               
@@ -115,9 +117,9 @@ export default function Predictions() {
                 predictions: predictionsWithOdds,
               });
             }
-          } catch (err) {
-            // Silently skip events without predictions
-            console.debug(`No predictions for event ${event.id}`);
+          } catch (err: any) {
+            // Log error but continue with other events
+            console.warn(`Error getting predictions for event ${event.id}:`, err.message || err);
           }
         }
         
@@ -132,13 +134,12 @@ export default function Predictions() {
     enabled: !!selectedSport,
   });
 
-  // Filter predictions
+  // Filter predictions (show all that meet confidence and value thresholds)
   const filteredEvents = eventsWithPredictions?.filter((event) => {
     return event.predictions.some(
       (pred) =>
         pred.confidence >= minConfidence &&
-        pred.value >= minValue &&
-        (pred.recommendation === 'STRONG_BUY' || pred.recommendation === 'BUY')
+        pred.value >= minValue
     );
   }) || [];
 
@@ -258,7 +259,7 @@ export default function Predictions() {
           </label>
           <input
             type="range"
-            min="0.5"
+            min="0"
             max="1"
             step="0.05"
             value={minConfidence}
@@ -269,11 +270,11 @@ export default function Predictions() {
 
         <div>
           <label className="block text-sm font-semibold text-gray-400 mb-2">
-            Valor Mínimo: +{(minValue * 100).toFixed(0)}%
+            Valor Mínimo: {minValue >= 0 ? '+' : ''}{(minValue * 100).toFixed(0)}%
           </label>
           <input
             type="range"
-            min="0"
+            min="-0.1"
             max="0.2"
             step="0.01"
             value={minValue}
