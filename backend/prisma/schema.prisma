@@ -126,6 +126,7 @@ model Event {
   awayTeam   String
   homeScore  Int?        @default(0)
   awayScore  Int?        @default(0)
+  isActive   Boolean     @default(true) // ⚠️ CRÍTICO: Para filtrar eventos activos
   metadata   Json?
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
@@ -146,6 +147,7 @@ model Event {
   @@index([status])
   @@index([startTime])
   @@index([externalId])
+  @@index([isActive])
 }
 
 enum EventStatus {
