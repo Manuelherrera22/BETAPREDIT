@@ -257,9 +257,13 @@ serve(async (req) => {
                 continue;
               }
               
+              // ⚠️ IMPORTANTE: Generar ID manualmente para Supabase
+              const eventId = crypto.randomUUID();
+              
               const { data: createdEvent, error: createEventError } = await supabase
                 .from('Event')
                 .insert({
+                  id: eventId, // ⚠️ CRÍTICO: Especificar ID manualmente
                   externalId: oddsEvent.id,
                   sportId: sportData.id,
                   name: `${oddsEvent.home_team} vs ${oddsEvent.away_team}`,
