@@ -161,7 +161,18 @@ export const predictionsService = {
    */
   generatePredictions: async (): Promise<{ generated: number; updated: number; errors: number }> => {
     const supabaseFunctionsUrl = getSupabaseFunctionsUrl();
-    const useSupabase = isSupabaseConfigured() && supabaseFunctionsUrl && import.meta.env.PROD;
+    // Use Edge Function if Supabase is configured and we have the URL
+    // Check if we're in production OR if the backend URL is the production URL
+    const isProduction = import.meta.env.PROD || window.location.hostname === 'betapredit.com';
+    const useSupabase = isSupabaseConfigured() && supabaseFunctionsUrl && isProduction;
+    
+    console.log('generatePredictions config:', {
+      supabaseConfigured: isSupabaseConfigured(),
+      supabaseFunctionsUrl,
+      isProduction,
+      useSupabase,
+      hostname: window.location.hostname,
+    });
     
     if (useSupabase) {
       // Try to get Supabase auth token first

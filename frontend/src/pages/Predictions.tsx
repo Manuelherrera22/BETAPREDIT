@@ -178,7 +178,9 @@ export default function Predictions() {
   // Mutation to generate predictions manually
   const generatePredictionsMutation = useMutation({
     mutationFn: async () => {
+      console.log('Generating predictions...');
       const result = await predictionsService.generatePredictions();
+      console.log('Predictions generated:', result);
       return { data: result };
     },
     onSuccess: (data) => {
