@@ -116,10 +116,54 @@ export const predictionsService = {
 
   /**
    * Get predictions for an event
+   * Uses Supabase Edge Function in production, backend API in development
    */
   getEventPredictions: async (eventId: string): Promise<any[]> => {
-    const { data } = await api.get(`/predictions/event/${eventId}`);
-    return data.data || [];
+    const supabaseFunctionsUrl = getSupabaseFunctionsUrl();
+    const isProduction = import.meta.env.PROD || window.location.hostname === 'betapredit.com';
+    const useSupabase = isSupabaseConfigured() && supabaseFunctionsUrl && isProduction;
+    
+    if (useSupabase) {
+      // Try to get Supabase auth token first
+      let token = await getSupabaseAuthToken();
+      
+      // Fallback to backend token if Supabase token not available
+      if (!token) {
+        token = useAuthStore.getState().token;
+      }
+      
+      if (!token) {
+        throw new Error('No authentication token');
+      }
+
+      const url = `${supabaseFunctionsUrl}/get-predictions?eventId=${eventId}`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { message: errorText };
+        }
+        throw new Error(errorData.error?.message || errorData.message || `HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result.data || [];
+    } else {
+      // Use backend API
+      const { data } = await api.get(`/predictions/event/${eventId}`);
+      return data.data || [];
+    }
   },
 
   /**
