@@ -4,10 +4,11 @@
  */
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { predictionsService } from '../services/predictionsService';
 import { eventsService } from '../services/eventsService';
 import { theOddsApiService } from '../services/theOddsApiService';
+import api from '../services/api';
 import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
@@ -172,15 +173,52 @@ export default function Predictions() {
     }
   };
 
+  const queryClient = useQueryClient();
+
+  // Mutation to generate predictions manually
+  const generatePredictionsMutation = useMutation({
+    mutationFn: async () => {
+      const { data } = await api.post('/predictions/generate');
+      return data;
+    },
+    onSuccess: (data) => {
+      toast.success(`Predicciones generadas: ${data.data.generated} nuevas, ${data.data.updated} actualizadas`);
+      // Refetch predictions after generation
+      queryClient.invalidateQueries({ queryKey: ['eventsWithPredictions'] });
+    },
+    onError: (error: any) => {
+      toast.error(`Error al generar predicciones: ${error.response?.data?.error?.message || error.message}`);
+    },
+  });
+
   return (
     <div className="px-4 py-6">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <h1 className="text-4xl font-black text-white">Sistema de Predicciones Premium</h1>
-          <span className="px-3 py-1 bg-gold-500/20 text-gold-400 rounded-full text-sm font-black border border-gold-500/40">
-            🏆 TANQUE INSIGNIA
-          </span>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-3">
+            <h1 className="text-4xl font-black text-white">Sistema de Predicciones Premium</h1>
+            <span className="px-3 py-1 bg-gold-500/20 text-gold-400 rounded-full text-sm font-black border border-gold-500/40">
+              🏆 TANQUE INSIGNIA
+            </span>
+          </div>
+          <button
+            onClick={() => generatePredictionsMutation.mutate()}
+            disabled={generatePredictionsMutation.isPending}
+            className="px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {generatePredictionsMutation.isPending ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Generando...
+              </>
+            ) : (
+              <>
+                <span>⚡</span>
+                Generar Predicciones
+              </>
+            )}
+          </button>
         </div>
         <p className="text-gray-400">
           Predicciones probabilísticas avanzadas con comparación en tiempo real vs cuotas del mercado
