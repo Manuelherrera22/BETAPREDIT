@@ -273,6 +273,24 @@ serve(async (req) => {
       );
     }
 
+    // Check if The Odds API returned an error (even with 200 status)
+    if (data.message && data.error_code) {
+      console.error("The Odds API error:", data.message, data.error_code);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          data: data // Return the error from The Odds API
+        }),
+        {
+          status: response.status, // Use the status from The Odds API
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
+      );
+    }
+
     // Return response
     return new Response(
       JSON.stringify({ 
