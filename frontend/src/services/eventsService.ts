@@ -89,6 +89,7 @@ export const eventsService = {
       }
 
       const result = await response.json();
+      console.log('get-events (live) response:', { success: result.success, dataLength: result.data?.length || 0 });
       return result.data || [];
     } else {
       // Use backend API
