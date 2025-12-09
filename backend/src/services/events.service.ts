@@ -50,9 +50,12 @@ class EventsService {
     if (useTheOddsAPI) {
       try {
         const theOddsAPI = getTheOddsAPIService();
-        if (theOddsAPI) {
-          // Map sportId to The Odds API sport key
-          const sportKey = this.mapSportIdToTheOddsAPIKey(sportId);
+        if (!theOddsAPI) {
+          logger.warn('The Odds API service not configured, using database only');
+        } else {
+          // Map sportId to The Odds API sport key (now async)
+          const sportKey = await this.mapSportIdToTheOddsAPIKey(sportId);
+          logger.debug(`Mapped sportId ${sportId} to The Odds API key: ${sportKey}`);
           
           // Fetch events from The Odds API
           const oddsEvents = await theOddsAPI.getOdds(sportKey, {
@@ -62,15 +65,20 @@ class EventsService {
           });
 
           if (oddsEvents && oddsEvents.length > 0) {
+            logger.info(`Fetched ${oddsEvents.length} events from The Odds API for ${sportKey}`);
             // Sync events to database
             await eventSyncService.syncEventsFromOddsData(oddsEvents);
 
             // Now fetch from database (with synced events)
-            return await this.getUpcomingEventsFromDB({ sportId, date, limit });
+            const dbEvents = await this.getUpcomingEventsFromDB({ sportId, date, limit });
+            logger.info(`Returning ${dbEvents.length} events from database after sync`);
+            return dbEvents;
+          } else {
+            logger.info(`No events found in The Odds API for ${sportKey}, trying database`);
           }
         }
       } catch (error: any) {
-        logger.warn('Error fetching events from The Odds API, falling back to database:', error.message);
+        logger.error('Error fetching events from The Odds API, falling back to database:', error.message);
         // Fall through to database query
       }
     }
@@ -134,24 +142,51 @@ class EventsService {
 
   /**
    * Map internal sport ID to The Odds API sport key
+   * Now searches in database for proper mapping
    */
-  private mapSportIdToTheOddsAPIKey(sportId?: string): string {
+  private async mapSportIdToTheOddsAPIKey(sportId?: string): Promise<string> {
     if (!sportId) {
       return 'soccer_epl'; // Default
     }
 
-    // Try to find sport by ID and get its slug
-    // For now, use a simple mapping
-    const sportMapping: Record<string, string> = {
-      'soccer': 'soccer_epl',
-      'basketball': 'basketball_nba',
-      'americanfootball': 'americanfootball_nfl',
-      'baseball': 'baseball_mlb',
-    };
+    try {
+      // Try to find sport in database by ID
+      const sport = await prisma.sport.findUnique({
+        where: { id: sportId },
+      });
 
-    // If sportId is already a key, use it
-    if (sportMapping[sportId]) {
-      return sportMapping[sportId];
+      if (sport) {
+        // If sport has a slug, use it directly (should match The Odds API key)
+        if (sport.slug) {
+          return sport.slug;
+        }
+
+        // If no slug, try to map by name
+        const nameMapping: Record<string, string> = {
+          'soccer': 'soccer_epl',
+          'football': 'soccer_epl',
+          'basketball': 'basketball_nba',
+          'american football': 'americanfootball_nfl',
+          'baseball': 'baseball_mlb',
+          'tennis': 'tennis',
+          'ice hockey': 'icehockey_nhl',
+          'rugby': 'rugby_league_nrl',
+        };
+
+        const sportNameLower = sport.name.toLowerCase();
+        for (const [name, key] of Object.entries(nameMapping)) {
+          if (sportNameLower.includes(name)) {
+            return key;
+          }
+        }
+      }
+    } catch (error: any) {
+      logger.warn(`Error mapping sport ${sportId}:`, error.message);
+    }
+
+    // If sportId looks like a The Odds API key already (contains underscore), use it
+    if (sportId.includes('_')) {
+      return sportId;
     }
 
     // Default to soccer

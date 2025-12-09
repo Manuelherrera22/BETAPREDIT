@@ -10,6 +10,7 @@ import { webSocketService } from './websocket.service';
 import { notificationsService } from './notifications.service';
 import { userPreferencesService } from './user-preferences.service';
 import { autoPredictionsService } from './auto-predictions.service';
+import { eventSyncService } from './event-sync.service';
 import { prisma } from '../config/database';
 
 class ScheduledTasksService {
@@ -33,6 +34,9 @@ class ScheduledTasksService {
 
     // Update predictions when odds change every 5 minutes
     this.startPredictionUpdates(5 * 60 * 1000); // 5 minutes
+
+    // Sync events from The Odds API every hour
+    this.startEventSync(60 * 60 * 1000); // 1 hour
 
     // Scan for value bets every 15 minutes
     this.startValueBetScan(15 * 60 * 1000); // 15 minutes
@@ -129,6 +133,60 @@ class ScheduledTasksService {
       logger.info(`Prediction updates: ${result.updated} updated, ${result.errors} errors`);
     } catch (error: any) {
       logger.error('Error running prediction updates:', error);
+    }
+  }
+
+  /**
+   * Start event synchronization task
+   */
+  private startEventSync(intervalMs: number) {
+    const taskName = 'event-sync';
+
+    // Run immediately on start (with delay)
+    setTimeout(() => {
+      this.runEventSync();
+    }, 60000); // Wait 1 minute after server start
+
+    // Then run on interval
+    const interval = setInterval(() => {
+      this.runEventSync();
+    }, intervalMs);
+
+    this.intervals.set(taskName, interval);
+    logger.info(`Started event sync task (interval: ${intervalMs / 1000}s)`);
+  }
+
+  /**
+   * Run event synchronization
+   */
+  private async runEventSync() {
+    try {
+      logger.info('Running scheduled event sync...');
+
+      const mainSports = [
+        'soccer_epl',
+        'soccer_spain_la_liga',
+        'soccer_italy_serie_a',
+        'basketball_nba',
+        'americanfootball_nfl',
+        'icehockey_nhl',
+      ];
+
+      let totalSynced = 0;
+
+      for (const sportKey of mainSports) {
+        try {
+          const synced = await eventSyncService.syncSportEvents(sportKey);
+          totalSynced += synced.length;
+          logger.info(`Synced ${synced.length} events for ${sportKey}`);
+        } catch (error: any) {
+          logger.warn(`Error syncing events for ${sportKey}:`, error.message);
+        }
+      }
+
+      logger.info(`Event sync completed: ${totalSynced} total events synced`);
+    } catch (error: any) {
+      logger.error('Error running event sync:', error);
     }
   }
 
