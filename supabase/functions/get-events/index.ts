@@ -121,8 +121,14 @@ serve(async (req) => {
     }
 
     // For upcoming events, filter by startTime >= now
+    // ⚠️ IMPORTANTE: Usar una ventana de tiempo más amplia para incluir eventos próximos
     if (status === 'SCHEDULED') {
-      query = query.gte('startTime', new Date().toISOString());
+      const now = new Date();
+      // Incluir eventos de las próximas 30 días
+      const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+      query = query.gte('startTime', now.toISOString())
+                 .lte('startTime', thirtyDaysFromNow.toISOString());
+      console.log(`Filtering SCHEDULED events between ${now.toISOString()} and ${thirtyDaysFromNow.toISOString()}`);
     }
 
     let { data: events, error: queryError } = await query;
@@ -189,21 +195,50 @@ serve(async (req) => {
     
     // ⚠️ DEBUG: Log detallado para verificar qué eventos se están obteniendo
     console.log(`Found ${events?.length || 0} events with status=${status}, sportId=${finalSportId || 'all'}`);
-    if (events && events.length > 0) {
-      console.log('Sample event:', JSON.stringify(events[0], null, 2));
-    } else {
-      // Si no hay eventos, verificar si hay eventos en la BD sin filtros
+    
+    // Si no hay eventos, hacer diagnóstico completo
+    if (!events || events.length === 0) {
+      console.log('=== DIAGNÓSTICO: No se encontraron eventos ===');
+      
+      // 1. Total eventos en BD
       const { count: totalEvents } = await supabase
         .from('Event')
         .select('*', { count: 'exact', head: true });
-      console.log(`Total events in DB: ${totalEvents || 0}`);
+      console.log(`1. Total events in DB: ${totalEvents || 0}`);
       
-      // Verificar eventos con status SCHEDULED
+      // 2. Eventos con status SCHEDULED
       const { count: scheduledEvents } = await supabase
         .from('Event')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'SCHEDULED');
-      console.log(`Scheduled events in DB: ${scheduledEvents || 0}`);
+      console.log(`2. Scheduled events in DB: ${scheduledEvents || 0}`);
+      
+      // 3. Eventos SCHEDULED con startTime >= now
+      const now = new Date();
+      const { count: upcomingEvents } = await supabase
+        .from('Event')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'SCHEDULED')
+        .gte('startTime', now.toISOString());
+      console.log(`3. Upcoming scheduled events (startTime >= now): ${upcomingEvents || 0}`);
+      
+      // 4. Verificar si isActive existe y está filtrando
+      const { data: sampleEvents } = await supabase
+        .from('Event')
+        .select('id, status, startTime, isActive')
+        .eq('status', 'SCHEDULED')
+        .limit(5);
+      console.log(`4. Sample events (first 5 SCHEDULED):`, sampleEvents);
+      
+      // 5. Verificar eventos sin filtro de isActive
+      const { count: eventsWithoutIsActive } = await supabase
+        .from('Event')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'SCHEDULED')
+        .gte('startTime', now.toISOString());
+      console.log(`5. Events without isActive filter: ${eventsWithoutIsActive || 0}`);
+    } else {
+      console.log('Sample event:', JSON.stringify(events[0], null, 2));
     }
 
     // Transform data to match frontend interface
