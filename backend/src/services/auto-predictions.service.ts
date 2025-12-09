@@ -52,12 +52,15 @@ class AutoPredictionsService {
       // Process each sport
       for (const sport of sports) {
         try {
-          const result = await this.generatePredictionsForSportFromDB(sport.slug || sport.id);
+          // Use sport ID directly if slug is not available
+          const result = sport.slug 
+            ? await this.generatePredictionsForSportFromDB(sport.slug)
+            : await this.generatePredictionsForSportById(sport.id);
           totalGenerated += result.generated;
           totalUpdated += result.updated;
           totalErrors += result.errors;
         } catch (error: any) {
-          logger.error(`Error generating predictions for sport ${sport.slug}:`, error.message);
+          logger.error(`Error generating predictions for sport ${sport.slug || sport.id}:`, error.message);
           totalErrors++;
         }
       }
@@ -141,19 +144,43 @@ class AutoPredictionsService {
   }
 
   /**
-   * ⚠️ NUEVO: Generate predictions for a specific sport using events from database
+   * ⚠️ NUEVO: Generate predictions for a specific sport using events from database (by slug)
    */
-  private async generatePredictionsForSportFromDB(sportKey: string) {
+  private async generatePredictionsForSportFromDB(sportSlug: string) {
     try {
-      logger.info(`Generating predictions for sport from DB: ${sportKey}`);
+      logger.info(`Generating predictions for sport from DB (by slug): ${sportSlug}`);
 
       // Find sport by slug
       const sport = await prisma.sport.findFirst({
-        where: { slug: sportKey, isActive: true },
+        where: { slug: sportSlug, isActive: true },
       });
 
       if (!sport) {
-        logger.info(`Sport ${sportKey} not found in database`);
+        logger.info(`Sport with slug ${sportSlug} not found in database`);
+        return { generated: 0, updated: 0, errors: 0 };
+      }
+
+      return this.generatePredictionsForSportById(sport.id);
+    } catch (error: any) {
+      logger.error(`Error generating predictions for sport ${sportSlug}:`, error);
+      return { generated: 0, updated: 0, errors: 1 };
+    }
+  }
+
+  /**
+   * ⚠️ NUEVO: Generate predictions for a specific sport using events from database (by ID)
+   */
+  private async generatePredictionsForSportById(sportId: string) {
+    try {
+      logger.info(`Generating predictions for sport from DB (by ID): ${sportId}`);
+
+      // Find sport by ID
+      const sport = await prisma.sport.findFirst({
+        where: { id: sportId, isActive: true },
+      });
+
+      if (!sport) {
+        logger.info(`Sport with ID ${sportId} not found in database`);
         return { generated: 0, updated: 0, errors: 0 };
       }
 
@@ -183,11 +210,11 @@ class AutoPredictionsService {
       });
 
       if (events.length === 0) {
-        logger.info(`No upcoming events found in DB for sport ${sportKey}`);
+        logger.info(`No upcoming events found in DB for sport ${sport.slug || sport.id}`);
         return { generated: 0, updated: 0, errors: 0 };
       }
 
-      logger.info(`Found ${events.length} upcoming events in DB for ${sportKey}`);
+      logger.info(`Found ${events.length} upcoming events in DB for sport ${sport.slug || sport.id}`);
 
       let generated = 0;
       let updated = 0;
@@ -207,7 +234,7 @@ class AutoPredictionsService {
 
       return { generated, updated, errors };
     } catch (error: any) {
-      logger.error(`Error generating predictions for sport ${sportKey}:`, error);
+      logger.error(`Error generating predictions for sport ${sportId}:`, error);
       return { generated: 0, updated: 0, errors: 1 };
     }
   }

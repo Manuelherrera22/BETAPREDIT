@@ -178,16 +178,22 @@ export default function Predictions() {
   // Mutation to generate predictions manually
   const generatePredictionsMutation = useMutation({
     mutationFn: async () => {
-      const { data } = await api.post('/predictions/generate');
+      const { data } = await api.post('/predictions/generate', {});
       return data;
     },
     onSuccess: (data) => {
-      toast.success(`Predicciones generadas: ${data.data.generated} nuevas, ${data.data.updated} actualizadas`);
+      if (data.data.generated === 0 && data.data.updated === 0) {
+        toast.info(data.message || 'No se generaron predicciones. Verifica que hay eventos próximos con odds disponibles.');
+      } else {
+        toast.success(`Predicciones generadas: ${data.data.generated} nuevas, ${data.data.updated} actualizadas`);
+      }
       // Refetch predictions after generation
       queryClient.invalidateQueries({ queryKey: ['eventsWithPredictions'] });
     },
     onError: (error: any) => {
-      toast.error(`Error al generar predicciones: ${error.response?.data?.error?.message || error.message}`);
+      console.error('Error generating predictions:', error);
+      const errorMessage = error.response?.data?.error?.message || error.message || 'Error desconocido';
+      toast.error(`Error al generar predicciones: ${errorMessage}`);
     },
   });
 
