@@ -7,10 +7,11 @@ import { redisClient } from '../config/redis';
 import { logger } from './logger';
 
 const CACHE_TTL = {
-  SHORT: 60, // 1 minute
-  MEDIUM: 300, // 5 minutes
-  LONG: 3600, // 1 hour
+  SHORT: 120, // 2 minutes (aumentado de 1)
+  MEDIUM: 600, // 10 minutes (aumentado de 5)
+  LONG: 7200, // 2 hours (aumentado de 1)
   VERY_LONG: 86400, // 24 hours
+  STATIC: 3600, // 1 hour for static data (sports, etc)
 };
 
 export class CacheService {

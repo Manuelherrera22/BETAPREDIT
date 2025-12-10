@@ -14,6 +14,9 @@ jest.mock('../config/database', () => ({
       findUnique: jest.fn(),
       create: jest.fn(),
     },
+    responsibleGaming: {
+      create: jest.fn(),
+    },
   },
 }));
 
@@ -44,6 +47,12 @@ describe('AuthService', () => {
         email: 'test@example.com',
         firstName: 'Test',
         lastName: 'User',
+        role: 'USER',
+        createdAt: new Date(),
+      });
+      (prisma.responsibleGaming.create as jest.Mock).mockResolvedValue({
+        id: 'rg1',
+        userId: '1',
       });
 
       const result = await authService.register({
@@ -55,6 +64,7 @@ describe('AuthService', () => {
 
       expect(result).toHaveProperty('email', 'test@example.com');
       expect(prisma.user.create).toHaveBeenCalled();
+      expect(prisma.responsibleGaming.create).toHaveBeenCalled();
     });
   });
 });

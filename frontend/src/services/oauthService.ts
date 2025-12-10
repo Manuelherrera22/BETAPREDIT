@@ -17,26 +17,32 @@ class OAuthService {
     const supabaseConfigured = isSupabaseConfigured();
     const hasSupabaseClient = !!supabase;
     
-    console.log('🔍 OAuth Service - Configuration Check:', {
-      supabaseConfigured,
-      hasSupabaseClient,
+    // Only log in development
+    if (import.meta.env.DEV) {
+      console.log('🔍 OAuth Service - Configuration Check:', {
+        supabaseConfigured,
+        hasSupabaseClient,
       supabaseUrl: import.meta.env.VITE_SUPABASE_URL ? 'SET' : 'MISSING',
       supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY ? 'SET' : 'MISSING',
     });
     
     // CRITICAL: If Supabase is configured, we MUST use it, no fallback
     if (supabaseConfigured && supabase) {
-      console.log('✅ Using Supabase Auth (no backend needed)');
+      if (import.meta.env.DEV) {
+        console.log('✅ Using Supabase Auth (no backend needed)');
+      }
       try {
         // Use current origin (works for both localhost and production)
         const frontendUrl = window.location.origin;
         const callbackUrl = `${frontendUrl}/auth/callback`;
         
-        console.log('Attempting Supabase OAuth with:', {
-          frontendUrl,
-          callbackUrl,
-          supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
-        });
+        if (import.meta.env.DEV) {
+          console.log('Attempting Supabase OAuth with:', {
+            frontendUrl,
+            callbackUrl,
+            supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+          });
+        }
 
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
@@ -49,45 +55,54 @@ class OAuthService {
           },
         });
 
-        console.log('Supabase OAuth response:', { data, error });
+        if (import.meta.env.DEV) {
+          console.log('Supabase OAuth response:', { data, error });
+        }
 
         if (error) {
-          console.error('Supabase OAuth error:', error);
+          if (import.meta.env.DEV) {
+            console.error('Supabase OAuth error:', error);
+          }
           throw new Error(`Supabase Auth error: ${error.message || 'Error desconocido'}`);
         }
 
         if (data && data.url) {
-          console.log('✅ Using Supabase Auth for OAuth');
-          console.log('OAuth URL:', data.url);
-          console.log('Callback URL:', callbackUrl);
+          if (import.meta.env.DEV) {
+            console.log('✅ Using Supabase Auth for OAuth');
+            console.log('OAuth URL:', data.url);
+            console.log('Callback URL:', callbackUrl);
+          }
           return data.url;
         } else {
-          console.error('No URL in Supabase response:', data);
+          if (import.meta.env.DEV) {
+            console.error('No URL in Supabase response:', data);
+          }
           throw new Error('No se recibió URL de autenticación de Supabase');
         }
       } catch (error: any) {
-        console.error('Supabase OAuth failed:', error);
-        console.error('Error details:', {
-          message: error.message,
-          code: error.code,
-          status: error.status,
-          stack: error.stack,
-        });
-        
-        // If Supabase is configured, NEVER fallback to backend
-        // Show the error to the user
-        console.error('❌ Supabase OAuth failed, but Supabase IS configured');
-        console.error('This should NOT happen. Check Supabase dashboard configuration.');
+        if (import.meta.env.DEV) {
+          console.error('Supabase OAuth failed:', error);
+          console.error('Error details:', {
+            message: error.message,
+            code: error.code,
+            status: error.status,
+            stack: error.stack,
+          });
+          console.error('❌ Supabase OAuth failed, but Supabase IS configured');
+          console.error('This should NOT happen. Check Supabase dashboard configuration.');
+        }
         throw new Error(`Error con Supabase Auth: ${error.message || 'No se pudo generar la URL de autenticación. Verifica la configuración en Supabase Dashboard.'}`);
       }
     }
     
     // If we reach here, Supabase is NOT configured
-    console.error('❌ Supabase NOT configured!');
-    console.error('Missing environment variables:', {
-      VITE_SUPABASE_URL: !import.meta.env.VITE_SUPABASE_URL,
-      VITE_SUPABASE_ANON_KEY: !import.meta.env.VITE_SUPABASE_ANON_KEY,
-    });
+    if (import.meta.env.DEV) {
+      console.error('❌ Supabase NOT configured!');
+      console.error('Missing environment variables:', {
+        VITE_SUPABASE_URL: !import.meta.env.VITE_SUPABASE_URL,
+        VITE_SUPABASE_ANON_KEY: !import.meta.env.VITE_SUPABASE_ANON_KEY,
+      });
+    }
     
     // In production, we should NEVER fallback to backend
     // Supabase Auth is required
@@ -100,14 +115,20 @@ class OAuthService {
     }
     
     // Only in development, allow fallback to backend
-    console.warn('⚠️ Development mode: Falling back to backend API');
-    console.warn('⚠️ In production, Supabase Auth is required');
+    if (import.meta.env.DEV) {
+      console.warn('⚠️ Development mode: Falling back to backend API');
+      console.warn('⚠️ In production, Supabase Auth is required');
+    }
 
     // Fallback to backend API (ONLY in development)
     try {
-      console.log('Requesting OAuth URL from:', api.defaults.baseURL + '/oauth/google');
+      if (import.meta.env.DEV) {
+        console.log('Requesting OAuth URL from:', api.defaults.baseURL + '/oauth/google');
+      }
       const response = await api.get('/oauth/google');
-      console.log('OAuth response:', response.data);
+      if (import.meta.env.DEV) {
+        console.log('OAuth response:', response.data);
+      }
       
       // Check if response is HTML (404 page)
       if (typeof response.data === 'string' && response.data.trim().startsWith('<!')) {
@@ -129,25 +150,30 @@ class OAuthService {
       
       // Check if response structure is unexpected
       if (!response.data?.data) {
-        console.error('Unexpected response structure:', response.data);
+        if (import.meta.env.DEV) {
+          console.error('Unexpected response structure:', response.data);
+        }
         throw new Error('La respuesta del servidor no tiene el formato esperado');
       }
       
       throw new Error('Respuesta inválida del servidor');
     } catch (error: any) {
-      console.error('Error getting Google OAuth URL:', error);
-      console.error('Error details:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        code: error.code,
-        config: {
-          url: error.config?.url,
-          baseURL: error.config?.baseURL,
-          method: error.config?.method,
-        },
-      });
+      // Always log errors, but only detailed logs in dev
+      if (import.meta.env.DEV) {
+        console.error('Error getting Google OAuth URL:', error);
+        console.error('Error details:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          code: error.code,
+          config: {
+            url: error.config?.url,
+            baseURL: error.config?.baseURL,
+            method: error.config?.method,
+          },
+        });
+      }
       
       // No response at all (network error, backend down, CORS)
       if (!error.response) {
@@ -200,7 +226,10 @@ class OAuthService {
         throw new Error('No se pudo obtener la URL de autenticación');
       }
     } catch (error: any) {
-      console.error('Error initiating Google OAuth:', error);
+      // Always log errors
+      if (import.meta.env.DEV) {
+        console.error('Error initiating Google OAuth:', error);
+      }
       throw error; // Re-throw to be handled by the component
     }
   }

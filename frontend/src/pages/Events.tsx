@@ -37,14 +37,19 @@ export default function Events() {
         
         // Validate result is an array
         if (!Array.isArray(result)) {
-          console.warn('Events service returned non-array:', result);
+          if (import.meta.env.DEV) {
+            console.warn('Events service returned non-array:', result);
+          }
           return [];
         }
         
         return result;
       } catch (err: any) {
-        console.error('Error loading events:', err);
+        // Always show error to user, but only log details in dev
         const errorMessage = err.message || 'Error desconocido';
+        if (import.meta.env.DEV) {
+          console.error('Error loading events:', err);
+        }
         toast.error(`Error al cargar eventos: ${errorMessage}`);
         return [];
       }

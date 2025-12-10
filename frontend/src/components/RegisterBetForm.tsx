@@ -75,7 +75,7 @@ export default function RegisterBetForm({
   const eventSearchRef = useRef<HTMLDivElement>(null)
 
   // Debounce para búsqueda de eventos
-  const debouncedEventQuery = useDebounce(eventSearchQuery, 300)
+  const debouncedEventQuery = useDebounce(eventSearchQuery, 500) // Aumentado a 500ms para reducir llamadas
 
   // Buscar eventos cuando el usuario escribe
   const { data: searchResults = [], isLoading: searchingEvents } = useQuery({

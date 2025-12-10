@@ -383,7 +383,9 @@ class TheOddsAPIService {
       });
       return data.success ? data.data : [];
     } catch (error) {
-      console.error('Error searching events:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error searching events:', error);
+      }
       return [];
     }
   }

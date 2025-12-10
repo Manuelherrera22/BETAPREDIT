@@ -79,7 +79,9 @@ export default function MyBets() {
         const result = await externalBetsService.getMyBets(apiFilters);
         return Array.isArray(result) ? result : [];
       } catch (err: any) {
-        console.error('Error loading bets:', err);
+        if (import.meta.env.DEV) {
+          console.error('Error loading bets:', err);
+        }
         toast.error(`Error al cargar apuestas: ${err.message || 'Error desconocido'}`);
         return [];
       }
