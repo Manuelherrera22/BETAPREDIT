@@ -233,6 +233,17 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Subscribe to prediction updates
+  socket.on('subscribe:predictions', (eventId?: string) => {
+    if (eventId) {
+      socket.join(`predictions:${eventId}`);
+      logger.info(`Client ${socket.id} subscribed to predictions for event ${eventId}`);
+    } else {
+      socket.join('predictions:all');
+      logger.info(`Client ${socket.id} subscribed to all prediction updates`);
+    }
+  });
+
   // Unsubscribe from a channel
   socket.on('unsubscribe', (channel: string) => {
     socket.leave(channel);

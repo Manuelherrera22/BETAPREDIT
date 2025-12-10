@@ -127,6 +127,8 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
         'event:update',
         'sport:update',
         'arbitrage:opportunity',
+        'prediction:update',
+        'prediction:batch-update',
       ];
 
       messageHandlers.forEach((event) => {
@@ -178,6 +180,13 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
         ? undefined 
         : { sport: channel.replace('arbitrage:', '') };
       socket.emit('subscribe:arbitrage', options);
+    } else if (channel.startsWith('predictions:')) {
+      const eventId = channel.replace('predictions:', '');
+      if (eventId === 'all') {
+        socket.emit('subscribe:predictions');
+      } else {
+        socket.emit('subscribe:predictions', eventId);
+      }
     }
   };
 
@@ -200,21 +209,37 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     }
   }, []);
 
-  // Subscribe to a channel
-  const subscribe = useCallback((channel: string) => {
+  // Subscribe to a channel or event
+  const subscribe = useCallback((eventOrChannel: string, handler?: (data: any) => void) => {
     if (!globalSocket?.connected) {
       console.warn('Socket not connected, cannot subscribe');
       return;
     }
-    subscribeToChannel(globalSocket, channel);
+    
+    // If it's an event name (contains ':'), subscribe to the event
+    if (eventOrChannel.includes(':') && handler) {
+      globalSocket.on(eventOrChannel, handler);
+      return;
+    }
+    
+    // Otherwise, subscribe to channel
+    subscribeToChannel(globalSocket, eventOrChannel);
   }, []);
 
-  // Unsubscribe from a channel
-  const unsubscribe = useCallback((channel: string) => {
+  // Unsubscribe from a channel or event
+  const unsubscribe = useCallback((eventOrChannel: string, handler?: (data: any) => void) => {
     if (!globalSocket?.connected) {
       return;
     }
-    globalSocket.emit('unsubscribe', channel);
+    
+    // If it's an event name (contains ':') and has handler, unsubscribe from the event
+    if (eventOrChannel.includes(':') && handler) {
+      globalSocket.off(eventOrChannel, handler);
+      return;
+    }
+    
+    // Otherwise, unsubscribe from channel
+    globalSocket.emit('unsubscribe', eventOrChannel);
   }, []);
 
   return {
