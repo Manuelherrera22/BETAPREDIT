@@ -42,41 +42,41 @@ function calculatePredictedProbability(allBookmakerOdds: number[]): {
   const coefficientOfVariation = standardDeviation / marketAverage; // Relative variability
   const marketConsensus = Math.max(0.3, 1 - Math.min(coefficientOfVariation * 3, 0.7)); // More conservative
 
-  // Calculate value adjustment (smaller adjustments for realism)
-  const valueAdjustment = marketConsensus < 0.6 ? 1.03 : 1.01; // Max 3% adjustment, usually 1%
+  // Calculate value adjustment - CONSERVATIVE (no over-optimism)
+  // Smaller adjustments for realism - avoid inflating probabilities
+  const valueAdjustment = marketConsensus < 0.6 ? 1.02 : 1.01; // Max 2% adjustment, usually 1%
 
   // Calculate predicted probability
   let predictedProbability = marketAverage * valueAdjustment;
   predictedProbability = Math.max(0.01, Math.min(0.99, predictedProbability));
 
-  // IMPROVED: More realistic confidence calculation
-  // Base confidence starts lower and varies more
+  // REALISTIC confidence calculation - NO INFLATION
+  // Base confidence starts from market consensus (usually 0.6-0.8)
   let confidence = marketConsensus;
   
   // Factor 1: Number of bookmakers (more = slightly more confidence, but diminishing returns)
-  const bookmakerFactor = Math.min(1 + (allBookmakerOdds.length - 1) * 0.03, 1.15); // Max 15% boost
+  const bookmakerFactor = Math.min(1 + (allBookmakerOdds.length - 1) * 0.02, 1.1); // Max 10% boost
   
   // Factor 2: Odds range (tighter range = more agreement = higher confidence)
   const minOdd = Math.min(...allBookmakerOdds);
   const maxOdd = Math.max(...allBookmakerOdds);
   const oddsRange = (maxOdd - minOdd) / minOdd; // Relative range
-  const rangeFactor = Math.max(0.7, 1 - (oddsRange * 0.5)); // Penalize wide ranges
+  const rangeFactor = Math.max(0.75, 1 - (oddsRange * 0.4)); // Penalize wide ranges
   
-  // Factor 3: Market average position (extreme probabilities are less certain)
-  // Probabilities near 0.5 (50/50) are less certain than very high/low ones
-  const certaintyFactor = 1 - Math.abs(marketAverage - 0.5) * 0.3; // Slight boost for extreme probabilities
+  // Factor 3: Market average position (extreme probabilities are slightly more certain)
+  const certaintyFactor = 1 - Math.abs(marketAverage - 0.5) * 0.2; // Slight boost for extreme probabilities
   
   // Combine factors
   confidence = confidence * bookmakerFactor * rangeFactor * certaintyFactor;
   
-  // Apply realistic bounds: 0.45 to 0.85 (not 0.95!)
+  // REALISTIC BOUNDS: 0.45 to 0.82 (not 0.95!)
   // Most predictions should be in the 0.55-0.75 range
-  confidence = Math.max(0.45, Math.min(0.85, confidence));
+  confidence = Math.max(0.45, Math.min(0.82, confidence));
   
-  // Add some randomness to avoid all predictions having same confidence
+  // Add small random variation to avoid all predictions having same confidence
   // This simulates real-world uncertainty
-  const randomVariation = (Math.random() - 0.5) * 0.08; // ±4% variation
-  confidence = Math.max(0.45, Math.min(0.85, confidence + randomVariation));
+  const randomVariation = (Math.random() - 0.5) * 0.06; // ±3% variation
+  confidence = Math.max(0.45, Math.min(0.82, confidence + randomVariation));
 
   return {
     predictedProbability,

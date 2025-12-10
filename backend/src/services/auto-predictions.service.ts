@@ -14,6 +14,7 @@ import { eventSyncService } from './event-sync.service';
 import { valueBetDetectionService } from './value-bet-detection.service';
 import { webSocketService } from './websocket.service';
 import { advancedFeaturesService } from './advanced-features.service';
+import { multiMarketPredictionsService } from './multi-market-predictions.service';
 
 class AutoPredictionsService {
   private readonly MODEL_VERSION = 'v2.0-auto';
@@ -817,8 +818,9 @@ class AutoPredictionsService {
             const previousAvgOdds = factors.marketAverage ? 1 / factors.marketAverage : null;
             const currentAvgOdds = currentOdds.reduce((sum, odd) => sum + odd, 0) / currentOdds.length;
 
-            if (previousAvgOdds && Math.abs(currentAvgOdds - previousAvgOdds) / previousAvgOdds > 0.05) {
-              // Odds changed more than 5%, recalculate prediction
+            // PROFESSIONAL: Lower threshold (3% instead of 5%) for more frequent real-time updates
+            if (previousAvgOdds && Math.abs(currentAvgOdds - previousAvgOdds) / previousAvgOdds > 0.03) {
+              // Odds changed more than 3%, recalculate prediction
               const newPrediction = await improvedPredictionService.calculatePredictedProbability(
                 event.id,
                 prediction.selection,

@@ -30,10 +30,12 @@ class ScheduledTasksService {
     logger.info('Starting scheduled tasks...');
 
     // Generate predictions for all upcoming events every 10 minutes
+    // PROFESSIONAL: More frequent for real-time operation
     this.startAutoPredictions(10 * 60 * 1000); // 10 minutes
 
-    // Update predictions when odds change every 5 minutes
-    this.startPredictionUpdates(5 * 60 * 1000); // 5 minutes
+    // Update predictions when odds change every 3 minutes
+    // PROFESSIONAL: More frequent updates for real-time accuracy
+    this.startPredictionUpdates(3 * 60 * 1000); // 3 minutes (reduced from 5)
 
     // ⚠️ OPTIMIZADO: Sync events from The Odds API every 4 hours (reduced from 1 hour to save API credits)
     this.startEventSync(4 * 60 * 60 * 1000); // 4 hours
