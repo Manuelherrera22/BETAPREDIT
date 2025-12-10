@@ -7,6 +7,7 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { useAuthStore } from '../store/authStore';
 import Icon from '../components/icons/IconSystem';
+import EmptyState from '../components/EmptyState';
 
 interface Alert {
   id: string;

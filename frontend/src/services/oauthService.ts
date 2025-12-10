@@ -22,9 +22,10 @@ class OAuthService {
       console.log('🔍 OAuth Service - Configuration Check:', {
         supabaseConfigured,
         hasSupabaseClient,
-      supabaseUrl: import.meta.env.VITE_SUPABASE_URL ? 'SET' : 'MISSING',
-      supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY ? 'SET' : 'MISSING',
-    });
+        supabaseUrl: import.meta.env.VITE_SUPABASE_URL ? 'SET' : 'MISSING',
+        supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY ? 'SET' : 'MISSING',
+      });
+    }
     
     // CRITICAL: If Supabase is configured, we MUST use it, no fallback
     if (supabaseConfigured && supabase) {
