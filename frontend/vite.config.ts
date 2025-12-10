@@ -22,9 +22,11 @@ export default defineConfig({
         manualChunks: (id) => {
           // Vendor chunks
           if (id.includes('node_modules')) {
-            // React and React DOM
+            // React and React DOM - keep in main bundle or ensure it loads first
+            // Don't split React as it's needed by all chunks
             if (id.includes('react') || id.includes('react-dom')) {
-              return 'vendor-react';
+              // Keep React in the main bundle to avoid loading order issues
+              return undefined;
             }
             // React Router
             if (id.includes('react-router')) {
@@ -41,6 +43,18 @@ export default defineConfig({
             // Date libraries
             if (id.includes('date-fns')) {
               return 'vendor-date';
+            }
+            // Zustand (state management)
+            if (id.includes('zustand')) {
+              return 'vendor-state';
+            }
+            // Axios
+            if (id.includes('axios')) {
+              return 'vendor-http';
+            }
+            // Socket.io
+            if (id.includes('socket.io')) {
+              return 'vendor-socket';
             }
             // Other vendors
             return 'vendor-other';
