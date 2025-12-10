@@ -7,11 +7,13 @@
 import { logger } from '../utils/logger';
 import { prisma } from '../config/database';
 import { improvedPredictionService } from './improved-prediction.service';
+import { universalPredictionService } from './universal-prediction.service';
 import { predictionsService } from './predictions.service';
 import { getTheOddsAPIService } from './integrations/the-odds-api.service';
 import { eventSyncService } from './event-sync.service';
 import { valueBetDetectionService } from './value-bet-detection.service';
 import { webSocketService } from './websocket.service';
+import { advancedFeaturesService } from './advanced-features.service';
 
 class AutoPredictionsService {
   private readonly MODEL_VERSION = 'v2.0-auto';
@@ -220,15 +222,46 @@ class AutoPredictionsService {
       let updated = 0;
       let errors = 0;
 
-      // Process each event
-      for (const event of events) {
-        try {
-          const result = await this.generatePredictionsForEventFromDB(event);
-          generated += result.generated;
-          updated += result.updated;
-        } catch (error: any) {
-          logger.warn(`Error processing event ${event.id}:`, error.message);
-          errors++;
+      // Process events in batches for better performance (optimized)
+      const batchSize = 20; // Process 20 events at a time
+      const batches = [];
+      
+      for (let i = 0; i < events.length; i += batchSize) {
+        batches.push(events.slice(i, i + batchSize));
+      }
+      
+      // Process batches with controlled concurrency (avoid overwhelming DB)
+      const concurrency = 3; // Process 3 batches at a time
+      for (let i = 0; i < batches.length; i += concurrency) {
+        const concurrentBatches = batches.slice(i, i + concurrency);
+        
+        const batchResults = await Promise.all(
+          concurrentBatches.map(batch =>
+            Promise.all(
+              batch.map(async (event) => {
+                try {
+                  return await this.generatePredictionsForEventFromDB(event);
+                } catch (error: any) {
+                  logger.warn(`Error processing event ${event.id}:`, error.message);
+                  errors++;
+                  return { generated: 0, updated: 0 };
+                }
+              })
+            )
+          )
+        );
+        
+        // Aggregate results
+        for (const batchResult of batchResults) {
+          for (const result of batchResult) {
+            generated += result.generated;
+            updated += result.updated;
+          }
+        }
+        
+        // Small delay between concurrent batches to avoid overwhelming DB
+        if (i + concurrency < batches.length) {
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
       }
 
@@ -341,12 +374,91 @@ class AutoPredictionsService {
         if (oddsArray.length === 0) continue;
 
         try {
-          // Calculate prediction using improved prediction service
-          const prediction = await improvedPredictionService.calculatePredictedProbability(
-            event.id,
-            selection,
-            oddsArray
-          );
+          // Try universal model first, fallback to improved
+          let prediction;
+          // Get advanced features (team form, H2H, market intelligence)
+          let advancedFeatures: any = {};
+          try {
+            const allFeatures = await advancedFeaturesService.getAllAdvancedFeatures(
+              event.id,
+              event.homeTeam,
+              event.awayTeam,
+              event.sportId
+            );
+            // Structure advanced features for storage
+            advancedFeatures = {
+              // Team form
+              homeForm: allFeatures.homeForm || {},
+              awayForm: allFeatures.awayForm || {},
+              // H2H
+              h2h: allFeatures.h2h || {},
+              // Market intelligence
+              market: allFeatures.market || {},
+              // Relative features
+              formAdvantage: allFeatures.formAdvantage || 0,
+              goalsAdvantage: allFeatures.goalsAdvantage || 0,
+              defenseAdvantage: allFeatures.defenseAdvantage || 0,
+            };
+            logger.debug(`Advanced features calculated for event ${event.id}:`, {
+              hasHomeForm: !!allFeatures.homeForm,
+              hasAwayForm: !!allFeatures.awayForm,
+              hasH2H: !!allFeatures.h2h,
+              hasMarket: !!allFeatures.market,
+            });
+          } catch (error: any) {
+            logger.warn(`Could not fetch advanced features for event ${event.id}: ${error.message}`);
+            // Set defaults to ensure structure is consistent
+            advancedFeatures = {
+              homeForm: {},
+              awayForm: {},
+              h2h: {},
+              market: {},
+              formAdvantage: 0,
+              goalsAdvantage: 0,
+              defenseAdvantage: 0,
+            };
+          }
+
+          try {
+            const universalPred = await universalPredictionService.predictSportsEvent(
+              event.id,
+              {
+                marketOdds: oddsArray,
+                homeTeam: event.homeTeam,
+                awayTeam: event.awayTeam,
+                sportId: event.sportId,
+                sportsFactors: {
+                  homeForm: advancedFeatures.homeForm,
+                  awayForm: advancedFeatures.awayForm,
+                  headToHead: advancedFeatures.h2h,
+                },
+              }
+            );
+            prediction = {
+              predictedProbability: universalPred.predictedProbability,
+              confidence: universalPred.confidence,
+              factors: {
+                ...universalPred.factors,
+                ...advancedFeatures, // Include all advanced features
+              },
+            };
+          } catch (error: any) {
+            // Fallback to improved prediction service
+            logger.debug(`Universal model not available, using improved service: ${error.message}`);
+            const improvedPred = await improvedPredictionService.calculatePredictedProbability(
+              event.id,
+              selection,
+              oddsArray
+            );
+            prediction = {
+              predictedProbability: improvedPred.predictedProbability,
+              confidence: improvedPred.confidence,
+              factors: {
+                ...improvedPred.factors,
+                ...advancedFeatures, // Include all advanced features
+              },
+            };
+          }
 
           // Check if prediction already exists
           const existing = await prisma.prediction.findFirst({

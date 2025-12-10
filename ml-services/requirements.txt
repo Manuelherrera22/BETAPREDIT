@@ -7,6 +7,11 @@ pandas==2.1.3
 scikit-learn==1.3.2
 tensorflow==2.15.0
 torch==2.1.1
+xgboost==2.0.3
+# AutoML frameworks
+autogluon.tabular==1.0.1
+# autosklearn==0.15.0  # Optional - requires more setup
+# tpot==0.12.0  # Optional - genetic programming
 redis==5.0.1
 psycopg2-binary==2.9.9
 sqlalchemy==2.0.23

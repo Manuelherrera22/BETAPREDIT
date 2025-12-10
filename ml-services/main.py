@@ -12,6 +12,9 @@ from services.odds_predictor import router as odds_router
 from services.risk_manager import router as risk_router
 from services.fraud_detection import router as fraud_router
 from services.rg_detector import router as rg_router
+from services.ensemble_predictor import router as ensemble_router
+from services.universal_predictor import router as universal_router
+from services.automl_trainer import router as automl_router
 
 load_dotenv()
 
@@ -35,6 +38,9 @@ app.include_router(odds_router, prefix="/api/odds", tags=["Odds Prediction"])
 app.include_router(risk_router, prefix="/api/risk", tags=["Risk Management"])
 app.include_router(fraud_router, prefix="/api/fraud", tags=["Fraud Detection"])
 app.include_router(rg_router, prefix="/api/rg", tags=["Responsible Gaming"])
+app.include_router(ensemble_router, prefix="/api/ensemble", tags=["Ensemble Predictions"])
+app.include_router(universal_router, prefix="/api/universal", tags=["Universal Predictions"])
+app.include_router(automl_router, prefix="/api/automl", tags=["AutoML Training"])
 
 @app.get("/health")
 async def health_check():
