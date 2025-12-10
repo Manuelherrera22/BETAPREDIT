@@ -547,7 +547,6 @@ export default function Predictions() {
                         <PredictionComparisonChart
                           ourPrediction={pred.predictedProbability}
                           marketProbability={1 / pred.marketOdds}
-                          selection={pred.selection}
                         />
                       </div>
 

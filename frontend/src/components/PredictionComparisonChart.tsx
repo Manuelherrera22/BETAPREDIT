@@ -6,10 +6,10 @@
 interface PredictionComparisonChartProps {
   ourPrediction: number; // 0-1
   marketProbability: number; // 0-1
-  selection: string;
+  selection?: string; // Optional, for future use
 }
 
-export default function PredictionComparisonChart({ ourPrediction, marketProbability, selection }: PredictionComparisonChartProps) {
+export default function PredictionComparisonChart({ ourPrediction, marketProbability }: PredictionComparisonChartProps) {
   const ourPercent = ourPrediction * 100;
   const marketPercent = marketProbability * 100;
   const difference = ourPercent - marketPercent;
