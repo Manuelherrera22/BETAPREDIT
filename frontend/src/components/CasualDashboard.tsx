@@ -46,21 +46,21 @@ export default function CasualDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Estado Principal: ¿Ganando o Perdiendo? */}
-      <div className={`bg-gradient-to-br rounded-xl p-8 border-2 ${
+      <div className={`bg-gradient-to-br rounded-xl p-6 sm:p-8 border-2 ${
         isWinning 
           ? 'from-green-500/20 to-green-600/20 border-green-500/40' 
           : 'from-red-500/20 to-red-600/20 border-red-500/40'
       }`}>
         <div className="text-center">
-          <p className="text-sm text-gray-300 mb-2">Este mes estás</p>
-          <h2 className={`text-5xl font-black mb-2 ${
+          <p className="text-xs sm:text-sm text-gray-300 mb-2">Este mes estás</p>
+          <h2 className={`text-3xl sm:text-4xl md:text-5xl font-black mb-2 ${
             isWinning ? 'text-green-400' : 'text-red-400'
           }`}>
             {profitLossFormatted}
           </h2>
-          <p className="text-gray-400 text-sm">
+          <p className="text-gray-400 text-xs sm:text-sm">
             {isWinning 
               ? '🎉 ¡Sigue así! Estás ganando dinero.' 
               : '⚠️ Estás perdiendo dinero. Revisa tus apuestas.'}
@@ -69,35 +69,35 @@ export default function CasualDashboard() {
       </div>
 
       {/* Estadísticas Simples */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-6 border border-primary-500/20">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        <div className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-lg sm:rounded-xl p-4 sm:p-6 border border-primary-500/20">
           <p className="text-xs text-gray-400 mb-2">Apuestas este mes</p>
-          <p className="text-3xl font-black text-white">
+          <p className="text-2xl sm:text-3xl font-black text-white">
             {stats?.totalBets || 0}
           </p>
         </div>
-        <div className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-6 border border-primary-500/20">
+        <div className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-lg sm:rounded-xl p-4 sm:p-6 border border-primary-500/20">
           <p className="text-xs text-gray-400 mb-2">Ganadas</p>
-          <p className="text-3xl font-black text-green-400">
+          <p className="text-2xl sm:text-3xl font-black text-green-400">
             {stats?.totalWins || 0}
           </p>
         </div>
       </div>
 
       {/* Gráfico Visual Simple */}
-      <div className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-6 border border-primary-500/20">
-        <h3 className="text-lg font-black text-white mb-4">Tu Progreso</h3>
+      <div className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-lg sm:rounded-xl p-4 sm:p-6 border border-primary-500/20">
+        <h3 className="text-base sm:text-lg font-black text-white mb-3 sm:mb-4">Tu Progreso</h3>
         <div className="space-y-3">
           <div>
             <div className="flex justify-between items-center mb-2">
-              <span className="text-sm text-gray-400">Ganadas</span>
-              <span className="text-sm font-bold text-white">
+              <span className="text-xs sm:text-sm text-gray-400">Ganadas</span>
+              <span className="text-xs sm:text-sm font-bold text-white">
                 {stats?.totalWins || 0} de {stats?.totalBets || 0}
               </span>
             </div>
-            <div className="w-full bg-gray-800 rounded-full h-3">
+            <div className="w-full bg-gray-800 rounded-full h-2.5 sm:h-3">
               <div 
-                className="bg-gradient-to-r from-green-500 to-green-600 h-3 rounded-full transition-all"
+                className="bg-gradient-to-r from-green-500 to-green-600 h-2.5 sm:h-3 rounded-full transition-all"
                 style={{ 
                   width: `${stats && stats.totalBets > 0 
                     ? (stats.totalWins / stats.totalBets) * 100 
@@ -108,14 +108,14 @@ export default function CasualDashboard() {
           </div>
           <div>
             <div className="flex justify-between items-center mb-2">
-              <span className="text-sm text-gray-400">Perdidas</span>
-              <span className="text-sm font-bold text-white">
+              <span className="text-xs sm:text-sm text-gray-400">Perdidas</span>
+              <span className="text-xs sm:text-sm font-bold text-white">
                 {stats?.totalLosses || 0} de {stats?.totalBets || 0}
               </span>
             </div>
-            <div className="w-full bg-gray-800 rounded-full h-3">
+            <div className="w-full bg-gray-800 rounded-full h-2.5 sm:h-3">
               <div 
-                className="bg-gradient-to-r from-red-500 to-red-600 h-3 rounded-full transition-all"
+                className="bg-gradient-to-r from-red-500 to-red-600 h-2.5 sm:h-3 rounded-full transition-all"
                 style={{ 
                   width: `${stats && stats.totalBets > 0 
                     ? (stats.totalLosses / stats.totalBets) * 100 
@@ -128,44 +128,44 @@ export default function CasualDashboard() {
       </div>
 
       {/* Consejo del Día */}
-      <div className="bg-gradient-to-br from-primary-500/20 to-accent-500/20 rounded-xl p-6 border border-primary-500/40">
-        <div className="flex items-start gap-3">
-          <div className="text-2xl">💡</div>
-          <div>
-            <h3 className="text-lg font-black text-white mb-2">Consejo del Día</h3>
-            <p className="text-gray-300 text-sm leading-relaxed">{todayTip}</p>
+      <div className="bg-gradient-to-br from-primary-500/20 to-accent-500/20 rounded-lg sm:rounded-xl p-4 sm:p-6 border border-primary-500/40">
+        <div className="flex items-start gap-2 sm:gap-3">
+          <div className="text-xl sm:text-2xl shrink-0">💡</div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-base sm:text-lg font-black text-white mb-2">Consejo del Día</h3>
+            <p className="text-gray-300 text-xs sm:text-sm leading-relaxed">{todayTip}</p>
           </div>
         </div>
       </div>
 
       {/* Acciones Rápidas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         <Link
           to="/odds-comparison"
-          className="bg-gradient-to-br from-primary-500/20 to-primary-600/20 rounded-xl p-6 border border-primary-500/40 hover:border-primary-400/60 transition-all"
+          className="bg-gradient-to-br from-primary-500/20 to-primary-600/20 rounded-lg sm:rounded-xl p-4 sm:p-6 border border-primary-500/40 hover:border-primary-400/60 transition-all"
         >
-          <h3 className="text-lg font-black text-white mb-2">¿Dónde está la mejor cuota?</h3>
-          <p className="text-gray-400 text-sm">Compara cuotas de múltiples casas y encuentra la mejor</p>
+          <h3 className="text-base sm:text-lg font-black text-white mb-2">¿Dónde está la mejor cuota?</h3>
+          <p className="text-gray-400 text-xs sm:text-sm">Compara cuotas de múltiples casas y encuentra la mejor</p>
         </Link>
         <Link
           to="/my-bets"
-          className="bg-gradient-to-br from-accent-500/20 to-accent-600/20 rounded-xl p-6 border border-accent-500/40 hover:border-accent-400/60 transition-all"
+          className="bg-gradient-to-br from-accent-500/20 to-accent-600/20 rounded-lg sm:rounded-xl p-4 sm:p-6 border border-accent-500/40 hover:border-accent-400/60 transition-all"
         >
-          <h3 className="text-lg font-black text-white mb-2">Registrar Apuesta</h3>
-          <p className="text-gray-400 text-sm">Registra tus apuestas para trackear tu progreso</p>
+          <h3 className="text-base sm:text-lg font-black text-white mb-2">Registrar Apuesta</h3>
+          <p className="text-gray-400 text-xs sm:text-sm">Registra tus apuestas para trackear tu progreso</p>
         </Link>
       </div>
 
       {/* Mensaje si no hay datos */}
       {(!stats || stats.totalBets === 0) && (
-        <div className="bg-gradient-to-br from-gold-500/20 to-accent-500/20 rounded-xl p-6 border border-gold-500/40 text-center">
-          <p className="text-white font-bold mb-2">¡Empieza a trackear tus apuestas!</p>
-          <p className="text-gray-300 text-sm mb-4">
+        <div className="bg-gradient-to-br from-gold-500/20 to-accent-500/20 rounded-lg sm:rounded-xl p-4 sm:p-6 border border-gold-500/40 text-center">
+          <p className="text-white font-bold text-sm sm:text-base mb-2">¡Empieza a trackear tus apuestas!</p>
+          <p className="text-gray-300 text-xs sm:text-sm mb-4">
             Registra tus apuestas para ver si estás ganando o perdiendo dinero
           </p>
           <Link
             to="/my-bets"
-            className="inline-block px-6 py-3 bg-gradient-to-r from-primary-500 to-accent-500 text-white rounded-lg font-bold hover:from-primary-600 hover:to-accent-600 transition-all"
+            className="inline-block px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-primary-500 to-accent-500 text-white rounded-lg text-sm sm:text-base font-bold hover:from-primary-600 hover:to-accent-600 transition-all"
           >
             Registrar Mi Primera Apuesta
           </Link>

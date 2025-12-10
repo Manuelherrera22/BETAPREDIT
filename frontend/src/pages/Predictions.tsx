@@ -321,7 +321,7 @@ export default function Predictions() {
         </div>
 
         {/* Statistics Dashboard */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <PredictionStatsDashboard
             totalEvents={filteredEvents.length}
             totalPredictions={totalPredictions}
