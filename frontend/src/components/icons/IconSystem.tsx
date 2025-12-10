@@ -8,7 +8,6 @@ import {
   Calendar,
   TrendingUp,
   Target,
-  DollarSign,
   BarChart3,
   Zap,
   Bell,
@@ -100,6 +99,7 @@ export type IconName =
   | 'pause'
   | 'x-icon'
   | 'help-circle'
+  | 'target'
 
 interface IconProps {
   name: IconName
@@ -158,6 +158,7 @@ const iconMap: Record<IconName, React.ComponentType<any>> = {
   pause: Pause,
   'x-icon': XIcon,
   'help-circle': HelpCircle,
+  target: Target,
 }
 
 export default function Icon({ name, className = '', size = 20, strokeWidth = 2 }: IconProps) {
