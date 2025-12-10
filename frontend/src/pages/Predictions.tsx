@@ -6,7 +6,7 @@
  * Confidence levels indicate the model's certainty, not a promise of outcome.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { predictionsService } from '../services/predictionsService';
 import { eventsService } from '../services/eventsService';
@@ -15,6 +15,7 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { useWebSocket } from '../hooks/useWebSocket';
 
 interface EventPrediction {
   eventId: string;
@@ -44,6 +45,54 @@ export default function Predictions() {
     queryFn: () => theOddsApiService.getSports(),
     staleTime: 3600000,
   });
+
+  const queryClient = useQueryClient();
+
+  // WebSocket for real-time prediction updates
+  const { isConnected, subscribe, unsubscribe } = useWebSocket({
+    autoConnect: true,
+    channels: ['predictions:all'],
+  });
+
+  // Listen for prediction updates via WebSocket
+  useEffect(() => {
+    if (!isConnected) return;
+
+    const handlePredictionUpdate = (data: any) => {
+      // Invalidate queries to refetch predictions
+      queryClient.invalidateQueries({ queryKey: ['eventsWithPredictions'] });
+      
+      // Show toast notification if prediction changed significantly
+      if (data.prediction?.change && Math.abs(data.prediction.change) > 0.1) {
+        const changePercent = (data.prediction.change * 100).toFixed(1);
+        const direction = data.prediction.change > 0 ? 'aumentó' : 'disminuyó';
+        toast.success(
+          `Predicción actualizada: ${data.prediction.eventName} - ${data.prediction.selection} ${direction} ${Math.abs(changePercent)}%`,
+          { duration: 5000 }
+        );
+      }
+    };
+
+    const handleBatchUpdate = (data: any) => {
+      // Invalidate queries to refetch all predictions
+      queryClient.invalidateQueries({ queryKey: ['eventsWithPredictions'] });
+      
+      if (data.updates && data.updates.length > 0) {
+        toast.success(
+          `${data.updates.length} predicción${data.updates.length > 1 ? 'es' : ''} actualizada${data.updates.length > 1 ? 's' : ''}`,
+          { duration: 3000 }
+        );
+      }
+    };
+
+    subscribe('prediction:update', handlePredictionUpdate);
+    subscribe('prediction:batch-update', handleBatchUpdate);
+
+    return () => {
+      unsubscribe('prediction:update', handlePredictionUpdate);
+      unsubscribe('prediction:batch-update', handleBatchUpdate);
+    };
+  }, [isConnected, subscribe, unsubscribe, queryClient]);
 
   // Get upcoming events with predictions
   const { data: eventsWithPredictions, isLoading } = useQuery({
@@ -152,7 +201,8 @@ export default function Predictions() {
         return [];
       }
     },
-    refetchInterval: 60000, // Refresh every minute
+    refetchInterval: 30000, // Refresh every 30 seconds for real-time updates
+    staleTime: 15000, // Consider stale after 15 seconds
     enabled: true, // Always enabled, even when 'all' is selected
   });
 
@@ -206,8 +256,6 @@ export default function Predictions() {
       return { text: 'Baja', color: 'text-gray-400 bg-gray-500/20 border-gray-500/40', icon: '⚠️' };
     }
   };
-
-  const queryClient = useQueryClient();
 
   // Mutation to generate predictions manually
   const generatePredictionsMutation = useMutation({

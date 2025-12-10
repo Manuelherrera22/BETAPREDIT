@@ -11,7 +11,7 @@ import { predictionsService } from './predictions.service';
 import { getTheOddsAPIService } from './integrations/the-odds-api.service';
 import { eventSyncService } from './event-sync.service';
 import { valueBetDetectionService } from './value-bet-detection.service';
-import { valueBetDetectionService } from './value-bet-detection.service';
+import { webSocketService } from './websocket.service';
 
 class AutoPredictionsService {
   private readonly MODEL_VERSION = 'v2.0-auto';
@@ -367,7 +367,7 @@ class AutoPredictionsService {
 
             if (existingAvgOdds && Math.abs(avgOdds - existingAvgOdds) / existingAvgOdds > 0.05) {
               // Odds changed more than 5%, update prediction
-              await predictionsService.createPrediction({
+              const updatedPrediction = await predictionsService.createPrediction({
                 eventId: event.id,
                 marketId: market.id,
                 selection: selection,
@@ -376,6 +376,18 @@ class AutoPredictionsService {
                 modelVersion: this.MODEL_VERSION,
                 factors: prediction.factors,
               });
+
+              // Emit WebSocket notification for real-time update
+              webSocketService.emitPredictionUpdate(event.id, {
+                id: updatedPrediction.id,
+                selection: selection,
+                predictedProbability: prediction.predictedProbability,
+                confidence: prediction.confidence,
+                previousProbability: existing.predictedProbability,
+                change: prediction.predictedProbability - existing.predictedProbability,
+                eventName: `${event.homeTeam} vs ${event.awayTeam}`,
+              });
+
               updated++;
             }
           } else {
@@ -701,7 +713,7 @@ class AutoPredictionsService {
                 currentOdds
               );
 
-              await predictionsService.createPrediction({
+              const updatedPrediction = await predictionsService.createPrediction({
                 eventId: event.id,
                 marketId: prediction.marketId,
                 selection: prediction.selection,
@@ -709,6 +721,17 @@ class AutoPredictionsService {
                 confidence: newPrediction.confidence,
                 modelVersion: this.MODEL_VERSION,
                 factors: newPrediction.factors,
+              });
+
+              // Emit WebSocket notification for real-time update
+              webSocketService.emitPredictionUpdate(event.id, {
+                id: updatedPrediction.id,
+                selection: prediction.selection,
+                predictedProbability: newPrediction.predictedProbability,
+                confidence: newPrediction.confidence,
+                previousProbability: prediction.predictedProbability,
+                change: newPrediction.predictedProbability - prediction.predictedProbability,
+                eventName: `${event.homeTeam} vs ${event.awayTeam}`,
               });
 
               updated++;

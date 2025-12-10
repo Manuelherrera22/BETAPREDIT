@@ -147,6 +147,60 @@ class WebSocketService {
   }
 
   /**
+   * Emit prediction update
+   * Notifies when predictions are created or updated
+   */
+  emitPredictionUpdate(eventId: string, prediction: any) {
+    if (!this.io) {
+      logger.warn('WebSocket service not initialized');
+      return;
+    }
+
+    // Emit to event-specific channel
+    this.io.to(`predictions:${eventId}`).emit('prediction:update', {
+      eventId,
+      prediction,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Also emit to general predictions channel
+    this.io.to('predictions:all').emit('prediction:update', {
+      eventId,
+      prediction,
+      timestamp: new Date().toISOString(),
+    });
+
+    logger.debug(`Prediction update emitted for event ${eventId}`);
+  }
+
+  /**
+   * Emit prediction batch update
+   * Notifies when multiple predictions are updated at once
+   */
+  emitPredictionBatchUpdate(updates: Array<{ eventId: string; predictions: any[] }>) {
+    if (!this.io) {
+      logger.warn('WebSocket service not initialized');
+      return;
+    }
+
+    this.io.to('predictions:all').emit('prediction:batch-update', {
+      updates,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Also emit to specific event channels
+    updates.forEach(({ eventId, predictions }) => {
+      this.io?.to(`predictions:${eventId}`).emit('prediction:update', {
+        eventId,
+        predictions,
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    logger.debug(`Prediction batch update emitted for ${updates.length} events`);
+  }
+
+  /**
    * Broadcast message to all connected clients or specific channel
    */
   broadcast(event: string, data: any, channel?: string) {
