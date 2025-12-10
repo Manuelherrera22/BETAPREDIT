@@ -6,6 +6,7 @@ import { notificationsService } from '../services/notificationsService';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { useAuthStore } from '../store/authStore';
+import Icon from '../components/icons/IconSystem';
 
 interface Alert {
   id: string;
@@ -460,7 +461,24 @@ export default function Alerts() {
                           alert.priority === 'medium' ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' :
                           'bg-gray-500/20 text-gray-400 border border-gray-500/40'
                         }`}>
-                          {alert.priority === 'high' ? '⚡ Alta Prioridad' : alert.priority === 'medium' ? '📊 Media Prioridad' : '📌 Baja Prioridad'}
+                          <span className="flex items-center gap-1.5">
+                            {alert.priority === 'high' ? (
+                              <>
+                                <Icon name="zap" size={14} />
+                                <span>Alta Prioridad</span>
+                              </>
+                            ) : alert.priority === 'medium' ? (
+                              <>
+                                <Icon name="chart" size={14} />
+                                <span>Media Prioridad</span>
+                              </>
+                            ) : (
+                              <>
+                                <Icon name="alert" size={14} />
+                                <span>Baja Prioridad</span>
+                              </>
+                            )}
+                          </span>
                         </span>
                       )}
                       {alert.source === 'value_bet_alert' && (

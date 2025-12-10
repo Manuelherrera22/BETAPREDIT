@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import Icon from './icons/IconSystem';
 
 interface Prediction {
   selection: string;
@@ -35,7 +36,7 @@ export default function PredictionCard({ prediction, eventName, startTime, sport
           border: 'border-emerald-500/50',
           text: 'text-emerald-300',
           glow: 'shadow-lg shadow-emerald-500/30',
-          icon: '🔥',
+          icon: 'flame' as const,
           label: 'COMPRA FUERTE',
           pulse: 'animate-pulse',
         };
@@ -45,7 +46,7 @@ export default function PredictionCard({ prediction, eventName, startTime, sport
           border: 'border-green-500/40',
           text: 'text-green-400',
           glow: 'shadow-md shadow-green-500/20',
-          icon: '✅',
+          icon: 'check-circle' as const,
           label: 'COMPRA',
           pulse: '',
         };
@@ -55,7 +56,7 @@ export default function PredictionCard({ prediction, eventName, startTime, sport
           border: 'border-yellow-500/40',
           text: 'text-yellow-400',
           glow: 'shadow-md shadow-yellow-500/20',
-          icon: '⏸️',
+          icon: 'pause' as const,
           label: 'MANTENER',
           pulse: '',
         };
@@ -65,7 +66,7 @@ export default function PredictionCard({ prediction, eventName, startTime, sport
           border: 'border-red-500/40',
           text: 'text-red-400',
           glow: 'shadow-md shadow-red-500/20',
-          icon: '❌',
+          icon: 'x-icon' as const,
           label: 'EVITAR',
           pulse: '',
         };
@@ -75,7 +76,7 @@ export default function PredictionCard({ prediction, eventName, startTime, sport
           border: 'border-gray-500/40',
           text: 'text-gray-400',
           glow: '',
-          icon: '❓',
+          icon: 'help-circle' as const,
           label: rec,
           pulse: '',
         };
@@ -83,10 +84,10 @@ export default function PredictionCard({ prediction, eventName, startTime, sport
   };
 
   const getConfidenceLevel = (confidence: number) => {
-    if (confidence >= 0.75) return { level: 'Muy Alta', color: 'text-emerald-400', icon: '🎯' };
-    if (confidence >= 0.65) return { level: 'Alta', color: 'text-green-400', icon: '📊' };
-    if (confidence >= 0.55) return { level: 'Media', color: 'text-yellow-400', icon: '📈' };
-    return { level: 'Baja', color: 'text-orange-400', icon: '⚠️' };
+    if (confidence >= 0.75) return { level: 'Muy Alta', color: 'text-emerald-400', icon: 'target' as const };
+    if (confidence >= 0.65) return { level: 'Alta', color: 'text-green-400', icon: 'chart' as const };
+    if (confidence >= 0.55) return { level: 'Media', color: 'text-yellow-400', icon: 'trending-up' as const };
+    return { level: 'Baja', color: 'text-orange-400', icon: 'alert' as const };
   };
 
   const recConfig = getRecommendationConfig(prediction.recommendation);
@@ -121,7 +122,7 @@ export default function PredictionCard({ prediction, eventName, startTime, sport
           </div>
           <div className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl border ${recConfig.border} ${recConfig.bg} ${recConfig.pulse} shrink-0`}>
             <div className="flex items-center gap-1 sm:gap-1.5">
-              <span className="text-xs sm:text-sm">{recConfig.icon}</span>
+              <Icon name={recConfig.icon} size={14} className={recConfig.text} />
               <span className={`text-xs font-black ${recConfig.text} whitespace-nowrap`}>{recConfig.label}</span>
             </div>
           </div>
@@ -132,7 +133,8 @@ export default function PredictionCard({ prediction, eventName, startTime, sport
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
             <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Comparación de Probabilidades</span>
             <span className={`text-xs font-bold ${confLevel.color} flex items-center gap-1`}>
-              {confLevel.icon} {confLevel.level}
+              <Icon name={confLevel.icon} size={14} />
+              <span>{confLevel.level}</span>
             </span>
           </div>
 
@@ -209,8 +211,16 @@ export default function PredictionCard({ prediction, eventName, startTime, sport
                 {expectedValue >= 0 ? '+' : ''}{expectedValue.toFixed(1)}%
               </div>
             </div>
-            <div className="text-2xl sm:text-3xl shrink-0 ml-2">
-              {expectedValue > 10 ? '🚀' : expectedValue > 5 ? '📈' : expectedValue > 0 ? '💹' : '📉'}
+            <div className="shrink-0 ml-2">
+              {expectedValue > 10 ? (
+                <Icon name="rocket" size={28} className="text-emerald-400" />
+              ) : expectedValue > 5 ? (
+                <Icon name="trending-up" size={28} className="text-green-400" />
+              ) : expectedValue > 0 ? (
+                <Icon name="arrow-up-right" size={28} className="text-yellow-400" />
+              ) : (
+                <Icon name="trending-down" size={28} className="text-red-400" />
+              )}
             </div>
           </div>
         </div>

@@ -20,6 +20,7 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import PredictionCard from '../components/PredictionCard';
 import PredictionComparisonChart from '../components/PredictionComparisonChart';
 import PredictionStatsDashboard from '../components/PredictionStatsDashboard';
+import Icon from '../components/icons/IconSystem';
 
 interface EventPrediction {
   eventId: string;
@@ -403,7 +404,10 @@ export default function Predictions() {
                       : 'bg-slate-700/50 text-gray-400 hover:bg-slate-700'
                   }`}
                 >
-                  📊 Grid
+                  <div className="flex items-center justify-center gap-2">
+                    <Icon name="chart" size={18} />
+                    <span>Grid</span>
+                  </div>
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
@@ -413,7 +417,10 @@ export default function Predictions() {
                       : 'bg-slate-700/50 text-gray-400 hover:bg-slate-700'
                   }`}
                 >
-                  📋 Lista
+                  <div className="flex items-center justify-center gap-2">
+                    <Icon name="file" size={18} />
+                    <span>Lista</span>
+                  </div>
                 </button>
               </div>
             </div>
@@ -426,9 +433,9 @@ export default function Predictions() {
                 onChange={(e) => setSortBy(e.target.value as 'confidence' | 'value' | 'time')}
                 className="w-full px-4 py-3 bg-slate-900/80 border-2 border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all font-medium"
               >
-                <option value="value">💎 Por Valor</option>
-                <option value="confidence">🎯 Por Confianza</option>
-                <option value="time">⏰ Por Tiempo</option>
+                <option value="value">Por Valor</option>
+                <option value="confidence">Por Confianza</option>
+                <option value="time">Por Tiempo</option>
               </select>
             </div>
           </div>

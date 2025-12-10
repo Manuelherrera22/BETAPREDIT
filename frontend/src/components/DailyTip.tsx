@@ -4,10 +4,11 @@
  */
 
 import { useState, useEffect } from 'react';
+import Icon, { type IconName } from './icons/IconSystem';
 
 interface Tip {
   id: string;
-  emoji: string;
+  icon: IconName;
   title: string;
   content: string;
   category: 'basic' | 'advanced' | 'bankroll' | 'strategy';
@@ -16,56 +17,56 @@ interface Tip {
 const tips: Tip[] = [
   {
     id: '1',
-    emoji: '💡',
+    icon: 'lightbulb',
     title: 'Compara Cuotas',
     content: 'Siempre compara cuotas antes de apostar. La misma apuesta puede pagar diferente en cada casa. Ahorrar unos puntos puede hacer la diferencia a largo plazo.',
     category: 'basic',
   },
   {
     id: '2',
-    emoji: '💰',
+    icon: 'wallet',
     title: 'Gestiona tu Bankroll',
     content: 'No apuestes más de lo que puedes permitirte perder. Una buena regla es no apostar más del 1-5% de tu bankroll en una sola apuesta.',
     category: 'bankroll',
   },
   {
     id: '3',
-    emoji: '📊',
+    icon: 'chart',
     title: 'Trackea tus Apuestas',
     content: 'Registra todas tus apuestas para saber si realmente estás ganando o perdiendo. Muchos apostadores piensan que ganan, pero en realidad pierden a largo plazo.',
     category: 'basic',
   },
   {
     id: '4',
-    emoji: '🎯',
+    icon: 'target',
     title: 'Busca Valor, no Solo Ganar',
     content: 'Una apuesta puede ganar pero no ser buena. Busca apuestas donde la probabilidad real sea mayor que lo que la casa te paga. Esto se llama "value bet".',
     category: 'strategy',
   },
   {
     id: '5',
-    emoji: '🧠',
+    icon: 'brain',
     title: 'Apuesta con Cabeza',
     content: 'No dejes que las emociones guíen tus apuestas. Apuesta basándote en datos y análisis, no en lo que "sientes" que va a pasar.',
     category: 'strategy',
   },
   {
     id: '6',
-    emoji: '⏰',
+    icon: 'clock',
     title: 'Timing Importa',
     content: 'Las cuotas cambian constantemente. Si encuentras una buena oportunidad, actúa rápido antes de que la cuota baje.',
     category: 'advanced',
   },
   {
     id: '7',
-    emoji: '📈',
+    icon: 'trending-up',
     title: 'Piensa a Largo Plazo',
     content: 'Una apuesta puede perder, pero si siempre buscas valor, ganarás a largo plazo. No te desanimes por pérdidas individuales.',
     category: 'strategy',
   },
   {
     id: '8',
-    emoji: '🔍',
+    icon: 'search',
     title: 'Investiga Antes de Apostar',
     content: 'No apuestes solo porque "te gusta" un equipo. Investiga: forma reciente, lesiones, motivación, historial entre equipos.',
     category: 'basic',
@@ -85,7 +86,11 @@ export default function DailyTip() {
   return (
     <div className="bg-gradient-to-br from-primary-500/20 to-accent-500/20 rounded-xl p-6 border border-primary-500/40">
       <div className="flex items-start gap-4">
-        <div className="text-4xl">{todayTip.emoji}</div>
+        <div className="flex-shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-primary-500/20 flex items-center justify-center border border-primary-500/30">
+            <Icon name={todayTip.icon} size={24} className="text-primary-300" strokeWidth={2} />
+          </div>
+        </div>
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
             <h3 className="text-lg font-black text-white">Consejo del Día</h3>
