@@ -105,31 +105,31 @@ export default function PredictionCard({ prediction, eventName, startTime, sport
       <div className="absolute inset-0 bg-gradient-to-br from-transparent via-white/5 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
 
       {/* Content */}
-      <div className="relative p-6">
+      <div className="relative p-4 sm:p-6">
         {/* Header */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
               <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{sport}</span>
-              <span className="w-1 h-1 bg-gray-500 rounded-full"></span>
+              <span className="w-1 h-1 bg-gray-500 rounded-full hidden sm:block"></span>
               <span className="text-xs text-gray-500">
                 {format(new Date(startTime), 'dd MMM, HH:mm', { locale: es })}
               </span>
             </div>
-            <h3 className="text-lg font-black text-white mb-1 truncate">{eventName}</h3>
-            <h4 className="text-2xl font-black text-white mb-3">{prediction.selection}</h4>
+            <h3 className="text-base sm:text-lg font-black text-white mb-1 truncate">{eventName}</h3>
+            <h4 className="text-xl sm:text-2xl font-black text-white mb-3 break-words">{prediction.selection}</h4>
           </div>
-          <div className={`px-3 py-1.5 rounded-xl border ${recConfig.border} ${recConfig.bg} ${recConfig.pulse}`}>
-            <div className="flex items-center gap-1.5">
-              <span className="text-sm">{recConfig.icon}</span>
-              <span className={`text-xs font-black ${recConfig.text}`}>{recConfig.label}</span>
+          <div className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl border ${recConfig.border} ${recConfig.bg} ${recConfig.pulse} shrink-0`}>
+            <div className="flex items-center gap-1 sm:gap-1.5">
+              <span className="text-xs sm:text-sm">{recConfig.icon}</span>
+              <span className={`text-xs font-black ${recConfig.text} whitespace-nowrap`}>{recConfig.label}</span>
             </div>
           </div>
         </div>
 
         {/* Probability Comparison - Visual */}
-        <div className="mb-5">
-          <div className="flex items-center justify-between mb-3">
+        <div className="mb-4 sm:mb-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
             <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Comparación de Probabilidades</span>
             <span className={`text-xs font-bold ${confLevel.color} flex items-center gap-1`}>
               {confLevel.icon} {confLevel.level}
@@ -140,11 +140,11 @@ export default function PredictionCard({ prediction, eventName, startTime, sport
           <div className="mb-3">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs text-gray-400 font-medium">Nuestra Predicción</span>
-              <span className="text-2xl font-black text-primary-400">
+              <span className="text-xl sm:text-2xl font-black text-primary-400">
                 {(prediction.predictedProbability * 100).toFixed(1)}%
               </span>
             </div>
-            <div className="relative w-full bg-slate-800/50 rounded-full h-3 overflow-hidden">
+            <div className="relative w-full bg-slate-800/50 rounded-full h-2.5 sm:h-3 overflow-hidden">
               <div
                 className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary-500 via-primary-400 to-primary-500 rounded-full transition-all duration-500 shadow-lg shadow-primary-500/50"
                 style={{ width: `${prediction.predictedProbability * 100}%` }}
@@ -158,11 +158,11 @@ export default function PredictionCard({ prediction, eventName, startTime, sport
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs text-gray-400 font-medium">Mercado (Implícita)</span>
-              <span className="text-lg font-semibold text-gray-300">
+              <span className="text-base sm:text-lg font-semibold text-gray-300">
                 {marketProb.toFixed(1)}%
               </span>
             </div>
-            <div className="relative w-full bg-slate-800/50 rounded-full h-3 overflow-hidden">
+            <div className="relative w-full bg-slate-800/50 rounded-full h-2.5 sm:h-3 overflow-hidden">
               <div
                 className="absolute inset-y-0 left-0 bg-gradient-to-r from-gray-500 to-gray-400 rounded-full transition-all duration-500"
                 style={{ width: `${marketProb}%` }}
@@ -179,37 +179,37 @@ export default function PredictionCard({ prediction, eventName, startTime, sport
         </div>
 
         {/* Key Metrics Grid */}
-        <div className="grid grid-cols-3 gap-3 mb-4">
-          <div className="bg-slate-900/50 rounded-xl p-3 border border-slate-700/50">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
+          <div className="bg-slate-900/50 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-slate-700/50">
             <div className="text-xs text-gray-500 mb-1 font-medium">Valor</div>
-            <div className={`text-xl font-black ${prediction.value > 10 ? 'text-emerald-400' : prediction.value > 5 ? 'text-green-400' : prediction.value > 0 ? 'text-yellow-400' : 'text-red-400'}`}>
+            <div className={`text-lg sm:text-xl font-black ${prediction.value > 10 ? 'text-emerald-400' : prediction.value > 5 ? 'text-green-400' : prediction.value > 0 ? 'text-yellow-400' : 'text-red-400'}`}>
               {prediction.value >= 0 ? '+' : ''}{prediction.value.toFixed(1)}%
             </div>
           </div>
-          <div className="bg-slate-900/50 rounded-xl p-3 border border-slate-700/50">
+          <div className="bg-slate-900/50 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-slate-700/50">
             <div className="text-xs text-gray-500 mb-1 font-medium">Confianza</div>
-            <div className={`text-xl font-black ${confLevel.color}`}>
+            <div className={`text-lg sm:text-xl font-black ${confLevel.color}`}>
               {(prediction.confidence * 100).toFixed(0)}%
             </div>
           </div>
-          <div className="bg-slate-900/50 rounded-xl p-3 border border-slate-700/50">
+          <div className="bg-slate-900/50 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-slate-700/50">
             <div className="text-xs text-gray-500 mb-1 font-medium">Cuota</div>
-            <div className="text-xl font-black text-white">
+            <div className="text-lg sm:text-xl font-black text-white">
               {prediction.marketOdds.toFixed(2)}
             </div>
           </div>
         </div>
 
         {/* Expected Value */}
-        <div className="bg-gradient-to-r from-primary-500/10 to-primary-600/10 rounded-xl p-4 border border-primary-500/30 mb-4">
+        <div className="bg-gradient-to-r from-primary-500/10 to-primary-600/10 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-primary-500/30 mb-4">
           <div className="flex items-center justify-between">
-            <div>
+            <div className="flex-1 min-w-0">
               <div className="text-xs text-gray-400 mb-1 font-medium">Valor Esperado (EV)</div>
-              <div className="text-2xl font-black text-primary-400">
+              <div className="text-xl sm:text-2xl font-black text-primary-400">
                 {expectedValue >= 0 ? '+' : ''}{expectedValue.toFixed(1)}%
               </div>
             </div>
-            <div className="text-3xl">
+            <div className="text-2xl sm:text-3xl shrink-0 ml-2">
               {expectedValue > 10 ? '🚀' : expectedValue > 5 ? '📈' : expectedValue > 0 ? '💹' : '📉'}
             </div>
           </div>
@@ -219,10 +219,11 @@ export default function PredictionCard({ prediction, eventName, startTime, sport
         {onViewDetails && (
           <button
             onClick={onViewDetails}
-            className="w-full py-3 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-xl font-bold transition-all duration-200 hover:scale-[1.02] hover:shadow-lg hover:shadow-primary-500/50 flex items-center justify-center gap-2"
+            className="w-full py-2.5 sm:py-3 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-lg sm:rounded-xl font-bold text-sm sm:text-base transition-all duration-200 hover:scale-[1.02] hover:shadow-lg hover:shadow-primary-500/50 flex items-center justify-center gap-2"
           >
-            <span>Ver Análisis Completo</span>
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <span className="hidden sm:inline">Ver Análisis Completo</span>
+            <span className="sm:hidden">Ver Detalles</span>
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>

@@ -62,17 +62,17 @@ export default function PredictionStatsDashboard({
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
       {stats.map((stat, index) => (
         <div
           key={index}
-          className={`${stat.bg} ${stat.border} border-2 rounded-xl p-4 hover:scale-105 transition-all duration-200 cursor-pointer`}
+          className={`${stat.bg} ${stat.border} border-2 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:scale-105 transition-all duration-200 cursor-pointer`}
         >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-2xl">{stat.icon}</span>
-            <div className={`text-2xl font-black ${stat.color}`}>{stat.value}</div>
+            <span className="text-xl sm:text-2xl">{stat.icon}</span>
+            <div className={`text-lg sm:text-xl md:text-2xl font-black ${stat.color} truncate ml-2`}>{stat.value}</div>
           </div>
-          <div className="text-xs text-gray-400 font-medium uppercase tracking-wide">{stat.label}</div>
+          <div className="text-xs text-gray-400 font-medium uppercase tracking-wide break-words">{stat.label}</div>
         </div>
       ))}
     </div>

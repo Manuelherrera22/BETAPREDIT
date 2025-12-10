@@ -266,27 +266,27 @@ export default function Predictions() {
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
       </div>
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="relative max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
         {/* Header Section */}
-        <div className="mb-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-5xl md:text-6xl font-black text-white tracking-tight bg-gradient-to-r from-white via-primary-200 to-white bg-clip-text text-transparent">
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4 sm:mb-6">
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight bg-gradient-to-r from-white via-primary-200 to-white bg-clip-text text-transparent">
                   Predicciones Premium
                 </h1>
-                <span className="px-4 py-2 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-300 rounded-full text-sm font-black border-2 border-amber-500/40 shadow-lg shadow-amber-500/20">
+                <span className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-300 rounded-full text-xs sm:text-sm font-black border-2 border-amber-500/40 shadow-lg shadow-amber-500/20 w-fit">
                   ⭐ PREMIUM
                 </span>
               </div>
-              <p className="text-gray-300 text-xl font-medium">
+              <p className="text-gray-300 text-base sm:text-lg md:text-xl font-medium">
                 Análisis probabilístico avanzado con comparación en tiempo real vs cuotas del mercado
               </p>
             </div>
             <button
               onClick={() => generatePredictionsMutation.mutate()}
               disabled={generatePredictionsMutation.isPending}
-              className="px-8 py-4 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-2xl font-black text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 shadow-2xl shadow-primary-500/50 hover:scale-105"
+              className="px-4 sm:px-6 md:px-8 py-3 sm:py-4 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-xl sm:rounded-2xl font-black text-sm sm:text-base md:text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 sm:gap-3 shadow-2xl shadow-primary-500/50 hover:scale-105 w-full md:w-auto shrink-0"
             >
               {generatePredictionsMutation.isPending ? (
                 <>
@@ -305,12 +305,12 @@ export default function Predictions() {
           </div>
 
           {/* Important Disclaimer */}
-          <div className="bg-gradient-to-r from-amber-500/10 via-yellow-500/10 to-amber-500/10 border-l-4 border-amber-500 rounded-xl p-5 mb-6 shadow-lg">
-            <div className="flex items-start gap-3">
-              <div className="text-3xl">⚠️</div>
-              <div className="flex-1">
-                <h3 className="text-amber-300 font-black mb-2 text-lg">Importante: Predicciones Probabilísticas</h3>
-                <p className="text-amber-100/90 text-sm leading-relaxed">
+          <div className="bg-gradient-to-r from-amber-500/10 via-yellow-500/10 to-amber-500/10 border-l-4 border-amber-500 rounded-lg sm:rounded-xl p-4 sm:p-5 mb-4 sm:mb-6 shadow-lg">
+            <div className="flex items-start gap-2 sm:gap-3">
+              <div className="text-2xl sm:text-3xl shrink-0">⚠️</div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-amber-300 font-black mb-2 text-base sm:text-lg">Importante: Predicciones Probabilísticas</h3>
+                <p className="text-amber-100/90 text-xs sm:text-sm leading-relaxed">
                   Estas son <strong>predicciones probabilísticas</strong> basadas en análisis de datos y modelos estadísticos, 
                   <strong> no son garantías de resultados</strong>. Los niveles de confianza indican la certeza del modelo, 
                   no una promesa de resultado. <strong>Siempre existe riesgo</strong>. Apuesta responsablemente.
@@ -332,8 +332,8 @@ export default function Predictions() {
         </div>
 
         {/* Filters Section */}
-        <div className="bg-slate-800/70 backdrop-blur-xl rounded-2xl border-2 border-slate-700/50 p-6 mb-8 shadow-2xl">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+        <div className="bg-slate-800/70 backdrop-blur-xl rounded-xl sm:rounded-2xl border-2 border-slate-700/50 p-4 sm:p-6 mb-6 sm:mb-8 shadow-2xl">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
             {/* Sport Filter */}
             <div>
               <label className="block text-sm font-black text-gray-300 mb-3 uppercase tracking-wide">Deporte</label>
@@ -392,12 +392,12 @@ export default function Predictions() {
             </div>
 
             {/* View Mode */}
-            <div>
+            <div className="sm:col-span-2 md:col-span-1">
               <label className="block text-sm font-black text-gray-300 mb-3 uppercase tracking-wide">Vista</label>
               <div className="flex gap-2">
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`flex-1 px-4 py-3 rounded-xl font-bold transition-all ${
+                  className={`flex-1 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base transition-all ${
                     viewMode === 'grid'
                       ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/50'
                       : 'bg-slate-700/50 text-gray-400 hover:bg-slate-700'
@@ -407,7 +407,7 @@ export default function Predictions() {
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`flex-1 px-4 py-3 rounded-xl font-bold transition-all ${
+                  className={`flex-1 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base transition-all ${
                     viewMode === 'list'
                       ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/50'
                       : 'bg-slate-700/50 text-gray-400 hover:bg-slate-700'
@@ -457,18 +457,18 @@ export default function Predictions() {
                     className="bg-slate-800/70 backdrop-blur-xl rounded-3xl border-2 border-slate-700/50 overflow-hidden shadow-2xl hover:shadow-primary-500/20 hover:border-slate-600 transition-all duration-300"
                   >
                     {/* Event Header */}
-                    <div className="bg-gradient-to-r from-slate-800 via-slate-900 to-slate-800 px-8 py-6 border-b-2 border-slate-700">
-                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-3">
-                            <span className="px-4 py-2 bg-primary-500/20 text-primary-300 rounded-xl text-sm font-black border-2 border-primary-500/40">
+                    <div className="bg-gradient-to-r from-slate-800 via-slate-900 to-slate-800 px-4 sm:px-6 md:px-8 py-4 sm:py-5 md:py-6 border-b-2 border-slate-700">
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                            <span className="px-3 sm:px-4 py-1.5 sm:py-2 bg-primary-500/20 text-primary-300 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black border-2 border-primary-500/40 w-fit">
                               {event.sport}
                             </span>
-                            <h3 className="text-3xl md:text-4xl font-black text-white">
+                            <h3 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-white break-words">
                               {event.homeTeam} <span className="text-gray-500">vs</span> {event.awayTeam}
                             </h3>
                           </div>
-                          <div className="flex items-center gap-6 text-sm text-gray-400">
+                          <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-xs sm:text-sm text-gray-400">
                             <div className="flex items-center gap-2">
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -485,10 +485,10 @@ export default function Predictions() {
                         </div>
                         <Link
                           to={`/events/${event.eventId}`}
-                          className="px-6 py-3 bg-primary-500/20 hover:bg-primary-500/30 border-2 border-primary-500/40 text-primary-300 rounded-xl hover:border-primary-500/60 transition-all font-black flex items-center gap-2 hover:scale-105"
+                          className="px-4 sm:px-6 py-2.5 sm:py-3 bg-primary-500/20 hover:bg-primary-500/30 border-2 border-primary-500/40 text-primary-300 rounded-lg sm:rounded-xl hover:border-primary-500/60 transition-all font-black text-sm sm:text-base flex items-center justify-center gap-2 hover:scale-105 w-full md:w-auto shrink-0"
                         >
                           Ver Detalles
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                           </svg>
                         </Link>
@@ -496,8 +496,8 @@ export default function Predictions() {
                     </div>
 
                     {/* Predictions Grid */}
-                    <div className="p-8">
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="p-4 sm:p-6 md:p-8">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                         {event.predictions
                           .filter((pred) => pred.confidence >= minConfidence && pred.value >= minValue)
                           .map((prediction, idx) => (
@@ -525,19 +525,19 @@ export default function Predictions() {
               </div>
             ) : (
               // List View
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {allPredictions.map((pred, idx) => (
                   <div
                     key={idx}
-                    className="bg-slate-800/70 backdrop-blur-xl rounded-2xl border-2 border-slate-700/50 p-6 hover:border-slate-600 transition-all duration-200 hover:shadow-xl"
+                    className="bg-slate-800/70 backdrop-blur-xl rounded-xl sm:rounded-2xl border-2 border-slate-700/50 p-4 sm:p-6 hover:border-slate-600 transition-all duration-200 hover:shadow-xl"
                   >
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                       {/* Event Info */}
                       <div>
                         <div className="text-xs text-gray-500 mb-1 uppercase tracking-wide">{pred.event.sport}</div>
-                        <h3 className="text-xl font-black text-white mb-2">{pred.event.eventName}</h3>
-                        <div className="text-2xl font-black text-primary-400 mb-2">{pred.selection}</div>
-                        <div className="text-sm text-gray-400">
+                        <h3 className="text-lg sm:text-xl font-black text-white mb-2 break-words">{pred.event.eventName}</h3>
+                        <div className="text-xl sm:text-2xl font-black text-primary-400 mb-2 break-words">{pred.selection}</div>
+                        <div className="text-xs sm:text-sm text-gray-400">
                           {format(new Date(pred.event.startTime), 'dd MMM, HH:mm', { locale: es })}
                         </div>
                       </div>
@@ -551,28 +551,28 @@ export default function Predictions() {
                       </div>
 
                       {/* Metrics */}
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-700/50">
+                      <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                        <div className="bg-slate-900/50 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-slate-700/50">
                           <div className="text-xs text-gray-500 mb-1">Valor</div>
-                          <div className={`text-2xl font-black ${pred.value > 10 ? 'text-emerald-400' : pred.value > 5 ? 'text-green-400' : pred.value > 0 ? 'text-yellow-400' : 'text-red-400'}`}>
+                          <div className={`text-xl sm:text-2xl font-black ${pred.value > 10 ? 'text-emerald-400' : pred.value > 5 ? 'text-green-400' : pred.value > 0 ? 'text-yellow-400' : 'text-red-400'}`}>
                             {pred.value >= 0 ? '+' : ''}{pred.value.toFixed(1)}%
                           </div>
                         </div>
-                        <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-700/50">
+                        <div className="bg-slate-900/50 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-slate-700/50">
                           <div className="text-xs text-gray-500 mb-1">Confianza</div>
-                          <div className="text-2xl font-black text-primary-400">
+                          <div className="text-xl sm:text-2xl font-black text-primary-400">
                             {(pred.confidence * 100).toFixed(0)}%
                           </div>
                         </div>
-                        <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-700/50">
+                        <div className="bg-slate-900/50 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-slate-700/50">
                           <div className="text-xs text-gray-500 mb-1">Cuota</div>
-                          <div className="text-2xl font-black text-white">
+                          <div className="text-xl sm:text-2xl font-black text-white">
                             {pred.marketOdds.toFixed(2)}
                           </div>
                         </div>
-                        <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-700/50">
+                        <div className="bg-slate-900/50 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-slate-700/50">
                           <div className="text-xs text-gray-500 mb-1">Recomendación</div>
-                          <div className={`text-lg font-black ${
+                          <div className={`text-sm sm:text-base md:text-lg font-black break-words ${
                             pred.recommendation === 'STRONG_BUY' ? 'text-emerald-400' :
                             pred.recommendation === 'BUY' ? 'text-green-400' :
                             pred.recommendation === 'HOLD' ? 'text-yellow-400' : 'text-red-400'
