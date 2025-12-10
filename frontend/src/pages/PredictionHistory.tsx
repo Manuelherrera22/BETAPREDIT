@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { predictionsService } from '../services/predictionsService';
 
 interface Prediction {
   id: string;
@@ -19,30 +21,46 @@ export default function PredictionHistory() {
   const [filter, setFilter] = useState<'all' | 'correct' | 'incorrect'>('all');
   const [sortBy, setSortBy] = useState<'date' | 'confidence' | 'value'>('date');
 
-  const predictions: Prediction[] = [
-    { id: '1', event: 'Real Madrid vs Barcelona', sport: 'Fútbol', predicted: 'Real Madrid', actual: 'Real Madrid', correct: true, confidence: 75, date: '2024-01-15', value: 12.5, odds: 2.15 },
-    { id: '2', event: 'Lakers vs Warriors', sport: 'Basketball', predicted: 'Lakers', actual: 'Warriors', correct: false, confidence: 58, date: '2024-01-14', value: 5.2, odds: 1.88 },
-    { id: '3', event: 'Nadal vs Djokovic', sport: 'Tenis', predicted: 'Nadal', actual: 'Nadal', correct: true, confidence: 68, date: '2024-01-13', value: 8.3, odds: 2.20 },
-    { id: '4', event: 'Manchester City vs Liverpool', sport: 'Fútbol', predicted: 'Manchester City', actual: 'Manchester City', correct: true, confidence: 72, date: '2024-01-12', value: 10.1, odds: 1.95 },
-    { id: '5', event: 'Celtics vs Heat', sport: 'Basketball', predicted: 'Celtics', actual: 'Heat', correct: false, confidence: 55, date: '2024-01-11', value: 3.8, odds: 1.92 },
-    { id: '6', event: 'PSG vs Bayern Munich', sport: 'Fútbol', predicted: 'PSG', actual: 'PSG', correct: true, confidence: 70, date: '2024-01-10', value: 9.5, odds: 2.05 },
-  ];
+  // Obtener historial real de predicciones
+  const { data: predictions = [], isLoading } = useQuery({
+    queryKey: ['predictionHistory', filter],
+    queryFn: () => predictionsService.getPredictionHistory({ limit: 100 }),
+    refetchInterval: 60000, // Actualizar cada minuto
+  });
 
   const filteredPredictions = predictions
-    .filter(p => {
+    .filter((p: Prediction) => {
       if (filter === 'correct') return p.correct;
       if (filter === 'incorrect') return !p.correct;
       return true;
     })
-    .sort((a, b) => {
+    .sort((a: Prediction, b: Prediction) => {
       if (sortBy === 'date') return new Date(b.date).getTime() - new Date(a.date).getTime();
       if (sortBy === 'confidence') return b.confidence - a.confidence;
       if (sortBy === 'value') return (b.value || 0) - (a.value || 0);
       return 0;
     });
 
-  const accuracy = (predictions.filter(p => p.correct).length / predictions.length) * 100;
-  const avgConfidence = predictions.reduce((sum, p) => sum + p.confidence, 0) / predictions.length;
+  const accuracy = predictions.length > 0
+    ? (predictions.filter((p: Prediction) => p.correct).length / predictions.length) * 100
+    : 0;
+  const avgConfidence = predictions.length > 0
+    ? predictions.reduce((sum: number, p: Prediction) => sum + p.confidence, 0) / predictions.length
+    : 0;
+
+  if (isLoading) {
+    return (
+      <div className="px-4 py-6">
+        <div className="mb-8">
+          <h1 className="text-4xl font-black text-white mb-2">Historial de Predicciones</h1>
+          <p className="text-gray-400">Cargando predicciones...</p>
+        </div>
+        <div className="flex justify-center items-center h-64">
+          <div className="text-white">Cargando...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 py-6">
@@ -97,7 +115,13 @@ export default function PredictionHistory() {
 
       {/* Predictions List */}
       <div className="space-y-4">
-        {filteredPredictions.map((p) => (
+        {filteredPredictions.length === 0 ? (
+          <div className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-12 border border-primary-500/20 text-center">
+            <p className="text-gray-400 text-lg mb-2">No hay predicciones resueltas aún</p>
+            <p className="text-gray-500 text-sm">Las predicciones aparecerán aquí una vez que los eventos terminen y se actualicen los resultados.</p>
+          </div>
+        ) : (
+          filteredPredictions.map((p: Prediction) => (
           <div
             key={p.id}
             className={`bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-6 border-2 transition-all hover:scale-[1.02] ${
@@ -173,7 +197,8 @@ export default function PredictionHistory() {
               {format(new Date(p.date), 'dd MMMM yyyy', { locale: es })}
             </div>
           </div>
-        ))}
+        ))
+        )}
       </div>
     </div>
   );

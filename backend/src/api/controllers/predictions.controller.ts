@@ -69,6 +69,36 @@ class PredictionsController {
   }
 
   /**
+   * Get prediction history (resolved predictions)
+   * GET /api/predictions/history
+   */
+  async getPredictionHistory(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const {
+        limit,
+        offset,
+        sportId,
+        marketType,
+        startDate,
+        endDate,
+      } = req.query;
+
+      const options: any = {};
+      if (limit) options.limit = parseInt(limit as string, 10);
+      if (offset) options.offset = parseInt(offset as string, 10);
+      if (sportId) options.sportId = sportId as string;
+      if (marketType) options.marketType = marketType as string;
+      if (startDate) options.startDate = new Date(startDate as string);
+      if (endDate) options.endDate = new Date(endDate as string);
+
+      const history = await predictionsService.getPredictionHistory(options);
+      res.json({ success: true, data: history });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Submit user feedback on a prediction
    * POST /api/predictions/:predictionId/feedback
    */

@@ -8,6 +8,7 @@ import toast from 'react-hot-toast'
 import RegisterBetForm from '../components/RegisterBetForm'
 import ImportBetsModal from '../components/ImportBetsModal'
 import { exportToCSV } from '../utils/csvExport'
+import EmptyState from '../components/EmptyState'
 
 export default function MyBets() {
   const queryClient = useQueryClient()
@@ -526,10 +527,13 @@ export default function MyBets() {
         </div>
       ) : bets && bets.length > 0 ? (
         <div className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-8 border border-primary-500/20 text-center">
-          <p className="text-gray-400 mb-2">No hay apuestas que coincidan con los filtros</p>
-          <p className="text-sm text-gray-500 mb-4">
-            Intenta ajustar los filtros para ver más resultados
-          </p>
+          <EmptyState
+            icon="bets"
+            title="No hay apuestas que coincidan con los filtros"
+            message="Intenta ajustar los filtros para ver más resultados o registra una nueva apuesta."
+            actionLabel="Registrar Apuesta"
+            actionTo="/my-bets?action=add"
+          />
           <button
             onClick={() => setFilters({ platform: 'all', status: 'all', dateRange: 'all', search: '' })}
             className="px-4 py-2 bg-primary-500/20 border border-primary-500/40 text-primary-300 rounded-lg hover:bg-primary-500/30 transition-colors"

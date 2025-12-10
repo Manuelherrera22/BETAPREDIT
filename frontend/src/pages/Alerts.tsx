@@ -509,27 +509,21 @@ export default function Alerts() {
             </div>
           ))
         ) : alerts.length === 0 ? (
-          <div className="text-center py-12 bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl border border-primary-500/20">
-            <div className="mb-4">
-              <svg className="w-16 h-16 mx-auto text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
-            </div>
-            <p className="text-gray-400 mb-2">No tienes alertas todavía</p>
-            <p className="text-sm text-gray-500">
-              Las alertas de value bets aparecerán aquí cuando se detecten oportunidades
-            </p>
-          </div>
+          <EmptyState
+            icon="alerts"
+            title="No tienes alertas todavía"
+            message="Las alertas de value bets aparecerán aquí cuando nuestro sistema detecte oportunidades de valor en tiempo real."
+            actionLabel="Explorar Predicciones"
+            actionTo="/predictions"
+          />
         ) : (
-          <div className="text-center py-12 bg-dark-900/50 rounded-xl border border-primary-500/20">
-            <p className="text-gray-400">No hay alertas que coincidan con los filtros</p>
-            <button
-              onClick={() => setFilters({ type: 'all', read: 'all' })}
-              className="mt-4 px-4 py-2 bg-primary-500/20 border border-primary-500/40 text-primary-300 rounded-lg hover:bg-primary-500/30 transition-colors text-sm"
-            >
-              Limpiar Filtros
-            </button>
-          </div>
+          <EmptyState
+            icon="search"
+            title="No hay alertas que coincidan con los filtros"
+            message="Intenta ajustar los filtros para ver más resultados."
+            actionLabel="Limpiar Filtros"
+            actionOnClick={() => setFilters({ type: 'all', read: 'all' })}
+          />
         )}
       </div>
     </div>

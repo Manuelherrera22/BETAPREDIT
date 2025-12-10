@@ -16,6 +16,7 @@ import { valueBetAlertsService } from '../services/valueBetAlertsService'
 import { notificationsService } from '../services/notificationsService'
 import { userProfileService } from '../services/userProfileService'
 import Icon, { type IconName } from '../components/icons/IconSystem'
+import EmptyState from '../components/EmptyState'
 
 export default function Home() {
   const { shouldShow } = useOnboarding()
@@ -321,7 +322,13 @@ export default function Home() {
                     </Link>
                   ))
                 ) : (
-                  <p className="text-gray-400 text-sm">No hay eventos en vivo</p>
+                  <EmptyState
+                    icon="events"
+                    title="No hay eventos en vivo"
+                    message="No hay eventos en curso en este momento. Revisa los próximos eventos o vuelve más tarde."
+                    actionLabel="Ver Próximos Eventos"
+                    actionTo="/events"
+                  />
                 )}
               </div>
             </div>
@@ -356,7 +363,13 @@ export default function Home() {
                     </Link>
                   ))
                 ) : (
-                  <p className="text-gray-400 text-sm">No hay eventos próximos</p>
+                  <EmptyState
+                    icon="events"
+                    title="No hay eventos próximos"
+                    message="No hay eventos programados en este momento. Los eventos aparecerán aquí cuando estén disponibles."
+                    actionLabel="Explorar Eventos"
+                    actionTo="/events"
+                  />
                 )}
               </div>
             </div>

@@ -33,6 +33,13 @@ router.get('/event/:eventId', predictionsController.getEventPredictions.bind(pre
 router.get('/stats', predictionsController.getPredictionStats.bind(predictionsController));
 
 /**
+ * @route   GET /api/predictions/history
+ * @desc    Get prediction history (resolved predictions)
+ * @access  Private
+ */
+router.get('/history', predictionsController.getPredictionHistory.bind(predictionsController));
+
+/**
  * @route   POST /api/predictions/generate
  * @desc    Manually trigger prediction generation for upcoming events
  * @access  Private

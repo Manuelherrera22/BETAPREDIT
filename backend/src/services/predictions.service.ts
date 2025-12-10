@@ -423,6 +423,87 @@ class PredictionsService {
   }
 
   /**
+   * Get prediction history (resolved predictions)
+   */
+  async getPredictionHistory(options?: {
+    limit?: number;
+    offset?: number;
+    sportId?: string;
+    marketType?: string;
+    startDate?: Date;
+    endDate?: Date;
+  }) {
+    try {
+      const {
+        limit = 50,
+        offset = 0,
+        sportId,
+        marketType,
+        startDate,
+        endDate,
+      } = options || {};
+
+      const where: any = {
+        wasCorrect: { not: null }, // Only resolved predictions
+      };
+
+      if (sportId) {
+        where.event = { sportId };
+      }
+
+      if (marketType) {
+        where.market = { type: marketType };
+      }
+
+      if (startDate || endDate) {
+        where.createdAt = {};
+        if (startDate) where.createdAt.gte = startDate;
+        if (endDate) where.createdAt.lte = endDate;
+      }
+
+      const predictions = await prisma.prediction.findMany({
+        where,
+        include: {
+          event: {
+            include: {
+              sport: true,
+            },
+          },
+          market: true,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: limit,
+        skip: offset,
+      });
+
+      return predictions.map((p) => ({
+        id: p.id,
+        event: p.event.homeTeam && p.event.awayTeam
+          ? `${p.event.homeTeam} vs ${p.event.awayTeam}`
+          : p.event.name || 'Evento desconocido',
+        sport: p.event.sport.name,
+        predicted: p.selection,
+        actual: p.actualResult === 'WON' ? p.selection : p.actualResult === 'LOST' ? 'Perdido' : 'Void',
+        correct: p.wasCorrect || false,
+        confidence: p.confidence * 100,
+        date: p.createdAt.toISOString(),
+        value: p.factors && typeof p.factors === 'object' && 'valuePercentage' in p.factors
+          ? (p.factors as any).valuePercentage
+          : null,
+        odds: p.factors && typeof p.factors === 'object' && 'bookmakerOdds' in p.factors
+          ? (p.factors as any).bookmakerOdds
+          : null,
+        accuracy: p.accuracy,
+      }));
+    } catch (error: any) {
+      logger.error('Error getting prediction history:', error);
+      throw new AppError('Failed to get prediction history', 500);
+    }
+  }
+
+  /**
    * Update model performance (async helper)
    */
   private async updateModelPerformance(modelVersion: string, wasCorrect: boolean) {

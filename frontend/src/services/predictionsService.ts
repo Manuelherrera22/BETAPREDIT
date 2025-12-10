@@ -180,6 +180,23 @@ export const predictionsService = {
   },
 
   /**
+   * Get prediction history (resolved predictions)
+   */
+  getPredictionHistory: async (options?: {
+    limit?: number;
+    offset?: number;
+    sportId?: string;
+    marketType?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<any[]> => {
+    const { data } = await api.get('/predictions/history', {
+      params: options || {},
+    });
+    return Array.isArray(data?.data) ? data.data : [];
+  },
+
+  /**
    * Submit user feedback on a prediction
    */
   submitFeedback: async (
