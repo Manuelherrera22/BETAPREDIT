@@ -3,34 +3,43 @@
  * Displays prediction accuracy statistics and tracking
  */
 
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { predictionsService } from '../services/predictionsService';
 import SimpleChart from '../components/SimpleChart';
 import PredictionRow from '../components/PredictionRow';
 
 export default function PredictionTracking() {
-  const filters = {
+  const [filters, setFilters] = useState({
     sportId: '',
     marketType: '',
     startDate: '',
     endDate: '',
-  };
+    modelVersion: '',
+  });
 
-  const { data: accuracyStats, isLoading } = useQuery({
+  const { data: accuracyStats, isLoading, refetch } = useQuery({
     queryKey: ['predictionAccuracy', filters],
     queryFn: () => predictionsService.getAccuracyTracking({
       sportId: filters.sportId || undefined,
       marketType: filters.marketType || undefined,
       startDate: filters.startDate || undefined,
       endDate: filters.endDate || undefined,
+      modelVersion: filters.modelVersion || undefined,
     }),
+    refetchInterval: 60000, // Refetch every minute
+    staleTime: 30000, // Consider stale after 30 seconds
   });
 
-  if (isLoading) {
+  if (isLoading && !accuracyStats) {
     return (
       <div className="px-4 py-6">
-        <div className="flex justify-center items-center h-64">
-          <div className="text-white">Cargando estadísticas...</div>
+        <div className="flex justify-center items-center h-96">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-primary-500 border-t-transparent mb-4"></div>
+            <div className="text-white text-lg font-semibold">Cargando estadísticas de precisión...</div>
+            <p className="text-gray-400 text-sm mt-2">Analizando predicciones y resultados</p>
+          </div>
         </div>
       </div>
     );
@@ -53,9 +62,66 @@ export default function PredictionTracking() {
 
   return (
     <div className="px-4 py-6">
-      <div className="mb-8">
-        <h1 className="text-4xl font-black text-white mb-2">Tracking de Precisión</h1>
-        <p className="text-gray-400">Seguimiento detallado de la precisión de las predicciones</p>
+      <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-4xl font-black text-white mb-2">Tracking de Precisión</h1>
+          <p className="text-gray-400">Seguimiento detallado de la precisión de las predicciones</p>
+        </div>
+        <button
+          onClick={() => refetch()}
+          className="px-4 py-2 bg-primary-500/20 border border-primary-500/40 text-primary-300 rounded-lg hover:bg-primary-500/30 transition-colors text-sm font-semibold"
+        >
+          🔄 Actualizar
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div className="mb-6 bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-6 border border-primary-500/20">
+        <h3 className="text-lg font-semibold text-white mb-4">Filtros</h3>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-400 mb-2">Deporte</label>
+            <select
+              value={filters.sportId}
+              onChange={(e) => setFilters({ ...filters, sportId: e.target.value })}
+              className="w-full px-4 py-2 bg-dark-800 border border-primary-500/30 rounded-lg text-white focus:outline-none focus:border-primary-400"
+            >
+              <option value="">Todos</option>
+              {/* Add sports dynamically if available */}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-400 mb-2">Tipo de Mercado</label>
+            <select
+              value={filters.marketType}
+              onChange={(e) => setFilters({ ...filters, marketType: e.target.value })}
+              className="w-full px-4 py-2 bg-dark-800 border border-primary-500/30 rounded-lg text-white focus:outline-none focus:border-primary-400"
+            >
+              <option value="">Todos</option>
+              <option value="MATCH_WINNER">Match Winner</option>
+              <option value="OVER_UNDER">Over/Under</option>
+              <option value="HANDICAP">Handicap</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-400 mb-2">Fecha Inicio</label>
+            <input
+              type="date"
+              value={filters.startDate}
+              onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+              className="w-full px-4 py-2 bg-dark-800 border border-primary-500/30 rounded-lg text-white focus:outline-none focus:border-primary-400"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-400 mb-2">Fecha Fin</label>
+            <input
+              type="date"
+              value={filters.endDate}
+              onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+              className="w-full px-4 py-2 bg-dark-800 border border-primary-500/30 rounded-lg text-white focus:outline-none focus:border-primary-400"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Main Stats Cards */}

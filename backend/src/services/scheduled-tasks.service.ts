@@ -44,6 +44,9 @@ class ScheduledTasksService {
     // Expire old alerts every hour
     this.startAlertExpiration(60 * 60 * 1000); // 1 hour
 
+    // Update predictions for finished events every 5 minutes
+    this.startPredictionAccuracyUpdate(5 * 60 * 1000); // 5 minutes
+
     logger.info('Scheduled tasks started');
   }
 
@@ -354,6 +357,99 @@ class ScheduledTasksService {
       }
     } catch (error: any) {
       logger.error('Error running value bet scan:', error);
+    }
+  }
+
+  /**
+   * Start prediction accuracy update task
+   * Updates predictions when events finish
+   */
+  private startPredictionAccuracyUpdate(intervalMs: number) {
+    const taskName = 'prediction-accuracy-update';
+
+    // Run immediately on start (with delay)
+    setTimeout(() => {
+      this.runPredictionAccuracyUpdate();
+    }, 60000); // Wait 1 minute after server start
+
+    // Then run on interval
+    const interval = setInterval(() => {
+      this.runPredictionAccuracyUpdate();
+    }, intervalMs);
+
+    this.intervals.set(taskName, interval);
+    logger.info(`Started prediction accuracy update task (interval: ${intervalMs / 1000}s)`);
+  }
+
+  /**
+   * Run prediction accuracy update
+   * Checks for finished events and updates their predictions
+   */
+  private async runPredictionAccuracyUpdate() {
+    try {
+      logger.info('Running prediction accuracy update...');
+      
+      // Find events that finished in the last 24 hours but predictions haven't been updated
+      const oneDayAgo = new Date();
+      oneDayAgo.setHours(oneDayAgo.getHours() - 24);
+      
+      const finishedEvents = await prisma.event.findMany({
+        where: {
+          status: 'FINISHED',
+          updatedAt: {
+            gte: oneDayAgo,
+          },
+        },
+        include: {
+          markets: {
+            include: {
+              odds: true,
+            },
+          },
+        },
+      });
+
+      let updatedCount = 0;
+      for (const event of finishedEvents) {
+        try {
+          // Determine actual results from event scores
+          const actualResults: Record<string, 'WON' | 'LOST' | 'VOID'> = {};
+          
+          // For MATCH_WINNER market
+          if (event.homeScore !== null && event.awayScore !== null) {
+            const matchWinnerMarket = event.markets.find(m => m.type === 'MATCH_WINNER');
+            if (matchWinnerMarket) {
+              if (event.homeScore > event.awayScore) {
+                actualResults[event.homeTeam] = 'WON';
+                actualResults[event.awayTeam] = 'LOST';
+                actualResults['Draw'] = 'LOST';
+              } else if (event.awayScore > event.homeScore) {
+                actualResults[event.homeTeam] = 'LOST';
+                actualResults[event.awayTeam] = 'WON';
+                actualResults['Draw'] = 'LOST';
+              } else {
+                actualResults[event.homeTeam] = 'LOST';
+                actualResults[event.awayTeam] = 'LOST';
+                actualResults['Draw'] = 'WON';
+              }
+            }
+          }
+
+          // Update predictions for this event
+          if (Object.keys(actualResults).length > 0) {
+            await predictionsService.updatePredictionsForFinishedEvent(event.id, actualResults);
+            updatedCount++;
+          }
+        } catch (error: any) {
+          logger.error(`Error updating predictions for event ${event.id}:`, error);
+        }
+      }
+
+      if (updatedCount > 0) {
+        logger.info(`Updated predictions for ${updatedCount} finished events`);
+      }
+    } catch (error: any) {
+      logger.error('Error in prediction accuracy update task:', error);
     }
   }
 
