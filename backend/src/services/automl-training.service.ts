@@ -154,6 +154,17 @@ class AutoMLTrainingService {
 
   /**
    * Get training data from database with all advanced features extracted
+   * Public method for testing feature extraction
+   */
+  async getTrainingDataFromDatabase(limit: number = 10): Promise<Array<{
+    features: Record<string, number>;
+    outcome: number;
+  }>> {
+    return this._getTrainingDataFromDatabase(limit);
+  }
+
+  /**
+   * Get training data from database with all advanced features extracted (internal)
    */
   private async _getTrainingDataFromDatabase(limit: number): Promise<Array<{
     features: Record<string, number>;
@@ -165,15 +176,30 @@ class AutoMLTrainingService {
         SELECT * FROM get_predictions_for_training(${limit}, 0.0, NULL, NULL)
       `;
 
-      return predictions.map(pred => {
+      const trainingData = predictions.map(pred => {
         const features = this._extractAllFeatures(pred);
         const outcome = pred.was_correct ? 1 : 0;
+        
+        // Log feature count for first prediction
+        if (predictions.indexOf(pred) === 0) {
+          const featureCount = Object.keys(features).length;
+          logger.info(`Extracted ${featureCount} features from prediction. Feature names: ${Object.keys(features).slice(0, 20).join(', ')}...`);
+        }
         
         return {
           features,
           outcome,
         };
       });
+
+      // Log summary
+      if (trainingData.length > 0) {
+        const sampleFeatures = trainingData[0].features;
+        const featureCount = Object.keys(sampleFeatures).length;
+        logger.info(`Training data prepared: ${trainingData.length} samples with ${featureCount} features each`);
+      }
+
+      return trainingData;
     } catch (error: any) {
       logger.error('Error getting training data from database:', error);
       throw error;
@@ -182,63 +208,103 @@ class AutoMLTrainingService {
 
   /**
    * Extract ALL features from prediction data including advanced features from factors JSON
+   * This function extracts 50+ features to maximize model accuracy
    */
   private _extractAllFeatures(prediction: any): Record<string, number> {
     const features: Record<string, number> = {};
 
-    // Basic features
-    features.predicted_probability = prediction.predicted_probability || 0;
-    features.confidence = prediction.confidence || 0;
-    features.avg_odds = prediction.avg_odds || 0;
-    features.days_until_event = prediction.days_until_event || 0;
-    features.accuracy = prediction.accuracy || 0;
+    // Basic features (always present)
+    features.predicted_probability = Number(prediction.predicted_probability) || 0;
+    features.confidence = Number(prediction.confidence) || 0;
+    features.avg_odds = Number(prediction.avg_odds) || 0;
+    features.days_until_event = Number(prediction.days_until_event) || 0;
+    features.accuracy = Number(prediction.accuracy) || 0;
+
+    // Parse factors JSON if it's a string
+    let factors: any = null;
+    if (prediction.factors) {
+      if (typeof prediction.factors === 'string') {
+        try {
+          factors = JSON.parse(prediction.factors);
+        } catch (e) {
+          logger.warn('Failed to parse factors JSON string:', e);
+          factors = null;
+        }
+      } else if (typeof prediction.factors === 'object') {
+        factors = prediction.factors;
+      }
+    }
 
     // Extract advanced features from factors JSON
-    if (prediction.factors && typeof prediction.factors === 'object') {
-      const factors = prediction.factors as any;
+    if (factors && typeof factors === 'object') {
 
-      // Market Intelligence Features
+      // Market Intelligence Features (from marketOdds)
       if (factors.marketOdds) {
-        features.market_avg_implied_prob = factors.marketOdds.impliedProbability || 0;
-        features.market_consensus = factors.marketOdds.consensus || 0;
-        features.market_volatility = factors.marketOdds.volatility || 0;
-        features.bookmaker_count = factors.marketOdds.bookmakerCount || 0;
-        features.odds_range = factors.marketOdds.maxOdds - factors.marketOdds.minOdds || 0;
+        const mo = factors.marketOdds;
+        features.market_avg_implied_prob = Number(mo.impliedProbability) || 0;
+        features.market_consensus = Number(mo.consensus) || 0;
+        features.market_volatility = Number(mo.volatility) || 0;
+        features.bookmaker_count = Number(mo.bookmakerCount) || 0;
+        features.odds_range = (Number(mo.maxOdds) || 0) - (Number(mo.minOdds) || 0);
+        features.odds_std = Number(mo.stdDev) || 0;
+        features.odds_median = Number(mo.median) || 0;
       }
 
       // Historical Performance Features
       if (factors.historicalPerformance) {
-        features.historical_win_rate = factors.historicalPerformance.winRate || 0;
-        features.historical_goals_avg = factors.historicalPerformance.goalsAvg || 0;
-        features.historical_goals_against_avg = factors.historicalPerformance.goalsAgainstAvg || 0;
-        features.historical_matches_count = factors.historicalPerformance.matchesCount || 0;
-        features.historical_impact = factors.historicalPerformance.impact || 0;
+        const hp = factors.historicalPerformance;
+        features.historical_win_rate = Number(hp.winRate) || 0;
+        features.historical_goals_avg = Number(hp.goalsAvg) || 0;
+        features.historical_goals_against_avg = Number(hp.goalsAgainstAvg) || 0;
+        features.historical_matches_count = Number(hp.matchesCount) || 0;
+        features.historical_impact = Number(hp.impact) || 0;
+        features.historical_clean_sheets = Number(hp.cleanSheets) || 0;
+        features.historical_avg_possession = Number(hp.avgPossession) || 0;
+        features.historical_shots_on_target = Number(hp.shotsOnTarget) || 0;
       }
 
-      // Team Form Features
+      // Team Form Features (recent matches)
       if (factors.form) {
-        features.form_win_rate = factors.form.winRate || 0;
-        features.form_goals_scored = factors.form.goalsScored || 0;
-        features.form_goals_conceded = factors.form.goalsConceded || 0;
-        features.form_matches_count = factors.form.matchesCount || 0;
-        features.form_impact = factors.form.impact || 0;
-        features.form_momentum = factors.form.momentum || 0; // Recent trend
+        const form = factors.form;
+        features.form_win_rate = Number(form.winRate) || 0;
+        features.form_goals_scored = Number(form.goalsScored) || 0;
+        features.form_goals_conceded = Number(form.goalsConceded) || 0;
+        features.form_matches_count = Number(form.matchesCount) || 0;
+        features.form_impact = Number(form.impact) || 0;
+        features.form_momentum = Number(form.momentum) || 0;
+        features.team_form_momentum = Number(form.momentum) || 0; // Alias for consistency
+        features.team_form_recent_wins = Number(form.recentWins) || 0;
+        features.team_form_recent_losses = Number(form.recentLosses) || 0;
+        features.team_form_recent_draws = Number(form.recentDraws) || 0;
+        features.team_form_goals_per_match = features.form_matches_count > 0 
+          ? features.form_goals_scored / features.form_matches_count 
+          : 0;
       }
 
       // Head-to-Head Features
       if (factors.headToHead) {
-        features.h2h_win_rate = factors.headToHead.winRate || 0;
-        features.h2h_goals_avg = factors.headToHead.goalsAvg || 0;
-        features.h2h_matches_count = factors.headToHead.matchesCount || 0;
-        features.h2h_impact = factors.headToHead.impact || 0;
-        features.h2h_recent_trend = factors.headToHead.recentTrend || 0;
+        const h2h = factors.headToHead;
+        features.h2h_win_rate = Number(h2h.winRate) || 0;
+        features.h2h_goals_avg = Number(h2h.goalsAvg) || 0;
+        features.h2h_matches_count = Number(h2h.matchesCount) || 0;
+        features.h2h_impact = Number(h2h.impact) || 0;
+        features.h2h_recent_trend = Number(h2h.recentTrend) || 0;
+        features.h2h_home_advantage = Number(h2h.homeAdvantage) || 0;
+        features.h2h_avg_total_goals = Number(h2h.avgTotalGoals) || 0;
+        features.h2h_btts_rate = Number(h2h.bothTeamsScoredRate) || 0;
       }
 
       // Injuries/Suspensions Features
       if (factors.injuries) {
-        features.injuries_count = factors.injuries.count || 0;
-        features.injuries_key_players = factors.injuries.keyPlayersCount || 0;
-        features.injuries_risk_level = this._mapRiskLevelToNumber(factors.injuries.riskLevel);
+        const inj = factors.injuries;
+        features.injuries_count = Number(inj.count) || 0;
+        features.injuries_key_players = Number(inj.keyPlayersCount) || 0;
+        features.injuries_risk_level = this._mapRiskLevelToNumber(inj.riskLevel);
+        features.suspensions_count = Number(inj.suspensionsCount) || 0;
+        features.injuries_goalkeeper = Number(inj.goalkeeperInjured) || 0;
+        features.injuries_defender = Number(inj.defenderInjured) || 0;
+        features.injuries_midfielder = Number(inj.midfielderInjured) || 0;
+        features.injuries_forward = Number(inj.forwardInjured) || 0;
       }
 
       // Weather Features (for outdoor sports)
@@ -253,11 +319,25 @@ class AutoMLTrainingService {
         features.value_percentage = factors.valuePercentage;
       }
 
-      // Market Intelligence Features
+      // Market Intelligence Features (separate from marketOdds)
       if (factors.marketIntelligence) {
-        features.market_sentiment = factors.marketIntelligence.sentiment || 0;
-        features.market_volume = factors.marketIntelligence.volume || 0;
-        features.market_movement = factors.marketIntelligence.movement || 0;
+        const mi = factors.marketIntelligence;
+        features.market_sentiment = Number(mi.sentiment) || 0;
+        features.market_volume = Number(mi.volume) || 0;
+        features.market_movement = Number(mi.movement) || 0;
+        features.market_trend = Number(mi.trend) || 0;
+        features.market_confidence = Number(mi.confidence) || 0;
+      }
+      
+      // Market Intelligence (alternative structure)
+      if (factors.market_consensus !== undefined) {
+        features.market_consensus_alt = Number(factors.market_consensus) || 0;
+      }
+      if (factors.market_volatility !== undefined) {
+        features.market_volatility_alt = Number(factors.market_volatility) || 0;
+      }
+      if (factors.market_sentiment !== undefined) {
+        features.market_sentiment_alt = Number(factors.market_sentiment) || 0;
       }
 
       // Team Strength Features
@@ -277,18 +357,73 @@ class AutoMLTrainingService {
     }
 
     // Market type encoding (one-hot like)
-    const marketType = prediction.market_type || '';
-    features.market_type_match_winner = marketType === 'MATCH_WINNER' ? 1 : 0;
-    features.market_type_over_under = marketType.includes('OVER_UNDER') ? 1 : 0;
-    features.market_type_both_teams_score = marketType === 'BOTH_TEAMS_SCORE' ? 1 : 0;
+    const marketType = (prediction.market_type || '').toUpperCase();
+    features.market_type_match_winner = marketType === 'MATCH_WINNER' || marketType.includes('H2H') ? 1 : 0;
+    features.market_type_over_under = marketType.includes('OVER_UNDER') || marketType.includes('TOTAL') ? 1 : 0;
+    features.market_type_both_teams_score = marketType === 'BOTH_TEAMS_SCORE' || marketType === 'BTTS' ? 1 : 0;
+    features.market_type_draw_no_bet = marketType.includes('DRAW_NO_BET') ? 1 : 0;
+    features.market_type_double_chance = marketType.includes('DOUBLE_CHANCE') ? 1 : 0;
+    features.market_type_encoded = this._encodeMarketType(marketType);
 
     // Sport encoding
-    const sportName = prediction.sport_name || '';
-    features.sport_soccer = sportName.toLowerCase().includes('soccer') || sportName.toLowerCase().includes('football') ? 1 : 0;
-    features.sport_basketball = sportName.toLowerCase().includes('basketball') ? 1 : 0;
-    features.sport_tennis = sportName.toLowerCase().includes('tennis') ? 1 : 0;
+    const sportName = (prediction.sport_name || '').toLowerCase();
+    features.sport_soccer = sportName.includes('soccer') || sportName.includes('football') ? 1 : 0;
+    features.sport_basketball = sportName.includes('basketball') ? 1 : 0;
+    features.sport_tennis = sportName.includes('tennis') ? 1 : 0;
+    features.sport_encoded = this._encodeSport(sportName);
+
+    // Calculated features
+    features.odds_implied_prob = features.avg_odds > 0 ? 1 / features.avg_odds : 0;
+    features.probability_difference = features.predicted_probability - features.odds_implied_prob;
+    features.value_bet_score = features.probability_difference * features.confidence;
+    
+    // Time-based features
+    if (prediction.days_until_event !== undefined) {
+      features.is_imminent = features.days_until_event < 1 ? 1 : 0;
+      features.is_near_term = features.days_until_event >= 1 && features.days_until_event < 7 ? 1 : 0;
+      features.is_long_term = features.days_until_event >= 7 ? 1 : 0;
+    }
+
+    // Log feature count for debugging
+    const featureCount = Object.keys(features).length;
+    if (featureCount < 30) {
+      logger.warn(`Only ${featureCount} features extracted from prediction ${prediction.id}. Expected 50+`);
+    }
 
     return features;
+  }
+
+  /**
+   * Encode market type as numeric value
+   */
+  private _encodeMarketType(marketType: string): number {
+    const encodings: Record<string, number> = {
+      'MATCH_WINNER': 1,
+      'H2H': 1,
+      'OVER_UNDER': 2,
+      'TOTAL': 2,
+      'BOTH_TEAMS_SCORE': 3,
+      'BTTS': 3,
+      'DRAW_NO_BET': 4,
+      'DOUBLE_CHANCE': 5,
+    };
+    
+    for (const [key, value] of Object.entries(encodings)) {
+      if (marketType.includes(key)) return value;
+    }
+    return 0;
+  }
+
+  /**
+   * Encode sport as numeric value
+   */
+  private _encodeSport(sportName: string): number {
+    if (sportName.includes('soccer') || sportName.includes('football')) return 1;
+    if (sportName.includes('basketball')) return 2;
+    if (sportName.includes('tennis')) return 3;
+    if (sportName.includes('baseball')) return 4;
+    if (sportName.includes('hockey')) return 5;
+    return 0;
   }
 
   /**
