@@ -6,6 +6,7 @@ import { format, formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
+import SkeletonLoader from '../components/SkeletonLoader'
 
 export default function Events() {
   const [selectedSport, setSelectedSport] = useState<string>('all')
@@ -116,13 +117,10 @@ export default function Events() {
   if (isLoading && !events && !error) {
     return (
       <div className="px-4 py-6">
-        <div className="flex justify-center items-center h-64">
-          <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mb-4"></div>
-            <div className="text-white">Cargando eventos...</div>
-            <p className="text-gray-400 text-sm mt-2">Obteniendo eventos desde la base de datos</p>
-          </div>
+        <div className="mb-8">
+          <SkeletonLoader type="text" />
         </div>
+        <SkeletonLoader type="list" count={8} />
       </div>
     );
   }

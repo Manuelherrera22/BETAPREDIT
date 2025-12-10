@@ -10,6 +10,7 @@ import { userStatisticsService, type UserStatistics } from '../services/userStat
 import { exportToCSV } from '../utils/csvExport';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
+import SkeletonLoader from '../components/SkeletonLoader';
 
 export default function Statistics() {
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('month');
@@ -117,9 +118,13 @@ export default function Statistics() {
   if (loading && !statistics) {
     return (
       <div className="px-4 py-6">
-        <div className="flex justify-center items-center h-64">
-          <div className="text-white">Cargando estadísticas...</div>
+        <div className="mb-6">
+          <SkeletonLoader type="text" />
         </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <SkeletonLoader type="card" count={4} />
+        </div>
+        <SkeletonLoader type="card" count={2} />
       </div>
     );
   }

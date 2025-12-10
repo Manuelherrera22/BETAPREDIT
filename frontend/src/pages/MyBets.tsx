@@ -9,6 +9,7 @@ import RegisterBetForm from '../components/RegisterBetForm'
 import ImportBetsModal from '../components/ImportBetsModal'
 import { exportToCSV } from '../utils/csvExport'
 import EmptyState from '../components/EmptyState'
+import SkeletonLoader from '../components/SkeletonLoader'
 
 export default function MyBets() {
   const queryClient = useQueryClient()
@@ -187,13 +188,10 @@ export default function MyBets() {
   if (isLoading && !bets) {
     return (
       <div className="px-4 py-6">
-        <div className="flex justify-center items-center h-96">
-          <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-primary-500 border-t-transparent mb-4"></div>
-            <div className="text-white text-lg font-semibold">Cargando apuestas...</div>
-            <p className="text-gray-400 text-sm mt-2">Obteniendo tus apuestas registradas</p>
-          </div>
+        <div className="mb-6">
+          <SkeletonLoader type="text" />
         </div>
+        <SkeletonLoader type="table" />
       </div>
     );
   }

@@ -17,6 +17,7 @@ import { notificationsService } from '../services/notificationsService'
 import { userProfileService } from '../services/userProfileService'
 import Icon, { type IconName } from '../components/icons/IconSystem'
 import EmptyState from '../components/EmptyState'
+import SkeletonLoader from '../components/SkeletonLoader'
 
 export default function Home() {
   const { shouldShow } = useOnboarding()
@@ -100,10 +101,14 @@ export default function Home() {
     bankroll: userStats?.totalStaked || 0,
   }
 
+  // Loading state mejorado con skeleton
   if (eventsLoading && !liveEvents) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-white">Cargando eventos...</div>
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <SkeletonLoader type="card" count={4} />
+        </div>
+        <SkeletonLoader type="list" count={3} />
       </div>
     )
   }

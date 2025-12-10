@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { predictionsService } from '../services/predictionsService';
 import SimpleChart from '../components/SimpleChart';
 import PredictionRow from '../components/PredictionRow';
+import SkeletonLoader from '../components/SkeletonLoader';
 
 export default function PredictionTracking() {
   const [filters, setFilters] = useState({
@@ -34,13 +35,13 @@ export default function PredictionTracking() {
   if (isLoading && !accuracyStats) {
     return (
       <div className="px-4 py-6">
-        <div className="flex justify-center items-center h-96">
-          <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-primary-500 border-t-transparent mb-4"></div>
-            <div className="text-white text-lg font-semibold">Cargando estadísticas de precisión...</div>
-            <p className="text-gray-400 text-sm mt-2">Analizando predicciones y resultados</p>
-          </div>
+        <div className="mb-6">
+          <SkeletonLoader type="text" />
         </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <SkeletonLoader type="card" count={3} />
+        </div>
+        <SkeletonLoader type="card" />
       </div>
     );
   }
