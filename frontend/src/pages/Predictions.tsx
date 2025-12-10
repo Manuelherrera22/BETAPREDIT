@@ -67,7 +67,7 @@ export default function Predictions() {
         const changePercent = (data.prediction.change * 100).toFixed(1);
         const direction = data.prediction.change > 0 ? 'aumentó' : 'disminuyó';
         toast.success(
-          `Predicción actualizada: ${data.prediction.eventName} - ${data.prediction.selection} ${direction} ${Math.abs(changePercent)}%`,
+          `Predicción actualizada: ${data.prediction.eventName} - ${data.prediction.selection} ${direction} ${Math.abs(parseFloat(changePercent))}%`,
           { duration: 5000 }
         );
       }

@@ -21,7 +21,7 @@ export class ErrorHandler {
   /**
    * Log error for tracking
    */
-  static logError(error: Error | AppError, context?: string) {
+  static async logError(error: Error | AppError, context?: string) {
     const errorData: AppError = {
       message: error.message,
       code: (error as any).code,

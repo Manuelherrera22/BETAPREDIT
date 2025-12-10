@@ -3,7 +3,7 @@
  * Basic unit tests for error handling utility
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { ErrorHandler, AppError } from '../utils/errorHandler';
 
 describe('ErrorHandler', () => {

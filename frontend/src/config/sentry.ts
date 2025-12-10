@@ -31,7 +31,7 @@ export const initSentry = () => {
     replaysSessionSampleRate: import.meta.env.PROD ? 0.1 : 1.0,
     replaysOnErrorSampleRate: 1.0,
     // Filter sensitive data
-    beforeSend(event, hint) {
+    beforeSend(event, _hint) {
       // Filter out sensitive data from URLs
       if (event.request?.url) {
         try {
