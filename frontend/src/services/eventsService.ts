@@ -138,7 +138,7 @@ export const eventsService = {
         throw new Error('No authentication token available. Please log in.');
       }
 
-      const params = new URLSearchParams({ status: 'SCHEDULED' });
+      const params = new URLSearchParams({ status: 'SCHEDULED', limit: '100' }); // Request more events
       // If sportId looks like a slug (contains underscore), use sportSlug instead
       if (sportId) {
         if (sportId.includes('_')) {

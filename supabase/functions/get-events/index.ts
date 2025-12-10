@@ -56,7 +56,7 @@ serve(async (req) => {
     const status = url.searchParams.get('status') || 'SCHEDULED'; // 'LIVE' or 'SCHEDULED'
     const sportId = url.searchParams.get('sportId') || null;
     const sportSlug = url.searchParams.get('sportSlug') || null;
-    const limit = parseInt(url.searchParams.get('limit') || '50');
+    const limit = parseInt(url.searchParams.get('limit') || '100'); // Increased from 50 to 100
 
     // If sportSlug is provided, find the sportId first
     let finalSportId = sportId;

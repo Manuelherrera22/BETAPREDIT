@@ -36,8 +36,8 @@ interface EventPrediction {
 
 export default function Predictions() {
   const [selectedSport, setSelectedSport] = useState<string>('all');
-  const [minConfidence, setMinConfidence] = useState<number>(0.5);
-  const [minValue, setMinValue] = useState<number>(0);
+  const [minConfidence, setMinConfidence] = useState<number>(0.0); // Lowered from 0.5 to show more
+  const [minValue, setMinValue] = useState<number>(-0.1); // Lowered from 0 to show more
 
   // Get available sports
   const { data: sports } = useQuery({
@@ -118,7 +118,7 @@ export default function Predictions() {
         const eventsWithPreds: EventPrediction[] = [];
         
         // Increase limit when showing all sports to get more predictions
-        const eventLimit = selectedSport === 'all' ? 50 : 20;
+        const eventLimit = selectedSport === 'all' ? 100 : 50; // Increased limits
         for (const event of events.slice(0, eventLimit)) {
           try {
             // Get predictions for this event
