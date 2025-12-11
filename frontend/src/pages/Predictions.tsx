@@ -20,6 +20,7 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import PredictionCard from '../components/PredictionCard';
 import PredictionComparisonChart from '../components/PredictionComparisonChart';
 import PredictionStatsDashboard from '../components/PredictionStatsDashboard';
+import PredictionDetailsModal from '../components/PredictionDetailsModal';
 import Icon from '../components/icons/IconSystem';
 
 interface EventPrediction {
@@ -45,6 +46,16 @@ export default function Predictions() {
   const [minValue, setMinValue] = useState<number>(-0.1);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'confidence' | 'value' | 'time'>('value');
+  const [selectedPrediction, setSelectedPrediction] = useState<{
+    predictionId?: string;
+    eventId: string;
+    marketId?: string;
+    selection: string;
+    predictedProbability: number;
+    confidence: number;
+    eventName: string;
+    sport: string;
+  } | null>(null);
 
   // Get available sports
   const { data: sports } = useQuery({
@@ -160,6 +171,9 @@ export default function Predictions() {
                 }
                 
                 return {
+                  id: pred.id, // Include prediction ID
+                  eventId: event.id,
+                  marketId: pred.marketId,
                   selection: pred.selection,
                   predictedProbability: pred.predictedProbability,
                   marketOdds,
@@ -490,15 +504,33 @@ export default function Predictions() {
                             </div>
                           </div>
                         </div>
-                        <Link
-                          to={`/events/${event.eventId}`}
+                        <button
+                          onClick={() => {
+                            // Open modal with first prediction or event details
+                            const firstPred = event.predictions.find((p: any) => p.confidence >= minConfidence && p.value >= minValue);
+                            if (firstPred) {
+                              setSelectedPrediction({
+                                predictionId: (firstPred as any).id,
+                                eventId: event.eventId,
+                                marketId: (firstPred as any).marketId,
+                                selection: firstPred.selection,
+                                predictedProbability: firstPred.predictedProbability,
+                                confidence: firstPred.confidence,
+                                eventName: event.eventName,
+                                sport: event.sport,
+                              });
+                            } else {
+                              // Fallback: navigate to event page
+                              window.location.href = `/events/${event.eventId}`;
+                            }
+                          }}
                           className="px-4 sm:px-6 py-2.5 sm:py-3 bg-primary-500/20 hover:bg-primary-500/30 border-2 border-primary-500/40 text-primary-300 rounded-lg sm:rounded-xl hover:border-primary-500/60 transition-all font-black text-sm sm:text-base flex items-center justify-center gap-2 hover:scale-105 w-full md:w-auto shrink-0"
                         >
                           Ver Detalles
                           <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                           </svg>
-                        </Link>
+                        </button>
                       </div>
                     </div>
 
@@ -514,7 +546,18 @@ export default function Predictions() {
                               eventName={event.eventName}
                               startTime={event.startTime}
                               sport={event.sport}
-                              onViewDetails={() => window.location.href = `/events/${event.eventId}`}
+                              onViewDetails={() => {
+                                setSelectedPrediction({
+                                  predictionId: (prediction as any).id,
+                                  eventId: event.eventId,
+                                  marketId: (prediction as any).marketId,
+                                  selection: prediction.selection,
+                                  predictedProbability: prediction.predictedProbability,
+                                  confidence: prediction.confidence,
+                                  eventName: event.eventName,
+                                  sport: event.sport,
+                                });
+                              }}
                             />
                           ))}
                       </div>
@@ -628,6 +671,22 @@ export default function Predictions() {
           </>
         )}
       </div>
+
+      {/* Prediction Details Modal */}
+      {selectedPrediction && (
+        <PredictionDetailsModal
+          isOpen={!!selectedPrediction}
+          onClose={() => setSelectedPrediction(null)}
+          predictionId={selectedPrediction.predictionId}
+          eventId={selectedPrediction.eventId}
+          marketId={selectedPrediction.marketId}
+          selection={selectedPrediction.selection}
+          predictedProbability={selectedPrediction.predictedProbability}
+          confidence={selectedPrediction.confidence}
+          eventName={selectedPrediction.eventName}
+          sport={selectedPrediction.sport}
+        />
+      )}
 
       {/* Add custom animations */}
       <style>{`

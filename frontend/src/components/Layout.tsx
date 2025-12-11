@@ -23,22 +23,28 @@ export default function Layout({ children }: LayoutProps) {
     setMobileMenuOpen(false)
   }
 
+  // Organized navigation - grouped by category
   const navigationItems = [
+    // Main
     { to: '/dashboard', label: 'Inicio', icon: 'home' as IconName },
     { to: '/events', label: 'Eventos', icon: 'events' as IconName },
-    { to: '/odds-comparison', label: 'Comparar Cuotas', icon: 'odds' as IconName },
-    { to: '/arbitrage', label: 'Arbitraje', icon: 'arbitrage' as IconName, badge: 'Nuevo', badgeColor: 'bg-green-500' },
-    { to: '/statistics', label: 'Estadísticas', icon: 'statistics' as IconName },
+    
+    // Predictions (grouped)
     { to: '/predictions', label: 'Predicciones', icon: 'predictions' as IconName, badge: 'Pro', badgeColor: 'bg-gold-500' },
-    { to: '/prediction-history', label: 'Historial Predicciones', icon: 'prediction-history' as IconName },
     { to: '/prediction-tracking', label: 'Seguimiento', icon: 'tracking' as IconName },
+    
+    // Betting Tools
+    { to: '/odds-comparison', label: 'Comparar Cuotas', icon: 'odds' as IconName },
+    { to: '/arbitrage', label: 'Arbitraje', icon: 'arbitrage' as IconName },
     { to: '/my-bets', label: 'Mis Apuestas', icon: 'bets' as IconName },
-    { to: '/bankroll', label: 'Análisis Bankroll', icon: 'bankroll' as IconName },
-    { to: '/alerts', label: 'Alertas', icon: 'alerts' as IconName, badge: '3', badgeColor: 'bg-accent-500' },
-    { to: '/referrals', label: 'Referidos', icon: 'referrals' as IconName },
-    { to: '/responsible-gaming', label: 'Juego Responsable', icon: 'responsible' as IconName },
+    
+    // Analytics
+    { to: '/statistics', label: 'Estadísticas', icon: 'statistics' as IconName },
+    { to: '/bankroll', label: 'Bankroll', icon: 'bankroll' as IconName },
+    
+    // Alerts & Account
+    { to: '/alerts', label: 'Alertas', icon: 'alerts' as IconName },
     { to: '/profile', label: 'Perfil', icon: 'profile' as IconName },
-    { to: '/2fa', label: 'Seguridad 2FA', icon: 'security' as IconName },
   ]
 
   const isActive = (path: string) => location.pathname === path
@@ -70,9 +76,9 @@ export default function Layout({ children }: LayoutProps) {
                 </span>
               </Link>
               
-              {/* Desktop Navigation */}
+              {/* Desktop Navigation - Show main items only */}
               <div className="hidden lg:ml-6 lg:flex lg:space-x-1 xl:space-x-2">
-                {navigationItems.slice(0, 8).map((item) => (
+                {navigationItems.map((item) => (
                   <Link
                     key={item.to}
                     to={item.to}

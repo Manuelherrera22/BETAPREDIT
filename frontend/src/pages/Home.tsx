@@ -133,15 +133,13 @@ export default function Home() {
     )
   }
 
-  // Quick access tools
+  // Quick access tools - Organized and essential only
   const quickTools = [
-    { to: '/odds-comparison', label: 'Comparar Cuotas', icon: 'odds' as IconName, color: 'from-primary-500/20 to-primary-600/20', borderColor: 'border-primary-500/40' },
-    { to: '/statistics', label: 'Estadísticas', icon: 'statistics' as IconName, color: 'from-accent-500/20 to-accent-600/20', borderColor: 'border-accent-500/40' },
-    { to: '/predictions', label: 'Predicciones', icon: 'predictions' as IconName, color: 'from-gold-500/20 to-gold-600/20', borderColor: 'border-gold-500/40' },
-    { to: '/arbitrage', label: 'Arbitraje', icon: 'arbitrage' as IconName, color: 'from-green-500/20 to-green-600/20', borderColor: 'border-green-500/40' },
+    { to: '/predictions', label: 'Predicciones', icon: 'predictions' as IconName, color: 'from-gold-500/20 to-gold-600/20', borderColor: 'border-gold-500/40', badge: 'Pro' },
+    { to: '/events', label: 'Eventos', icon: 'events' as IconName, color: 'from-primary-500/20 to-primary-600/20', borderColor: 'border-primary-500/40' },
+    { to: '/odds-comparison', label: 'Comparar Cuotas', icon: 'odds' as IconName, color: 'from-accent-500/20 to-accent-600/20', borderColor: 'border-accent-500/40' },
     { to: '/my-bets', label: 'Mis Apuestas', icon: 'bets' as IconName, color: 'from-purple-500/20 to-purple-600/20', borderColor: 'border-purple-500/40' },
-    { to: '/bankroll', label: 'Bankroll', icon: 'bankroll' as IconName, color: 'from-blue-500/20 to-blue-600/20', borderColor: 'border-blue-500/40' },
-    { to: '/prediction-tracking', label: 'Seguimiento', icon: 'tracking' as IconName, color: 'from-orange-500/20 to-orange-600/20', borderColor: 'border-orange-500/40' },
+    { to: '/statistics', label: 'Estadísticas', icon: 'statistics' as IconName, color: 'from-blue-500/20 to-blue-600/20', borderColor: 'border-blue-500/40' },
     { to: '/alerts', label: 'Alertas', icon: 'alerts' as IconName, color: 'from-red-500/20 to-red-600/20', borderColor: 'border-red-500/40' },
   ]
 
@@ -238,19 +236,24 @@ export default function Home() {
               <span className="sm:hidden">Ver →</span>
             </Link>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
             {quickTools.map((tool) => (
               <Link
                 key={tool.to}
                 to={tool.to}
-                className={`bg-gradient-to-br ${tool.color} rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-5 border ${tool.borderColor} hover:border-opacity-60 transition-all hover:scale-105 active:scale-95 group min-h-[100px] sm:min-h-[120px] flex flex-col items-center justify-center`}
+                className={`bg-gradient-to-br ${tool.color} rounded-xl p-4 sm:p-5 border-2 ${tool.borderColor} hover:border-opacity-80 transition-all hover:scale-105 active:scale-95 group min-h-[110px] sm:min-h-[130px] flex flex-col items-center justify-center relative`}
               >
-                <div className="mb-2 sm:mb-3 flex items-center justify-center">
-                  <div className="p-2 sm:p-3 rounded-lg bg-white/5 group-hover:bg-white/10 transition-colors">
-                    <Icon name={tool.icon} size={24} className="sm:w-7 sm:h-7 text-white" strokeWidth={2} />
+                {tool.badge && (
+                  <span className="absolute top-2 right-2 px-2 py-0.5 bg-gold-500/30 text-gold-300 text-xs font-bold rounded-full border border-gold-500/50">
+                    {tool.badge}
+                  </span>
+                )}
+                <div className="mb-3 flex items-center justify-center">
+                  <div className="p-3 rounded-xl bg-white/5 group-hover:bg-white/10 transition-colors">
+                    <Icon name={tool.icon} size={28} className="text-white" strokeWidth={2} />
                   </div>
                 </div>
-                <h3 className="text-xs sm:text-sm md:text-base font-bold text-white line-clamp-2 text-center leading-tight">{tool.label}</h3>
+                <h3 className="text-sm sm:text-base font-bold text-white text-center leading-tight">{tool.label}</h3>
               </Link>
             ))}
           </div>
