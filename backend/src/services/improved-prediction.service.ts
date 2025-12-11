@@ -115,7 +115,7 @@ class ImprovedPredictionService {
           marketAverage,
           marketConsensus,
           historicalAccuracy,
-          valueAdjustment,
+          valueAdjustment: 1.0, // No arbitrary adjustment - only real data
         },
       };
     } catch (error: any) {

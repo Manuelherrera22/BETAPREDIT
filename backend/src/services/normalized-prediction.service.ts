@@ -10,6 +10,7 @@ import { logger } from '../utils/logger';
 import { improvedPredictionService } from './improved-prediction.service';
 import { universalPredictionService } from './universal-prediction.service';
 import { advancedFeaturesService } from './advanced-features.service';
+import { advancedPredictionAnalysisService } from './advanced-prediction-analysis.service';
 
 interface MarketSelections {
   home: number[]; // Array of odds for home team
@@ -242,33 +243,84 @@ class NormalizedPredictionService {
         },
       };
 
-      // Step 6: Apply adjustments based on advanced features
-      // CRITICAL: Only apply adjustments if we have REAL data (not defaults)
-      // Adjustments should be small (5-15%) to maintain normalization
-      const hasRealData = allFeatures.hasRealData !== false;
-      const adjustments = hasRealData 
-        ? this.calculateAdjustments(allFeatures, homeTeam, awayTeam)
-        : { home: 0, away: 0, draw: 0 }; // No adjustments if using defaults
+      // Step 6: Use ADVANCED prediction analysis for each selection
+      // This uses ALL available data (form, H2H, detailed stats) for better predictions
+      const allOdds = [...selections.home, ...selections.away, ...(selections.draw || [])];
       
-      // Step 7: Apply adjustments while maintaining normalization
-      let adjustedHome = normalizedHome * (1 + adjustments.home);
-      let adjustedAway = normalizedAway * (1 + adjustments.away);
-      let adjustedDraw = normalizedDraw * (1 + (adjustments.draw || 0));
-
-      // Step 8: Re-normalize after adjustments to ensure sum = 1.0
-      const adjustedTotal = adjustedHome + adjustedAway + adjustedDraw;
-      adjustedHome = adjustedHome / adjustedTotal;
-      adjustedAway = adjustedAway / adjustedTotal;
-      adjustedDraw = adjustedDraw / adjustedTotal;
-
-      // Step 9: Calculate confidence based on market consensus and features
-      const confidence = this.calculateConfidence(
-        selections,
-        allFeatures,
-        totalImplied
+      // Get advanced analysis for each selection
+      const homeAnalysis = await advancedPredictionAnalysisService.analyzeAndPredict(
+        eventId,
+        homeTeam,
+        homeTeam,
+        awayTeam,
+        sportId,
+        selections.home
       );
+      
+      const awayAnalysis = await advancedPredictionAnalysisService.analyzeAndPredict(
+        eventId,
+        awayTeam,
+        homeTeam,
+        awayTeam,
+        sportId,
+        selections.away
+      );
+      
+      const drawAnalysis = selections.draw && selections.draw.length > 0
+        ? await advancedPredictionAnalysisService.analyzeAndPredict(
+            eventId,
+            'Draw',
+            homeTeam,
+            awayTeam,
+            sportId,
+            selections.draw
+          )
+        : null;
 
-      // Step 10: Prepare factors for storage
+      // Step 7: Use advanced analysis probabilities directly
+      // The advanced analysis already incorporates ALL features (form, H2H, stats, etc.)
+      // We use the adjusted probabilities from the analysis, but normalize them to sum to 1.0
+      const hasRealData = allFeatures.hasRealData !== false;
+      
+      let adjustedHome: number;
+      let adjustedAway: number;
+      let adjustedDraw: number;
+      
+      if (hasRealData && homeAnalysis && awayAnalysis) {
+        // Use adjusted probabilities from advanced analysis
+        adjustedHome = homeAnalysis.adjustedProbability;
+        adjustedAway = awayAnalysis.adjustedProbability;
+        adjustedDraw = drawAnalysis?.adjustedProbability || normalizedDraw;
+        
+        // Re-normalize to ensure sum = 1.0 (accounting for bookmaker margin)
+        const adjustedTotal = adjustedHome + adjustedAway + adjustedDraw;
+        if (adjustedTotal > 0) {
+          adjustedHome = adjustedHome / adjustedTotal;
+          adjustedAway = adjustedAway / adjustedTotal;
+          adjustedDraw = adjustedDraw / adjustedTotal;
+        } else {
+          // Fallback to normalized if something went wrong
+          adjustedHome = normalizedHome;
+          adjustedAway = normalizedAway;
+          adjustedDraw = normalizedDraw;
+        }
+      } else {
+        // No real data - use simple normalized probabilities
+        adjustedHome = normalizedHome;
+        adjustedAway = normalizedAway;
+        adjustedDraw = normalizedDraw;
+      }
+
+      // Step 9: Calculate confidence based on advanced analysis
+      // Use the highest confidence from the analyses (most confident prediction)
+      const confidences = [
+        homeAnalysis.confidence,
+        awayAnalysis.confidence,
+        drawAnalysis?.confidence || 0.6,
+      ];
+      const confidence = Math.max(...confidences);
+
+      // Step 10: Prepare factors for storage (include advanced analysis)
       const factors = {
         marketAverage: {
           home: homeAvgImplied,
@@ -281,7 +333,29 @@ class NormalizedPredictionService {
           away: normalizedAway,
           draw: normalizedDraw,
         },
-        adjustments: adjustments,
+        advancedAnalysis: hasRealData ? {
+          home: {
+            baseProbability: homeAnalysis.baseProbability,
+            adjustedProbability: homeAnalysis.adjustedProbability,
+            dataQuality: homeAnalysis.dataQuality,
+            keyFactors: homeAnalysis.keyFactors,
+            riskFactors: homeAnalysis.riskFactors,
+          },
+          away: {
+            baseProbability: awayAnalysis.baseProbability,
+            adjustedProbability: awayAnalysis.adjustedProbability,
+            dataQuality: awayAnalysis.dataQuality,
+            keyFactors: awayAnalysis.keyFactors,
+            riskFactors: awayAnalysis.riskFactors,
+          },
+          draw: drawAnalysis ? {
+            baseProbability: drawAnalysis.baseProbability,
+            adjustedProbability: drawAnalysis.adjustedProbability,
+            dataQuality: drawAnalysis.dataQuality,
+            keyFactors: drawAnalysis.keyFactors,
+            riskFactors: drawAnalysis.riskFactors,
+          } : null,
+        } : null,
         advancedFeatures: advancedFeatures, // Properly structured object with all 50+ features
         bookmakerMargin: totalImplied > 1 ? ((totalImplied - 1) * 100).toFixed(2) : 0,
       };
@@ -335,65 +409,6 @@ class NormalizedPredictionService {
     }
   }
 
-  /**
-   * Calculate adjustments based on advanced features
-   * Returns small adjustments (-0.15 to +0.15) to maintain normalization
-   */
-  private calculateAdjustments(
-    advancedFeatures: any,
-    homeTeam: string,
-    awayTeam: string
-  ): { home: number; away: number; draw?: number } {
-    const adjustments = {
-      home: 0,
-      away: 0,
-      draw: 0,
-    };
-
-    // Form advantage (home vs away)
-    if (advancedFeatures.formAdvantage) {
-      // If home has form advantage, increase home probability slightly
-      const formAdjustment = Math.max(-0.1, Math.min(0.1, advancedFeatures.formAdvantage * 0.1));
-      adjustments.home += formAdjustment;
-      adjustments.away -= formAdjustment;
-    }
-
-    // Goals advantage
-    if (advancedFeatures.goalsAdvantage) {
-      const goalsAdjustment = Math.max(-0.08, Math.min(0.08, advancedFeatures.goalsAdvantage * 0.05));
-      adjustments.home += goalsAdjustment;
-      adjustments.away -= goalsAdjustment;
-    }
-
-    // Home form vs Away form
-    if (advancedFeatures.homeForm && advancedFeatures.awayForm) {
-      const homeFormWinRate = advancedFeatures.homeForm.winRate5 || 0.5;
-      const awayFormWinRate = advancedFeatures.awayForm.winRate5 || 0.5;
-      const formDiff = (homeFormWinRate - awayFormWinRate) * 0.1; // Max 10% adjustment
-      adjustments.home += Math.max(-0.1, Math.min(0.1, formDiff));
-      adjustments.away -= Math.max(-0.1, Math.min(0.1, formDiff));
-    }
-
-    // H2H advantage
-    if (advancedFeatures.h2h && advancedFeatures.h2h.team1WinRate) {
-      // Assuming team1 is home team
-      const h2hAdvantage = (advancedFeatures.h2h.team1WinRate - 0.5) * 0.08; // Max 8% adjustment
-      adjustments.home += Math.max(-0.08, Math.min(0.08, h2hAdvantage));
-      adjustments.away -= Math.max(-0.08, Math.min(0.08, h2hAdvantage));
-    }
-
-    // Draw adjustment (if draw rate is high, increase draw probability)
-    if (advancedFeatures.h2h && advancedFeatures.h2h.drawRate) {
-      const drawRate = advancedFeatures.h2h.drawRate || 0.25;
-      const drawAdjustment = (drawRate - 0.25) * 0.2; // Adjust based on historical draw rate
-      adjustments.draw = Math.max(-0.1, Math.min(0.1, drawAdjustment));
-      // Reduce home and away proportionally
-      adjustments.home -= drawAdjustment * 0.5;
-      adjustments.away -= drawAdjustment * 0.5;
-    }
-
-    return adjustments;
-  }
 
   /**
    * Calculate confidence based on market consensus and features
