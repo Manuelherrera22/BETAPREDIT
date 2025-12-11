@@ -37,13 +37,54 @@ export default function PredictionAnalysisExplained({ prediction, factors }: Pre
     setExpandedSections(newExpanded);
   };
 
-  // Extract factors from prediction
+  // Extract factors from prediction - check multiple possible locations
   const advancedFeatures = factors?.advancedFeatures || factors || {};
-  const marketData = advancedFeatures.marketOdds || advancedFeatures.market || {};
+  
+  // Market data can be in multiple places
+  const marketOddsData = advancedFeatures.marketOdds || {};
+  const marketData = {
+    ...marketOddsData,
+    // Also check marketAverage for implied probabilities
+    homeImplied: factors?.marketAverage?.home,
+    awayImplied: factors?.marketAverage?.away,
+    drawImplied: factors?.marketAverage?.draw,
+    totalImplied: factors?.marketAverage?.total,
+    // Calculate average odds from implied probabilities
+    averageOdds: factors?.marketAverage?.home ? (1 / factors.marketAverage.home) : undefined,
+    // Bookmaker count
+    bookmakerCount: marketOddsData.bookmakerCount || advancedFeatures.market?.bookmakerCount,
+    // Min/Max odds
+    minOdds: marketOddsData.minOdds,
+    maxOdds: marketOddsData.maxOdds,
+    // Volatility
+    volatility: marketOddsData.volatility || marketOddsData.stdDev,
+    // Implied probability for current selection
+    impliedProbability: (() => {
+      const selection = prediction.selection?.toLowerCase() || '';
+      if (selection.includes('home') || selection.includes('local')) {
+        return factors?.marketAverage?.home;
+      } else if (selection.includes('away') || selection.includes('visitante')) {
+        return factors?.marketAverage?.away;
+      } else if (selection.includes('draw') || selection.includes('empate')) {
+        return factors?.marketAverage?.draw;
+      }
+      return marketOddsData.impliedProbability;
+    })(),
+  };
+  
+  // Market intelligence
+  const marketIntelligence = advancedFeatures.marketIntelligence || advancedFeatures.market || {};
+  // Also check if consensus/efficiency are in advancedFeatures directly
+  const marketIntel = {
+    consensus: marketIntelligence.consensus || advancedFeatures.market_consensus || advancedFeatures.consensus,
+    efficiency: marketIntelligence.efficiency || (1 - (advancedFeatures.market_volatility || 0)),
+    bookmakerCount: marketData.bookmakerCount || marketIntelligence.bookmakerCount,
+    volatility: marketData.volatility || marketIntelligence.volatility || advancedFeatures.market_volatility,
+  };
+  
   const homeForm = advancedFeatures.homeForm || {};
   const awayForm = advancedFeatures.awayForm || {};
   const h2h = advancedFeatures.h2h || advancedFeatures.headToHead || {};
-  const marketIntelligence = advancedFeatures.marketIntelligence || advancedFeatures.market || {};
 
   // Determine sport type for sport-specific metrics
   const sportType = prediction.sport?.toLowerCase() || '';
@@ -100,8 +141,9 @@ export default function PredictionAnalysisExplained({ prediction, factors }: Pre
           />
           <MetricCard
             label="Valor del Mercado"
-            value={marketData.impliedProbability ? `${((1 / marketData.impliedProbability) - 1).toFixed(2)}x` : 'N/A'}
-            description="Cuota promedio del mercado"
+            value={marketData.averageOdds ? `${marketData.averageOdds.toFixed(2)}` : 
+                   marketData.impliedProbability ? `${(1 / marketData.impliedProbability).toFixed(2)}` : 'N/A'}
+            description={marketData.averageOdds ? "Cuota promedio del mercado" : "Cuota implícita del mercado"}
             color="blue"
           />
         </div>
@@ -118,22 +160,22 @@ export default function PredictionAnalysisExplained({ prediction, factors }: Pre
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <InfoBox
               label="Consenso del Mercado"
-              value={marketIntelligence.consensus ? `${(marketIntelligence.consensus * 100).toFixed(0)}%` : 'N/A'}
+              value={marketIntel.consensus ? `${(marketIntel.consensus * 100).toFixed(0)}%` : 'N/A'}
               description="Acuerdo entre casas de apuestas"
             />
             <InfoBox
               label="Eficiencia del Mercado"
-              value={marketIntelligence.efficiency ? `${(marketIntelligence.efficiency * 100).toFixed(0)}%` : 'N/A'}
+              value={marketIntel.efficiency ? `${(marketIntel.efficiency * 100).toFixed(0)}%` : 'N/A'}
               description="Qué tan eficiente está el mercado"
             />
             <InfoBox
               label="Número de Casas"
-              value={marketData.bookmakerCount || 'N/A'}
+              value={marketIntel.bookmakerCount || marketData.bookmakerCount || 'N/A'}
               description="Casas de apuestas analizadas"
             />
             <InfoBox
               label="Volatilidad"
-              value={marketData.volatility ? `${(marketData.volatility * 100).toFixed(1)}%` : 'N/A'}
+              value={marketIntel.volatility ? `${(marketIntel.volatility * 100).toFixed(1)}%` : 'N/A'}
               description="Variación en las cuotas"
             />
           </div>
@@ -546,7 +588,13 @@ export default function PredictionAnalysisExplained({ prediction, factors }: Pre
             <>
               <div>✓ Datos de forma: {homeForm.isRealData !== false ? 'API-Football / Base de Datos' : 'Estimados'}</div>
               <div>✓ Historial H2H: {h2h.isRealData !== false ? 'API-Football / Base de Datos' : 'Estimados'}</div>
-              <div>✓ Cuotas de mercado: The Odds API ({marketData.bookmakerCount || 'N/A'} casas)</div>
+              <div>✓ Cuotas de mercado: The Odds API ({marketIntel.bookmakerCount || marketData.bookmakerCount || 'N/A'} casas)</div>
+              {marketData.minOdds && marketData.maxOdds && (
+                <div>✓ Rango de cuotas: {marketData.minOdds.toFixed(2)} - {marketData.maxOdds.toFixed(2)}</div>
+              )}
+              {marketData.averageOdds && (
+                <div>✓ Cuota promedio: {marketData.averageOdds.toFixed(2)}</div>
+              )}
             </>
           ) : (
             <div className="text-yellow-400">
