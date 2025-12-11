@@ -5,6 +5,8 @@
 import { Router } from 'express';
 import { valueBetDetectionController } from '../controllers/value-bet-detection.controller';
 import { authenticate } from '../../middleware/auth';
+import { validateQuery } from '../../middleware/validate';
+import { scanValueBetsSchema } from '../../validators/value-bet.validator';
 
 const router = Router();
 
@@ -19,7 +21,7 @@ router.use(authenticate);
  * @query   maxEvents - Maximum events to check (default: 20)
  * @query   autoCreateAlerts - Auto-create alerts (default: false)
  */
-router.get('/sport/:sport', valueBetDetectionController.detectForSport);
+router.get('/sport/:sport', validateQuery(scanValueBetsSchema), valueBetDetectionController.detectForSport);
 
 /**
  * @route   GET /api/value-bet-detection/scan-all
@@ -29,7 +31,7 @@ router.get('/sport/:sport', valueBetDetectionController.detectForSport);
  * @query   maxEvents - Maximum events per sport (default: 20)
  * @query   autoCreateAlerts - Auto-create alerts (default: false)
  */
-router.get('/scan-all', valueBetDetectionController.scanAll);
+router.get('/scan-all', validateQuery(scanValueBetsSchema), valueBetDetectionController.scanAll);
 
 export default router;
 

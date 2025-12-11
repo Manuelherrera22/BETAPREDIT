@@ -1,6 +1,7 @@
 import { prisma } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
+import { validatePredictionData, sanitizePredictionForDisplay } from '../utils/prediction-data-validator';
 
 interface CreatePredictionData {
   eventId: string;
@@ -164,15 +165,29 @@ class PredictionsService {
         throw new AppError('Prediction not found', 404);
       }
 
+      // Sanitize prediction data
+      const sanitized = sanitizePredictionForDisplay(prediction);
+      
+      // Validate data quality
+      const validation = validatePredictionData(sanitized);
+      
       // Parse factors for better display
-      const factors = (prediction.factors || {}) as any;
-      const factorExplanation = this.explainFactors(factors, prediction);
+      const factors = (sanitized.factors || {}) as any;
+      const factorExplanation = this.explainFactors(factors, sanitized);
 
       return {
-        ...prediction,
-        eventId: prediction.eventId,
-        marketId: prediction.marketId,
+        ...sanitized,
+        eventId: sanitized.eventId,
+        marketId: sanitized.marketId,
         factorExplanation,
+        dataQuality: {
+          isValid: validation.isValid,
+          completeness: validation.quality.completeness,
+          canDisplay: validation.canDisplay,
+          message: validation.message,
+          warnings: validation.quality.warnings,
+          missingFields: validation.quality.missingFields,
+        },
       };
     } catch (error: any) {
       if (error instanceof AppError) {
@@ -492,11 +507,27 @@ class PredictionsService {
       },
     });
 
-    // Ensure factors are included and properly structured
-    return predictions.map((p) => ({
-      ...p,
-      factors: p.factors || {}, // Ensure factors is always an object
-    }));
+    // Validate and sanitize predictions before returning
+    return predictions.map((p) => {
+      // Sanitize prediction data
+      const sanitized = sanitizePredictionForDisplay(p);
+      
+      // Validate data quality
+      const validation = validatePredictionData(sanitized);
+      
+      // Add validation metadata
+      return {
+        ...sanitized,
+        factors: sanitized.factors || {}, // Ensure factors is always an object
+        dataQuality: {
+          isValid: validation.isValid,
+          completeness: validation.quality.completeness,
+          canDisplay: validation.canDisplay,
+          message: validation.message,
+          warnings: validation.quality.warnings,
+        },
+      };
+    });
   }
 
   /**
