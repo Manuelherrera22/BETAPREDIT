@@ -81,6 +81,7 @@ import roiTrackingRoutes from './api/routes/roi-tracking.routes';
 import platformMetricsRoutes from './api/routes/platform-metrics.routes';
 import predictionsRoutes from './api/routes/predictions.routes';
 import universalPredictionsRoutes from './api/routes/universal-predictions.routes';
+import metricsRoutes from './api/routes/metrics.routes';
 
 // Swagger
 import swaggerUi from 'swagger-ui-express';
@@ -233,6 +234,7 @@ app.use('/api/roi-tracking', roiTrackingRoutes);
 app.use('/api/platform/metrics', platformMetricsRoutes);
 app.use('/api/predictions', predictionsRoutes);
 app.use('/api/universal-predictions', universalPredictionsRoutes);
+app.use('/metrics', metricsRoutes); // Prometheus metrics endpoint
 
 // WebSocket connection handler
 io.on('connection', (socket) => {

@@ -24,9 +24,24 @@ The application requires a real database connection and will not work with mock 
 logger.info('Connecting to database...');
 const prisma = new PrismaClient({
   log: process.env.NODE_ENV === 'development' 
-    ? ['warn', 'error']
+    ? [
+        {
+          emit: 'event',
+          level: 'query',
+        },
+        'warn',
+        'error',
+      ]
     : ['error'],
 });
+
+// Query profiling in development
+if (process.env.NODE_ENV === 'development') {
+  const { queryProfiler } = require('../utils/query-profiler');
+  prisma.$on('query' as never, (e: any) => {
+    queryProfiler.profileQuery(e);
+  });
+}
 
 // Connection event handlers
 prisma.$on('error' as never, (e: Error) => {
