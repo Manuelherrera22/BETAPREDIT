@@ -23,6 +23,9 @@ frontend/build/
 .env
 .env.local
 .env.*.local
+# But allow .env.example files
+!.env.example
+!**/.env.example
 
 # IDE
 .vscode/
