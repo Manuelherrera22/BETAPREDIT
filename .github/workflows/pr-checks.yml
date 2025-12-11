@@ -1,0 +1,50 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches: [ master, main, develop ]
+
+jobs:
+  pr-checks:
+    name: PR Quality Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Check backend linting
+        working-directory: ./backend
+        run: |
+          npm ci
+          npm run lint
+
+      - name: Check frontend linting
+        working-directory: ./frontend
+        run: |
+          npm ci
+          npm run lint
+
+      - name: Run backend tests
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test
+          JWT_SECRET: test-secret-minimum-32-characters-long
+          NODE_ENV: test
+        run: npm test -- --maxWorkers=2
+
+      - name: Run frontend tests
+        working-directory: ./frontend
+        run: npm test -- --run
+
+      - name: Check coverage threshold
+        run: |
+          echo "📊 Coverage check would go here"
+          echo "Target: >60% backend, >50% frontend"
+
