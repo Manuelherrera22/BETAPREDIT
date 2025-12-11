@@ -3,7 +3,7 @@ import { authenticate } from '../../middleware/auth';
 import { cacheMiddleware } from '../../middleware/cache';
 import { CACHE_TTL } from '../../utils/performance';
 import { eventsController } from '../controllers/events.controller';
-import { validate, validateQuery, validateParams } from '../../middleware/validate';
+import { validate, validateQuery, validateParams } from '../../middleware/validate.middleware';
 import {
   getEventsQuerySchema,
   syncEventsSchema,

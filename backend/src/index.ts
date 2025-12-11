@@ -12,6 +12,7 @@ import { granularRateLimiter } from './middleware/rate-limiter-granular';
 import { redisClient } from './config/redis';
 import { prisma } from './config/database';
 import { createDirectories } from './utils/createDirectories';
+import { requestIdMiddleware } from './utils/request-id';
 
 // Load environment variables FIRST
 dotenv.config();
