@@ -39,8 +39,32 @@ export default function PredictionAnalysisExplained({ prediction, factors }: Pre
 
   // Extract factors from prediction - check multiple possible locations
   // IMPORTANT: factors can be directly the factors object OR inside factorExplanation
-  const rawFactors = factors || {};
+  // Also check if factors is passed directly (from PredictionDetailsModal)
+  const rawFactors = factors || prediction.factors || {};
   const advancedFeatures = rawFactors.advancedFeatures || rawFactors || {};
+  
+  // Extract advancedAnalysis (keyFactors and riskFactors) - CRITICAL for showing detailed analysis
+  // This comes from normalized-prediction.service.ts -> factors.advancedAnalysis
+  const advancedAnalysis = rawFactors.advancedAnalysis || {};
+  
+  // Get analysis for current selection
+  const selection = prediction.selection?.toLowerCase() || '';
+  const isHome = selection.includes('home') || selection.includes('local') || selection === '1';
+  const isAway = selection.includes('away') || selection.includes('visitante') || selection === '2';
+  const isDraw = selection.includes('draw') || selection.includes('empate') || selection === 'x' || selection === '3';
+  
+  let currentAnalysis = null;
+  if (isHome && advancedAnalysis.home) {
+    currentAnalysis = advancedAnalysis.home;
+  } else if (isAway && advancedAnalysis.away) {
+    currentAnalysis = advancedAnalysis.away;
+  } else if (isDraw && advancedAnalysis.draw) {
+    currentAnalysis = advancedAnalysis.draw;
+  }
+  
+  // Extract keyFactors and riskFactors from advanced analysis
+  const keyFactors = currentAnalysis?.keyFactors || [];
+  const riskFactors = currentAnalysis?.riskFactors || [];
   
   // Market data can be in multiple places
   const marketOddsData = advancedFeatures.marketOdds || {};
@@ -549,40 +573,124 @@ export default function PredictionAnalysisExplained({ prediction, factors }: Pre
         </Section>
       ) : null}
 
-      {/* Advanced Factors */}
-      <Section
-        title="Factores Avanzados"
-        icon="brain"
-        expanded={expandedSections.has('advanced')}
-        onToggle={() => toggleSection('advanced')}
-      >
-        <div className="space-y-2">
-          {advancedFeatures.formAdvantage !== undefined && (
-            <FactorRow
-              name="Ventaja de Forma"
-              value={advancedFeatures.formAdvantage > 0 ? `+${advancedFeatures.formAdvantage.toFixed(2)}` : advancedFeatures.formAdvantage.toFixed(2)}
-              description="Diferencia en forma reciente entre equipos"
-              impact={Math.abs(advancedFeatures.formAdvantage) * 10}
-            />
-          )}
-          {advancedFeatures.goalsAdvantage !== undefined && (
-            <FactorRow
-              name="Ventaja Ofensiva"
-              value={advancedFeatures.goalsAdvantage > 0 ? `+${advancedFeatures.goalsAdvantage.toFixed(2)}` : advancedFeatures.goalsAdvantage.toFixed(2)}
-              description="Diferencia en goles anotados"
-              impact={Math.abs(advancedFeatures.goalsAdvantage) * 5}
-            />
-          )}
-          {advancedFeatures.defenseAdvantage !== undefined && (
-            <FactorRow
-              name="Ventaja Defensiva"
-              value={advancedFeatures.defenseAdvantage > 0 ? `+${advancedFeatures.defenseAdvantage.toFixed(2)}` : advancedFeatures.defenseAdvantage.toFixed(2)}
-              description="Diferencia en goles recibidos"
-              impact={Math.abs(advancedFeatures.defenseAdvantage) * 5}
-            />
-          )}
-        </div>
-      </Section>
+      {/* Key Factors from Advanced Analysis - MOST IMPORTANT */}
+      {keyFactors.length > 0 && (
+        <Section
+          title="Factores Clave del Análisis"
+          icon="star"
+          expanded={expandedSections.has('key-factors')}
+          onToggle={() => toggleSection('key-factors')}
+        >
+          <div className="space-y-3">
+            {keyFactors.map((factor: any, idx: number) => (
+              <div key={idx} className="bg-primary-500/10 border border-primary-500/30 rounded-lg p-4">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Icon name="check-circle" className="w-5 h-5 text-primary-400 shrink-0" />
+                      <h5 className="text-sm font-semibold text-white">{factor.name}</h5>
+                      <span className="text-xs bg-primary-500/20 text-primary-300 px-2 py-0.5 rounded">
+                        Impacto: {(factor.impact * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-300 ml-7">{factor.description}</p>
+                    {factor.source && (
+                      <div className="text-xs text-gray-500 ml-7 mt-1">
+                        Fuente: {factor.source === 'form' ? 'Forma del Equipo' : 
+                                factor.source === 'h2h' ? 'Historial Directo' :
+                                factor.source === 'stats' ? 'Estadísticas Detalladas' :
+                                factor.source === 'intelligence' ? 'Inteligencia de Mercado' :
+                                factor.source === 'market' ? 'Datos de Mercado' : factor.source}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {/* Risk Factors from Advanced Analysis */}
+      {riskFactors.length > 0 && (
+        <Section
+          title="Factores de Riesgo"
+          icon="alert-triangle"
+          expanded={expandedSections.has('risk-factors')}
+          onToggle={() => toggleSection('risk-factors')}
+        >
+          <div className="space-y-3">
+            {riskFactors.map((factor: any, idx: number) => {
+              const riskColor = factor.level === 'high' ? 'red' : factor.level === 'medium' ? 'yellow' : 'yellow';
+              const riskBg = factor.level === 'high' ? 'bg-red-500/10 border-red-500/30' : 
+                            factor.level === 'medium' ? 'bg-yellow-500/10 border-yellow-500/30' : 
+                            'bg-yellow-500/10 border-yellow-500/30';
+              
+              return (
+                <div key={idx} className={`${riskBg} border rounded-lg p-4`}>
+                  <div className="flex items-start gap-2">
+                    <Icon name="alert-triangle" className={`w-5 h-5 text-${riskColor}-400 shrink-0 mt-0.5`} />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h5 className="text-sm font-semibold text-white">{factor.name}</h5>
+                        <span className={`text-xs px-2 py-0.5 rounded ${
+                          factor.level === 'high' ? 'bg-red-500/20 text-red-300' :
+                          factor.level === 'medium' ? 'bg-yellow-500/20 text-yellow-300' :
+                          'bg-yellow-500/20 text-yellow-300'
+                        }`}>
+                          {factor.level === 'high' ? 'Alto Riesgo' : 
+                           factor.level === 'medium' ? 'Riesgo Medio' : 
+                           'Riesgo Bajo'}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-300">{factor.description}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Section>
+      )}
+
+      {/* Advanced Factors (fallback if no advancedAnalysis) */}
+      {(advancedFeatures.formAdvantage !== undefined || 
+        advancedFeatures.goalsAdvantage !== undefined || 
+        advancedFeatures.defenseAdvantage !== undefined) && keyFactors.length === 0 && (
+        <Section
+          title="Factores Avanzados"
+          icon="brain"
+          expanded={expandedSections.has('advanced')}
+          onToggle={() => toggleSection('advanced')}
+        >
+          <div className="space-y-2">
+            {advancedFeatures.formAdvantage !== undefined && (
+              <FactorRow
+                name="Ventaja de Forma"
+                value={advancedFeatures.formAdvantage > 0 ? `+${advancedFeatures.formAdvantage.toFixed(2)}` : advancedFeatures.formAdvantage.toFixed(2)}
+                description="Diferencia en forma reciente entre equipos"
+                impact={Math.abs(advancedFeatures.formAdvantage) * 10}
+              />
+            )}
+            {advancedFeatures.goalsAdvantage !== undefined && (
+              <FactorRow
+                name="Ventaja Ofensiva"
+                value={advancedFeatures.goalsAdvantage > 0 ? `+${advancedFeatures.goalsAdvantage.toFixed(2)}` : advancedFeatures.goalsAdvantage.toFixed(2)}
+                description="Diferencia en goles anotados"
+                impact={Math.abs(advancedFeatures.goalsAdvantage) * 5}
+              />
+            )}
+            {advancedFeatures.defenseAdvantage !== undefined && (
+              <FactorRow
+                name="Ventaja Defensiva"
+                value={advancedFeatures.defenseAdvantage > 0 ? `+${advancedFeatures.defenseAdvantage.toFixed(2)}` : advancedFeatures.defenseAdvantage.toFixed(2)}
+                description="Diferencia en goles recibidos"
+                impact={Math.abs(advancedFeatures.defenseAdvantage) * 5}
+              />
+            )}
+          </div>
+        </Section>
+      )}
 
       {/* Odds History Chart */}
       {prediction.eventId && prediction.marketId && (
