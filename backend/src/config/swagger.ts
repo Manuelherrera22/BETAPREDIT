@@ -101,10 +101,84 @@ const options = {
         name: 'Statistics',
         description: 'Estadísticas de usuario',
       },
+      {
+        name: 'Predictions',
+        description: 'Predicciones y análisis predictivo',
+      },
+      {
+        name: 'Value Bets',
+        description: 'Detección de value bets y alertas',
+      },
     ],
   },
   apis: ['./src/api/routes/*.ts', './src/api/controllers/*.ts'],
 };
+
+// Add common response schemas
+const commonResponses = {
+  UnauthorizedError: {
+    description: 'No autorizado - Token inválido o expirado',
+    content: {
+      'application/json': {
+        schema: {
+          $ref: '#/components/schemas/Error',
+        },
+        example: {
+          success: false,
+          error: {
+            message: 'Authentication required',
+            code: 'UNAUTHORIZED',
+          },
+        },
+      },
+    },
+  },
+  ServerError: {
+    description: 'Error del servidor',
+    content: {
+      'application/json': {
+        schema: {
+          $ref: '#/components/schemas/Error',
+        },
+        example: {
+          success: false,
+          error: {
+            message: 'Internal server error',
+            code: 'SERVER_ERROR',
+          },
+        },
+      },
+    },
+  },
+  ValidationError: {
+    description: 'Error de validación',
+    content: {
+      'application/json': {
+        schema: {
+          $ref: '#/components/schemas/Error',
+        },
+        example: {
+          success: false,
+          error: {
+            message: 'Error de validación',
+            code: 'VALIDATION_ERROR',
+            details: [
+              {
+                field: 'email',
+                message: 'Email inválido',
+              },
+            ],
+          },
+        },
+      },
+    },
+  },
+};
+
+// Merge common responses into swagger spec
+if (swaggerSpec.components) {
+  swaggerSpec.components.responses = commonResponses;
+}
 
 export const swaggerSpec = swaggerJsdoc(options);
 

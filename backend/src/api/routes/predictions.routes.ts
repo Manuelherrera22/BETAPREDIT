@@ -18,16 +18,132 @@ const router = Router();
 router.use(authenticate);
 
 /**
- * @route   GET /api/predictions/accuracy
- * @desc    Get prediction accuracy tracking with detailed metrics
- * @access  Private
+ * @swagger
+ * /api/predictions/accuracy:
+ *   get:
+ *     summary: Obtener estadísticas de precisión de predicciones
+ *     description: Retorna métricas detalladas de precisión de las predicciones, incluyendo win rate, ROI, y tendencias
+ *     tags: [Predictions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: modelVersion
+ *         schema:
+ *           type: string
+ *         description: Versión del modelo a filtrar
+ *       - in: query
+ *         name: sportId
+ *         schema:
+ *           type: string
+ *         description: ID del deporte a filtrar
+ *       - in: query
+ *         name: marketType
+ *         schema:
+ *           type: string
+ *         description: Tipo de mercado a filtrar
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Fecha de inicio del rango
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Fecha de fin del rango
+ *     responses:
+ *       200:
+ *         description: Estadísticas de precisión obtenidas exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     overallAccuracy:
+ *                       type: number
+ *                       example: 0.65
+ *                     winRate:
+ *                       type: number
+ *                       example: 0.68
+ *                     totalPredictions:
+ *                       type: number
+ *                       example: 150
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.get('/accuracy', validateQuery(getPredictionsQuerySchema), predictionsController.getAccuracyStats.bind(predictionsController));
 
 /**
- * @route   GET /api/predictions/event/:eventId
- * @desc    Get predictions for a specific event
- * @access  Private
+ * @swagger
+ * /api/predictions/event/{eventId}:
+ *   get:
+ *     summary: Obtener predicciones para un evento específico
+ *     description: Retorna todas las predicciones disponibles para un evento, con validación de calidad de datos
+ *     tags: [Predictions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: eventId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: ID del evento
+ *     responses:
+ *       200:
+ *         description: Predicciones obtenidas exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       selection:
+ *                         type: string
+ *                       predictedProbability:
+ *                         type: number
+ *                         minimum: 0
+ *                         maximum: 1
+ *                       confidence:
+ *                         type: number
+ *                         minimum: 0.45
+ *                         maximum: 0.95
+ *                       dataQuality:
+ *                         type: object
+ *                         properties:
+ *                           isValid:
+ *                             type: boolean
+ *                           completeness:
+ *                             type: number
+ *                           canDisplay:
+ *                             type: boolean
+ *                           message:
+ *                             type: string
+ *       404:
+ *         description: Evento no encontrado
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
  */
 router.get('/event/:eventId', predictionsController.getEventPredictions.bind(predictionsController));
 
@@ -60,9 +176,54 @@ router.post('/train-model', predictionsController.trainModel.bind(predictionsCon
 router.post('/generate', validate(regeneratePredictionsSchema), predictionsController.generatePredictions.bind(predictionsController));
 
 /**
- * @route   POST /api/predictions/:predictionId/feedback
- * @desc    Submit user feedback on a prediction
- * @access  Private
+ * @swagger
+ * /api/predictions/{predictionId}/feedback:
+ *   post:
+ *     summary: Enviar feedback sobre una predicción
+ *     description: Permite a los usuarios enviar feedback sobre la precisión de una predicción
+ *     tags: [Predictions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: predictionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: ID de la predicción
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - wasCorrect
+ *             properties:
+ *               wasCorrect:
+ *                 type: boolean
+ *                 description: Si la predicción fue correcta
+ *                 example: true
+ *               userConfidence:
+ *                 type: number
+ *                 minimum: 0
+ *                 maximum: 1
+ *                 description: Confianza del usuario en la predicción (0-1)
+ *                 example: 0.8
+ *               notes:
+ *                 type: string
+ *                 maxLength: 1000
+ *                 description: Notas adicionales del usuario
+ *     responses:
+ *       200:
+ *         description: Feedback enviado exitosamente
+ *       400:
+ *         description: Datos de validación inválidos
+ *       404:
+ *         description: Predicción no encontrada
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
  */
 router.post('/:predictionId/feedback', validate(submitFeedbackSchema), predictionsController.submitFeedback.bind(predictionsController));
 
