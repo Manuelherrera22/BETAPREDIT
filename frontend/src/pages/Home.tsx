@@ -115,6 +115,18 @@ export default function Home() {
     )
   }, [liveEvents])
 
+  // Eventos en vivo ordenados por importancia - Memoizado
+  const sortedLiveEvents = useMemo(() => {
+    return trulyLiveEvents
+      .sort((a: Event, b: Event) => {
+        // Priorizar eventos con más importancia (más mercados, más recientes)
+        const aImportance = (a.markets?.length || 0) + (a.homeScore !== undefined ? 10 : 0);
+        const bImportance = (b.markets?.length || 0) + (b.homeScore !== undefined ? 10 : 0);
+        return bImportance - aImportance;
+      })
+      .slice(0, 5);
+  }, [trulyLiveEvents])
+
   // Eventos que están por empezar (próximos 30 minutos) - Preview - Memoizado
   const previewEvents = useMemo(() => {
     const now = new Date();
@@ -125,6 +137,15 @@ export default function Home() {
       return startTime >= now && startTime <= thirtyMinutesFromNow;
     })
   }, [upcomingEvents])
+
+  // Preview events limitados - Memoizado
+  const limitedPreviewEvents = useMemo(() => previewEvents.slice(0, 3), [previewEvents])
+
+  // Upcoming events limitados - Memoizado
+  const limitedUpcomingEvents = useMemo(() => 
+    upcomingEvents ? upcomingEvents.slice(0, 5) : [], 
+    [upcomingEvents]
+  )
 
   // Calcular stats para mostrar - Memoizado
   const displayStats = useMemo(() => ({
