@@ -577,7 +577,7 @@ export default function PredictionAnalysisExplained({ prediction, factors }: Pre
       {keyFactors.length > 0 && (
         <Section
           title="Factores Clave del Análisis"
-          icon="star"
+          icon="award"
           expanded={expandedSections.has('key-factors')}
           onToggle={() => toggleSection('key-factors')}
         >
@@ -615,7 +615,7 @@ export default function PredictionAnalysisExplained({ prediction, factors }: Pre
       {riskFactors.length > 0 && (
         <Section
           title="Factores de Riesgo"
-          icon="alert-triangle"
+          icon="alert"
           expanded={expandedSections.has('risk-factors')}
           onToggle={() => toggleSection('risk-factors')}
         >
@@ -629,7 +629,7 @@ export default function PredictionAnalysisExplained({ prediction, factors }: Pre
               return (
                 <div key={idx} className={`${riskBg} border rounded-lg p-4`}>
                   <div className="flex items-start gap-2">
-                    <Icon name="alert-triangle" className={`w-5 h-5 text-${riskColor}-400 shrink-0 mt-0.5`} />
+                    <Icon name="alert" className={`w-5 h-5 text-${riskColor}-400 shrink-0 mt-0.5`} />
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <h5 className="text-sm font-semibold text-white">{factor.name}</h5>
