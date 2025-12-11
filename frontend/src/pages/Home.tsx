@@ -146,19 +146,19 @@ export default function Home() {
   return (
     <>
       <div className="w-full max-w-full overflow-x-hidden">
-        {/* Header - Premium Design */}
+        {/* Header - Elegant Design */}
         <div className="mb-6 sm:mb-8 md:mb-10">
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 sm:gap-4">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-primary-500 via-primary-600 to-accent-500 flex items-center justify-center shadow-lg shadow-primary-500/30">
-                  <Icon name="activity" size={24} className="text-white" />
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-gradient-to-br from-primary-500/30 via-primary-600/30 to-accent-500/30 flex items-center justify-center shadow-md border border-primary-500/40">
+                  <Icon name="activity" size={16} className="text-primary-200" strokeWidth={2} />
                 </div>
                 <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white bg-gradient-to-r from-white via-primary-200 to-white bg-clip-text text-transparent">
                   Dashboard
                 </h1>
               </div>
-              <p className="text-sm sm:text-base md:text-lg text-gray-300 ml-0 sm:ml-16">
+              <p className="text-sm sm:text-base md:text-lg text-gray-300 ml-0 sm:ml-11">
                 Bienvenido a tu panel de análisis predictivo
               </p>
             </div>
@@ -224,10 +224,10 @@ export default function Home() {
             <div className="flex items-center justify-between mb-4 sm:mb-5 relative z-10">
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent-500/30 to-primary-500/30 flex items-center justify-center shadow-lg">
-                    <Icon name="alerts" size={20} className="text-accent-300" />
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-500/20 to-primary-500/20 flex items-center justify-center shadow-md border border-accent-500/30">
+                    <Icon name="alerts" size={16} className="text-accent-300" strokeWidth={2} />
                   </div>
-                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-slate-900 animate-pulse"></span>
+                  <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-slate-900 animate-pulse"></span>
                 </div>
                 <div>
                   <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white flex items-center gap-2">
@@ -281,12 +281,12 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 mb-4 sm:mb-6 md:mb-8">
           {/* Left Column - Quick Tools */}
           <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-            {/* Quick Access Tools Grid - Premium Design */}
-            <div className="bg-gradient-to-br from-slate-800/70 to-slate-900/70 rounded-xl sm:rounded-2xl p-6 sm:p-7 border border-slate-700/50 shadow-xl backdrop-blur-md">
+            {/* Quick Access Tools Grid - Varied Design */}
+            <div className="bg-slate-800/60 rounded-2xl p-6 sm:p-7 border border-slate-700/40 shadow-lg backdrop-blur-sm">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500/30 to-accent-500/30 flex items-center justify-center shadow-lg">
-                    <Icon name="zap" size={24} className="text-primary-300" />
+                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary-500/20 to-accent-500/20 flex items-center justify-center shadow-md border border-primary-500/30">
+                    <Icon name="zap" size={16} className="text-primary-300" strokeWidth={2} />
                   </div>
                   <div>
                     <h2 className="text-xl sm:text-2xl font-bold text-white">Herramientas Rápidas</h2>
@@ -320,8 +320,8 @@ export default function Home() {
                       </span>
                     )}
                     <div className="mb-3 flex items-center justify-center relative z-10">
-                      <div className="p-3.5 rounded-xl bg-white/10 group-hover:bg-white/20 transition-all duration-300 shadow-xl group-hover:scale-110">
-                        <Icon name={tool.icon} size={28} className="text-white" strokeWidth={2.5} />
+                      <div className="p-2.5 rounded-lg bg-white/8 group-hover:bg-white/15 transition-all duration-300 shadow-md group-hover:scale-105 border border-white/10">
+                        <Icon name={tool.icon} size={20} className="text-white/90" strokeWidth={2} />
                       </div>
                     </div>
                     <h3 className="text-xs sm:text-sm font-bold text-white text-center leading-tight relative z-10 group-hover:text-primary-200 transition-colors">{tool.label}</h3>
@@ -330,29 +330,33 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Value Bet Calculator - Enhanced */}
-            <div className="bg-gradient-to-br from-slate-800/60 to-slate-900/60 rounded-xl sm:rounded-2xl p-5 sm:p-6 border border-slate-700/50 shadow-lg backdrop-blur-sm">
+            {/* Value Bet Calculator - Different Style */}
+            <div className="bg-slate-900/50 rounded-2xl p-5 sm:p-6 border-2 border-primary-500/20 shadow-xl backdrop-blur-md">
               <ValueBetCalculator />
             </div>
           </div>
 
-          {/* Right Column - Social Proof - Enhanced */}
+          {/* Right Column - Social Proof - Varied Style */}
           <div className="lg:col-span-1">
             {!shouldShow && (
-              <div className="bg-gradient-to-br from-slate-800/60 to-slate-900/60 rounded-xl sm:rounded-2xl p-5 sm:p-6 border border-slate-700/50 shadow-lg backdrop-blur-sm sticky top-20">
+              <div className="bg-slate-800/70 rounded-2xl p-5 sm:p-6 border border-accent-500/20 shadow-lg backdrop-blur-sm sticky top-20">
                 <SocialProof />
               </div>
             )}
           </div>
         </div>
 
-        {/* Events Section - Enhanced design */}
-        <div className="bg-gradient-to-br from-slate-800/60 to-slate-900/60 rounded-xl sm:rounded-2xl p-5 sm:p-6 md:p-8 border border-slate-700/50 shadow-lg backdrop-blur-sm mb-4 sm:mb-6 md:mb-8">
+        {/* Events Section - Unique Design */}
+        <div className="bg-slate-900/40 rounded-2xl p-5 sm:p-6 md:p-8 border-2 border-slate-700/30 shadow-2xl backdrop-blur-md mb-4 sm:mb-6 md:mb-8">
           <div className="flex items-center justify-between mb-5 sm:mb-6">
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white flex items-center gap-3">
-              <Icon name="events" size={28} className="text-primary-400" />
-              Eventos
-            </h2>
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary-500/20 to-accent-500/20 flex items-center justify-center shadow-md border border-primary-500/30">
+                <Icon name="events" size={16} className="text-primary-300" strokeWidth={2} />
+              </div>
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">
+                Eventos
+              </h2>
+            </div>
             <Link
               to="/events"
               className="text-sm sm:text-base text-primary-400 hover:text-primary-300 font-semibold flex items-center gap-2 flex-shrink-0 transition-colors hover:gap-3"

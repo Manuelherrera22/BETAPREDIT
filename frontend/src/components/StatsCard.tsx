@@ -38,8 +38,8 @@ export default function StatsCard({ title, value, change, icon, trend, subtitle,
           )}
         </div>
         {icon && (
-          <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br ${iconBgColor} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 ml-3 flex-shrink-0`}>
-            <Icon name={icon} size={24} className="text-white" strokeWidth={2.5} />
+          <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br ${iconBgColor} flex items-center justify-center shadow-md group-hover:scale-105 transition-transform duration-300 ml-3 flex-shrink-0 opacity-80 group-hover:opacity-100`}>
+            <Icon name={icon} size={16} className="text-white/90" strokeWidth={2} />
           </div>
         )}
       </div>
