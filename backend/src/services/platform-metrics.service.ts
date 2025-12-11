@@ -59,8 +59,27 @@ class PlatformMetricsService {
       });
 
       // Active users (users who logged in in last 7 days or have bets in last 7 days)
+      // Optimized: use count instead of findMany to avoid N+1
       const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const usersWithRecentActivity = await prisma.user.findMany({
+      const [usersWithRecentLogin, usersWithRecentBets] = await Promise.all([
+        prisma.user.count({
+          where: {
+            lastLoginAt: { gte: sevenDaysAgo },
+          },
+        }),
+        prisma.user.count({
+          where: {
+            externalBets: {
+              some: {
+                registeredAt: { gte: sevenDaysAgo },
+              },
+            },
+          },
+        }),
+      ]);
+      
+      // Get unique count (users who either logged in OR placed bets)
+      const uniqueActiveUsers = await prisma.user.count({
         where: {
           OR: [
             { lastLoginAt: { gte: sevenDaysAgo } },
@@ -73,9 +92,8 @@ class PlatformMetricsService {
             },
           ],
         },
-        select: { id: true },
       });
-      const activeUsers = usersWithRecentActivity.length;
+      const activeUsers = uniqueActiveUsers;
 
       // Total users
       const totalUsers = await prisma.user.count();

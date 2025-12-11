@@ -79,6 +79,10 @@ import { swaggerSpec } from './config/swagger';
 
 const app = express();
 const httpServer = createServer(app);
+
+// Request ID middleware (should be first)
+app.use(requestIdMiddleware);
+
 const io = new Server(httpServer, {
   cors: {
     origin: process.env.FRONTEND_URL || 'http://localhost:5173',

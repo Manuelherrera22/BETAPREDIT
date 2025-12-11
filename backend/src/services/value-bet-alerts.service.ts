@@ -222,22 +222,61 @@ class ValueBetAlertsService {
       }
     }
 
-    const alerts = await prisma.valueBetAlert.findMany({
-      where,
-      include: {
-        event: {
-          include: {
-            sport: true,
+      // Optimized query: use select instead of include to reduce data transfer
+      const alerts = await prisma.valueBetAlert.findMany({
+        where,
+        select: {
+          id: true,
+          userId: true,
+          eventId: true,
+          marketId: true,
+          selection: true,
+          bookmakerOdds: true,
+          bookmakerPlatform: true,
+          predictedProbability: true,
+          expectedValue: true,
+          valuePercentage: true,
+          confidence: true,
+          status: true,
+          notifiedAt: true,
+          clickedAt: true,
+          betPlaced: true,
+          externalBetId: true,
+          factors: true,
+          createdAt: true,
+          expiresAt: true,
+          event: {
+            select: {
+              id: true,
+              name: true,
+              homeTeam: true,
+              awayTeam: true,
+              startTime: true,
+              status: true,
+              sport: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                },
+              },
+            },
+          },
+          market: {
+            select: {
+              id: true,
+              type: true,
+              name: true,
+              isActive: true,
+            },
           },
         },
-        market: true,
-      },
-      orderBy: {
-        valuePercentage: 'desc',
-      },
-      take: limit,
-      skip: offset,
-    });
+        orderBy: {
+          valuePercentage: 'desc',
+        },
+        take: limit,
+        skip: offset,
+      });
 
     return alerts;
   }
