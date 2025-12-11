@@ -9,6 +9,7 @@ import { predictionsService } from '../services/predictionsService';
 import SimpleChart from '../components/SimpleChart';
 import PredictionRow from '../components/PredictionRow';
 import SkeletonLoader from '../components/SkeletonLoader';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function PredictionTracking() {
   const [filters, setFilters] = useState({
@@ -160,57 +161,167 @@ export default function PredictionTracking() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Accuracy by Sport */}
+        {/* Accuracy by Sport - Enhanced Bar Chart */}
         {accuracyStats.bySport.length > 0 && (
           <div className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-6 border border-primary-500/20">
             <h3 className="text-xl font-black text-white mb-4">Precisión por Deporte</h3>
-            <SimpleChart
-              data={accuracyStats.bySport.map((s) => ({
-                label: s.sport,
-                value: s.accuracy,
-              }))}
-            />
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={accuracyStats.bySport.map((s) => ({
+                deporte: s.sport,
+                precisión: s.accuracy,
+                correctas: s.correct,
+                total: s.total,
+              }))}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis dataKey="deporte" stroke="#9CA3AF" fontSize={12} />
+                <YAxis stroke="#9CA3AF" fontSize={12} domain={[0, 100]} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1F2937',
+                    border: '1px solid #3B82F6',
+                    borderRadius: '8px',
+                    color: '#F3F4F6',
+                  }}
+                  formatter={(value: number) => `${value.toFixed(1)}%`}
+                />
+                <Bar dataKey="precisión" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+            <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+              {accuracyStats.bySport.map((s) => (
+                <div key={s.sport} className="text-gray-400">
+                  <span className="font-semibold text-white">{s.sport}:</span> {s.correct}/{s.total} ({s.accuracy.toFixed(1)}%)
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
-        {/* Accuracy by Market */}
+        {/* Accuracy by Market - Enhanced Bar Chart */}
         {accuracyStats.byMarket.length > 0 && (
           <div className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-6 border border-primary-500/20">
             <h3 className="text-xl font-black text-white mb-4">Precisión por Tipo de Mercado</h3>
-            <SimpleChart
-              data={accuracyStats.byMarket.map((m) => ({
-                label: m.market,
-                value: m.accuracy,
-              }))}
-            />
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={accuracyStats.byMarket.map((m) => ({
+                mercado: m.market,
+                precisión: m.accuracy,
+                correctas: m.correct,
+                total: m.total,
+              }))}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis dataKey="mercado" stroke="#9CA3AF" fontSize={12} />
+                <YAxis stroke="#9CA3AF" fontSize={12} domain={[0, 100]} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1F2937',
+                    border: '1px solid #3B82F6',
+                    borderRadius: '8px',
+                    color: '#F3F4F6',
+                  }}
+                  formatter={(value: number) => `${value.toFixed(1)}%`}
+                />
+                <Bar dataKey="precisión" fill="#10B981" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+            <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+              {accuracyStats.byMarket.map((m) => (
+                <div key={m.market} className="text-gray-400">
+                  <span className="font-semibold text-white">{m.market}:</span> {m.correct}/{m.total} ({m.accuracy.toFixed(1)}%)
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
-        {/* Accuracy by Confidence */}
-        {accuracyStats.byConfidence.length > 0 && (
+        {/* Accuracy Trend Over Time */}
+        {accuracyStats.recentPredictions.length > 0 && (
           <div className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-6 border border-primary-500/20">
-            <h3 className="text-xl font-black text-white mb-4">Precisión por Nivel de Confianza</h3>
-            <SimpleChart
-              data={accuracyStats.byConfidence.map((c) => ({
-                label: `${(c.confidence * 100).toFixed(0)}%`,
-                value: c.accuracy,
-              }))}
-            />
+            <h3 className="text-xl font-black text-white mb-4">Tendencia de Precisión (Últimas 20 Predicciones)</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={accuracyStats.recentPredictions.slice(0, 20).reverse().map((p, idx) => ({
+                index: idx + 1,
+                precisión: p.accuracy ? p.accuracy * 100 : null,
+                confianza: p.confidence * 100,
+                probabilidad: p.predictedProbability * 100,
+              }))}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis dataKey="index" stroke="#9CA3AF" fontSize={12} />
+                <YAxis stroke="#9CA3AF" fontSize={12} domain={[0, 100]} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1F2937',
+                    border: '1px solid #3B82F6',
+                    borderRadius: '8px',
+                    color: '#F3F4F6',
+                  }}
+                  formatter={(value: number) => `${value?.toFixed(1)}%`}
+                />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="precisión"
+                  stroke="#10B981"
+                  strokeWidth={2}
+                  name="Precisión"
+                  dot={{ fill: '#10B981', r: 3 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="confianza"
+                  stroke="#3B82F6"
+                  strokeWidth={2}
+                  name="Confianza"
+                  dot={{ fill: '#3B82F6', r: 3 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         )}
 
-        {/* Calibration Chart */}
+        {/* Calibration Chart - Enhanced */}
         {accuracyStats.calibrationBins.length > 0 && (
           <div className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-6 border border-primary-500/20">
             <h3 className="text-xl font-black text-white mb-4">Calibración del Modelo</h3>
-            <SimpleChart
-              data={accuracyStats.calibrationBins.map((b) => ({
-                label: `${(b.bin * 100).toFixed(0)}%`,
-                value: b.avgActual * 100,
-              }))}
-            />
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={accuracyStats.calibrationBins.map((b) => ({
+                predicho: b.bin * 100,
+                real: b.avgActual * 100,
+                ideal: b.bin * 100, // Perfect calibration line
+              }))}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis dataKey="predicho" stroke="#9CA3AF" fontSize={12} label={{ value: 'Probabilidad Predicha (%)', position: 'insideBottom', offset: -5 }} />
+                <YAxis stroke="#9CA3AF" fontSize={12} domain={[0, 100]} label={{ value: 'Probabilidad Real (%)', angle: -90, position: 'insideLeft' }} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1F2937',
+                    border: '1px solid #3B82F6',
+                    borderRadius: '8px',
+                    color: '#F3F4F6',
+                  }}
+                  formatter={(value: number) => `${value.toFixed(1)}%`}
+                />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="real"
+                  stroke="#10B981"
+                  strokeWidth={2}
+                  name="Real"
+                  dot={{ fill: '#10B981', r: 4 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="ideal"
+                  stroke="#6B7280"
+                  strokeWidth={1}
+                  strokeDasharray="5 5"
+                  name="Ideal (Perfecta)"
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
             <p className="text-xs text-gray-500 mt-2">
-              Comparación entre probabilidad predicha vs probabilidad real
+              Comparación entre probabilidad predicha vs probabilidad real. La línea ideal muestra calibración perfecta.
             </p>
           </div>
         )}

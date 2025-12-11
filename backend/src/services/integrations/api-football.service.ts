@@ -395,7 +395,23 @@ class APIFootballService {
         },
       });
 
-      return response.data.response || [];
+      const teams = response.data.response || [];
+      
+      // API-Football returns teams in format: { team: { id, name, logo } }
+      // Normalize to our Team interface
+      return teams.map((item: any) => {
+        if (item.team) {
+          // API-Football format: { team: { id, name, logo } }
+          return {
+            id: item.team.id,
+            name: item.team.name,
+            logo: item.team.logo,
+          };
+        } else {
+          // Already in correct format
+          return item;
+        }
+      });
     } catch (error: any) {
       logger.error('Error searching teams from API-Football:', error);
       return [];

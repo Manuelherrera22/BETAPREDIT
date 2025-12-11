@@ -6,6 +6,7 @@
 
 import { useState } from 'react';
 import Icon, { type IconName } from './icons/IconSystem';
+import TeamComparisonCharts from './TeamComparisonCharts';
 
 interface PredictionAnalysisExplainedProps {
   prediction: {
@@ -161,7 +162,7 @@ export default function PredictionAnalysisExplained({ prediction, factors }: Pre
           expanded={expandedSections.has('form')}
           onToggle={() => toggleSection('form')}
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <TeamFormCard
               teamName="Local"
               form={homeForm}
@@ -175,6 +176,20 @@ export default function PredictionAnalysisExplained({ prediction, factors }: Pre
               sportType={sportType}
             />
           </div>
+          
+          {/* Comparison Charts */}
+          {advancedFeatures.homeStats || advancedFeatures.awayStats ? (
+            <div className="mt-6">
+              <TeamComparisonCharts
+                homeTeam="Local"
+                awayTeam="Visitante"
+                homeStats={advancedFeatures.homeStats}
+                awayStats={advancedFeatures.awayStats}
+                homeForm={homeForm}
+                awayForm={awayForm}
+              />
+            </div>
+          ) : null}
         </Section>
       )}
 
@@ -378,6 +393,94 @@ export default function PredictionAnalysisExplained({ prediction, factors }: Pre
           </div>
         </Section>
       )}
+
+      {/* Detailed Statistics Section */}
+      {advancedFeatures.homeStats || advancedFeatures.awayStats ? (
+        <Section
+          title="Estadísticas Detalladas (API-Football)"
+          icon="statistics"
+          expanded={expandedSections.has('detailed-stats')}
+          onToggle={() => toggleSection('detailed-stats')}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {advancedFeatures.homeStats && (
+              <div className="bg-dark-900/50 rounded-lg p-4 border border-green-500/30">
+                <h5 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                  <span>Local</span>
+                  <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">Datos Reales</span>
+                </h5>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <InfoBox label="Posesión" value={`${(advancedFeatures.homeStats.possession || 0).toFixed(1)}%`} />
+                  <InfoBox label="Precisión Pase" value={`${((advancedFeatures.homeStats.passAccuracy || 0) * 100).toFixed(1)}%`} />
+                  <InfoBox label="Tiros Totales" value={advancedFeatures.homeStats.totalShots || 0} />
+                  <InfoBox label="Tiros a Puerta" value={advancedFeatures.homeStats.shotsOnGoal || 0} />
+                  <InfoBox label="Pases Totales" value={advancedFeatures.homeStats.passesTotal || 0} />
+                  <InfoBox label="Pases Precisos" value={advancedFeatures.homeStats.passesAccurate || 0} />
+                  <InfoBox label="Ataques" value={advancedFeatures.homeStats.attacks || 0} />
+                  <InfoBox label="Ataques Peligrosos" value={advancedFeatures.homeStats.dangerousAttacks || 0} />
+                  <InfoBox label="Entradas" value={advancedFeatures.homeStats.tackles || 0} />
+                  <InfoBox label="Faltas" value={advancedFeatures.homeStats.fouls || 0} />
+                  <InfoBox label="Corners" value={advancedFeatures.homeStats.corners || 0} />
+                  <InfoBox label="Paradas" value={advancedFeatures.homeStats.goalkeeperSaves || 0} />
+                </div>
+              </div>
+            )}
+            
+            {advancedFeatures.awayStats && (
+              <div className="bg-dark-900/50 rounded-lg p-4 border border-green-500/30">
+                <h5 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                  <span>Visitante</span>
+                  <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">Datos Reales</span>
+                </h5>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <InfoBox label="Posesión" value={`${(advancedFeatures.awayStats.possession || 0).toFixed(1)}%`} />
+                  <InfoBox label="Precisión Pase" value={`${((advancedFeatures.awayStats.passAccuracy || 0) * 100).toFixed(1)}%`} />
+                  <InfoBox label="Tiros Totales" value={advancedFeatures.awayStats.totalShots || 0} />
+                  <InfoBox label="Tiros a Puerta" value={advancedFeatures.awayStats.shotsOnGoal || 0} />
+                  <InfoBox label="Pases Totales" value={advancedFeatures.awayStats.passesTotal || 0} />
+                  <InfoBox label="Pases Precisos" value={advancedFeatures.awayStats.passesAccurate || 0} />
+                  <InfoBox label="Ataques" value={advancedFeatures.awayStats.attacks || 0} />
+                  <InfoBox label="Ataques Peligrosos" value={advancedFeatures.awayStats.dangerousAttacks || 0} />
+                  <InfoBox label="Entradas" value={advancedFeatures.awayStats.tackles || 0} />
+                  <InfoBox label="Faltas" value={advancedFeatures.awayStats.fouls || 0} />
+                  <InfoBox label="Corners" value={advancedFeatures.awayStats.corners || 0} />
+                  <InfoBox label="Paradas" value={advancedFeatures.awayStats.goalkeeperSaves || 0} />
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Advanced Metrics Comparison */}
+          {advancedFeatures.advancedMetrics && (
+            <div className="mt-4 bg-dark-900/50 rounded-lg p-4 border border-primary-500/10">
+              <h5 className="text-sm font-semibold text-gray-300 mb-3">Ventajas Comparativas</h5>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <InfoBox
+                  label="Ventaja Posesión"
+                  value={advancedFeatures.advancedMetrics.possessionAdvantage > 0 
+                    ? `+${advancedFeatures.advancedMetrics.possessionAdvantage.toFixed(1)}%` 
+                    : `${advancedFeatures.advancedMetrics.possessionAdvantage.toFixed(1)}%`}
+                  description="Local vs Visitante"
+                />
+                <InfoBox
+                  label="Ventaja Tiros"
+                  value={advancedFeatures.advancedMetrics.shotsAdvantage > 0 
+                    ? `+${advancedFeatures.advancedMetrics.shotsAdvantage.toFixed(1)}` 
+                    : advancedFeatures.advancedMetrics.shotsAdvantage.toFixed(1)}
+                  description="Local vs Visitante"
+                />
+                <InfoBox
+                  label="Ventaja Precisión"
+                  value={advancedFeatures.advancedMetrics.passAccuracyAdvantage > 0 
+                    ? `+${(advancedFeatures.advancedMetrics.passAccuracyAdvantage * 100).toFixed(1)}%` 
+                    : `${(advancedFeatures.advancedMetrics.passAccuracyAdvantage * 100).toFixed(1)}%`}
+                  description="Local vs Visitante"
+                />
+              </div>
+            </div>
+          )}
+        </Section>
+      ) : null}
 
       {/* Advanced Factors */}
       <Section

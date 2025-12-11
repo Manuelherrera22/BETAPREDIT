@@ -8,6 +8,8 @@ import { logger } from '../utils/logger';
 import { prisma } from '../config/database';
 import { getAPIFootballService } from './integrations/api-football.service';
 import { featuresCacheService } from './features-cache.service';
+import { getLeagueInfo } from '../utils/league-mapping';
+import { getTheOddsAPIService } from './integrations/the-odds-api.service';
 
 interface TeamForm {
   winRate5: number;
@@ -83,10 +85,17 @@ class AdvancedFeaturesService {
                 const team = teams[0]; // Use first match
                 const teamId = team.id;
                 
-                // Get recent fixtures for this team
+                // Try to get league info from sport slug
+                const leagueInfo = getLeagueInfo(sportId);
+                
+                // Get recent fixtures for this team with league and season if available
                 const fixtures = await apiFootball.getFixtures({
                   team: teamId,
                   last: limit,
+                  ...(leagueInfo && {
+                    league: leagueInfo.leagueId,
+                    season: leagueInfo.season,
+                  }),
                 });
                 
                 if (fixtures.length > 0) {
@@ -450,11 +459,99 @@ class AdvancedFeaturesService {
   }
 
   /**
+   * Get detailed team statistics from API-Football (shots, possession, passes, etc.)
+   */
+  async getDetailedTeamStatistics(teamName: string, sportId: string): Promise<any> {
+    try {
+      const apiFootball = getAPIFootballService();
+      const isSoccer = sportId.includes('soccer') || sportId.includes('football') || 
+                      sportId.includes('serie_a') || sportId.includes('la_liga') || 
+                      sportId.includes('epl') || sportId.includes('bundesliga');
+      
+      if (!apiFootball || !isSoccer) {
+        return null;
+      }
+
+      // Search for team
+      let teams = await apiFootball.searchTeams(teamName);
+      if (teams.length === 0) {
+        const cleanName = teamName
+          .replace(/^(FC|CF|AC|AS|SC|RC|UD|CD|SD|CF|Athletic|Atletico|Real|Deportivo|Sporting|Racing)\s+/i, '')
+          .replace(/\s+(FC|CF|AC|AS|SC|RC|UD|CD|SD|CF)$/i, '')
+          .trim();
+        if (cleanName !== teamName && cleanName.length > 3) {
+          teams = await apiFootball.searchTeams(cleanName);
+        }
+      }
+
+      if (teams.length === 0) {
+        return null;
+      }
+
+      const teamId = teams[0].id;
+      const leagueInfo = getLeagueInfo(sportId);
+
+      if (!leagueInfo) {
+        return null;
+      }
+
+      // Get team statistics
+      const stats = await apiFootball.getTeamStatistics(teamId, leagueInfo.leagueId, leagueInfo.season);
+      
+      if (!stats || !stats.statistics) {
+        return null;
+      }
+
+      // Parse statistics into a more usable format
+      const statsMap: Record<string, number | string> = {};
+      stats.statistics.forEach((stat: any) => {
+        if (stat.value !== null) {
+          // Handle percentage values
+          if (typeof stat.value === 'string' && stat.value.includes('%')) {
+            statsMap[stat.type] = parseFloat(stat.value.replace('%', '')) / 100;
+          } else if (typeof stat.value === 'number') {
+            statsMap[stat.type] = stat.value;
+          } else {
+            statsMap[stat.type] = stat.value;
+          }
+        }
+      });
+
+      return {
+        shotsOnGoal: statsMap['Shots on Goal'] || statsMap['Shots on Target'] || 0,
+        shotsOffGoal: statsMap['Shots off Goal'] || statsMap['Shots off Target'] || 0,
+        totalShots: statsMap['Total Shots'] || 0,
+        blockedShots: statsMap['Blocked Shots'] || 0,
+        shotsInsidebox: statsMap['Shots insidebox'] || 0,
+        shotsOutsidebox: statsMap['Shots outsidebox'] || 0,
+        possession: typeof statsMap['Ball Possession'] === 'number' ? statsMap['Ball Possession'] : 0,
+        passesTotal: statsMap['Total passes'] || 0,
+        passesAccurate: statsMap['Passes accurate'] || 0,
+        passAccuracy: statsMap['Passes %'] || 0,
+        fouls: statsMap['Fouls'] || 0,
+        corners: statsMap['Corner Kicks'] || 0,
+        offsides: statsMap['Offsides'] || 0,
+        yellowCards: statsMap['Yellow Cards'] || 0,
+        redCards: statsMap['Red Cards'] || 0,
+        goalkeeperSaves: statsMap['Goalkeeper Saves'] || 0,
+        tackles: statsMap['Tackles'] || 0,
+        attacks: statsMap['Attacks'] || 0,
+        dangerousAttacks: statsMap['Dangerous Attacks'] || 0,
+        isRealData: true,
+      };
+    } catch (error: any) {
+      logger.debug(`Could not get detailed statistics for ${teamName}: ${error.message}`);
+      return null;
+    }
+  }
+
+  /**
    * Get all advanced features for an event
+   * NOW INCLUDES detailed statistics from API-Football
    */
   async getAllAdvancedFeatures(eventId: string, homeTeam: string, awayTeam: string, sportId: string) {
     try {
-      const [homeForm, awayForm, h2h, market] = await Promise.all([
+      const [homeForm, awayForm, h2h, market, homeStats, awayStats] = await Promise.all([
         this.calculateTeamForm(homeTeam, sportId, true),
         this.calculateTeamForm(awayTeam, sportId, false),
         this.calculateHeadToHead(homeTeam, awayTeam, sportId),
@@ -471,20 +568,38 @@ class AdvancedFeaturesService {
           }
           return this.getDefaultMarketIntelligence();
         })(),
+        // Get detailed statistics from API-Football
+        this.getDetailedTeamStatistics(homeTeam, sportId),
+        this.getDetailedTeamStatistics(awayTeam, sportId),
       ]);
 
       // Check if we have real data
-      const hasRealData = (homeForm.isRealData !== false) || (awayForm.isRealData !== false) || (h2h.isRealData !== false);
+      const hasRealData = (homeForm.isRealData !== false) || (awayForm.isRealData !== false) || (h2h.isRealData !== false) || 
+                         (homeStats?.isRealData) || (awayStats?.isRealData);
       
       if (!hasRealData) {
         logger.warn(`⚠️ Using default values for event ${eventId} - no real data available`);
       }
+      
+      // Calculate advanced metrics from detailed statistics
+      const advancedMetrics = homeStats && awayStats ? {
+        possessionAdvantage: (homeStats.possession || 0) - (awayStats.possession || 0),
+        shotsAdvantage: (homeStats.totalShots || 0) - (awayStats.totalShots || 0),
+        shotsOnTargetAdvantage: (homeStats.shotsOnGoal || 0) - (awayStats.shotsOnGoal || 0),
+        passAccuracyAdvantage: (homeStats.passAccuracy || 0) - (awayStats.passAccuracy || 0),
+        attacksAdvantage: (homeStats.attacks || 0) - (awayStats.attacks || 0),
+        dangerousAttacksAdvantage: (homeStats.dangerousAttacks || 0) - (awayStats.dangerousAttacks || 0),
+      } : null;
       
       return {
         homeForm,
         awayForm,
         h2h,
         market,
+        // Detailed statistics from API-Football
+        homeStats,
+        awayStats,
+        advancedMetrics,
         // Relative features
         formAdvantage: homeForm.winRate5 - awayForm.winRate5,
         goalsAdvantage: homeForm.goalsForAvg5 - awayForm.goalsForAvg5,
@@ -499,6 +614,9 @@ class AdvancedFeaturesService {
         awayForm: this.getDefaultForm(),
         h2h: this.getDefaultH2H(),
         market: this.getDefaultMarketIntelligence(),
+        homeStats: null,
+        awayStats: null,
+        advancedMetrics: null,
         formAdvantage: 0,
         goalsAdvantage: 0,
         defenseAdvantage: 0,
