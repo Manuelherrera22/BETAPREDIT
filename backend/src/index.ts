@@ -90,6 +90,7 @@ const app = express();
 const httpServer = createServer(app);
 
 // Request ID middleware (should be first)
+import { requestIdMiddleware } from './utils/request-id';
 app.use(requestIdMiddleware);
 
 const io = new Server(httpServer, {
