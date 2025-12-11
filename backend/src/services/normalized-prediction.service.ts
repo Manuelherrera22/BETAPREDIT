@@ -312,13 +312,33 @@ class NormalizedPredictionService {
       }
 
       // Step 9: Calculate confidence based on advanced analysis
-      // Use the highest confidence from the analyses (most confident prediction)
-      const confidences = [
-        homeAnalysis.confidence,
-        awayAnalysis.confidence,
-        drawAnalysis?.confidence || 0.6,
-      ];
-      const confidence = Math.max(...confidences);
+      // Use the confidence from the specific selection's analysis (not max of all)
+      // This ensures each prediction has its own appropriate confidence level
+      const selection = prediction.selection || '';
+      const isHome = selection.toLowerCase().includes('home') || selection.toLowerCase() === '1';
+      const isAway = selection.toLowerCase().includes('away') || selection.toLowerCase() === '2';
+      const isDraw = selection.toLowerCase().includes('draw') || selection.toLowerCase() === 'x' || selection.toLowerCase() === '3';
+      
+      let confidence: number;
+      if (isHome && homeAnalysis) {
+        confidence = homeAnalysis.confidence;
+      } else if (isAway && awayAnalysis) {
+        confidence = awayAnalysis.confidence;
+      } else if (isDraw && drawAnalysis) {
+        confidence = drawAnalysis.confidence;
+      } else {
+        // Fallback: use max if selection doesn't match
+        const confidences = [
+          homeAnalysis?.confidence || 0.6,
+          awayAnalysis?.confidence || 0.6,
+          drawAnalysis?.confidence || 0.6,
+        ];
+        confidence = Math.max(...confidences);
+      }
+      
+      // Ensure confidence is within reasonable bounds (0.45 to 0.95)
+      // Allow higher confidence for high-quality predictions
+      confidence = Math.max(0.45, Math.min(0.95, confidence));
 
       // Step 10: Prepare factors for storage (include advanced analysis)
       const factors = {
@@ -412,6 +432,7 @@ class NormalizedPredictionService {
 
   /**
    * Calculate confidence based on market consensus and features
+   * This is a fallback method when advanced analysis is not available
    */
   private calculateConfidence(
     selections: MarketSelections,
@@ -422,20 +443,24 @@ class NormalizedPredictionService {
     // If totalImplied is close to 1.0, market is efficient (high confidence)
     // If totalImplied is far from 1.0, market has inefficiencies (lower confidence)
     const marketEfficiency = 1 - Math.abs(totalImplied - 1.05) * 2; // Optimal margin is ~5%
-    let confidence = Math.max(0.5, Math.min(0.8, marketEfficiency));
+    let confidence = Math.max(0.5, Math.min(0.85, marketEfficiency));
 
     // Adjust based on number of bookmakers (more = slightly more confidence)
     const totalBookmakers = selections.home.length + selections.away.length + (selections.draw?.length || 0);
-    const bookmakerFactor = Math.min(1.1, 1 + (totalBookmakers - 3) * 0.02);
+    const bookmakerFactor = Math.min(1.15, 1 + (totalBookmakers - 3) * 0.02);
     confidence *= bookmakerFactor;
 
     // Adjust based on advanced features availability
     if (advancedFeatures.homeForm && advancedFeatures.awayForm) {
-      confidence *= 1.05; // 5% boost if we have form data
+      confidence *= 1.08; // 8% boost if we have form data
+    }
+    
+    if (advancedFeatures.h2h || advancedFeatures.headToHead) {
+      confidence *= 1.05; // 5% boost if we have H2H data
     }
 
-    // Final bounds: 0.45 to 0.82
-    return Math.max(0.45, Math.min(0.82, confidence));
+    // Realistic bounds: 0.45 to 0.90 (allow higher confidence for high-quality data)
+    return Math.max(0.45, Math.min(0.90, confidence));
   }
 }
 

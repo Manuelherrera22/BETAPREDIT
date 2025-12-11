@@ -560,8 +560,10 @@ class AdvancedPredictionAnalysisService {
     // Data quality multiplier
     confidence *= (0.7 + (features.overallDataQuality * 0.3));
 
-    // Realistic bounds: 0.50 to 0.85
-    return Math.max(0.50, Math.min(0.85, confidence));
+    // Realistic bounds: 0.50 to 0.95
+    // Allow higher confidence when we have excellent data quality and high market consensus
+    // This ensures confidence reflects the actual quality of the prediction
+    return Math.max(0.50, Math.min(0.95, confidence));
   }
 
   /**
