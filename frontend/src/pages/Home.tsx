@@ -161,7 +161,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* Quick Stats - Reales - Better spacing */}
+        {/* Quick Stats - Reales - Enhanced design */}
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-5 lg:gap-6 mb-6 sm:mb-8 md:mb-10">
           <StatsCard
             title="Win Rate"
@@ -187,38 +187,45 @@ export default function Home() {
           />
         </div>
 
-        {/* Alertas en tiempo real - Reales */}
+        {/* Alertas en tiempo real - Enhanced design */}
         {allAlerts.length > 0 && (
-          <div className="mb-4 sm:mb-6 md:mb-8 bg-gradient-to-r from-accent-500/20 to-primary-500/20 rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-6 border border-accent-500/40">
-            <div className="flex items-center justify-between mb-2 sm:mb-3">
-              <h3 className="text-sm sm:text-base md:text-lg font-black text-white flex items-center gap-1.5 sm:gap-2">
+          <div className="mb-4 sm:mb-6 md:mb-8 bg-gradient-to-br from-accent-500/10 via-primary-500/10 to-accent-500/10 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 border border-accent-500/30 shadow-lg shadow-accent-500/10 backdrop-blur-sm">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <h3 className="text-base sm:text-lg md:text-xl font-bold text-white flex items-center gap-2 sm:gap-3">
                 <span className="relative flex-shrink-0">
-                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-accent-400 rounded-full animate-pulse"></span>
-                  <span className="absolute top-0 left-0 w-1.5 h-1.5 sm:w-2 sm:h-2 bg-accent-400 rounded-full animate-ping opacity-75"></span>
+                  <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-accent-400 rounded-full animate-pulse"></span>
+                  <span className="absolute top-0 left-0 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-accent-400 rounded-full animate-ping opacity-75"></span>
                 </span>
                 <span className="hidden sm:inline">Alertas en Tiempo Real</span>
                 <span className="sm:hidden">Alertas</span>
               </h3>
-              <span className="text-xs text-gray-400 flex-shrink-0 ml-2">{allAlerts.length} nuevas</span>
+              <Link
+                to="/alerts"
+                className="text-xs sm:text-sm text-primary-400 hover:text-primary-300 font-semibold flex items-center gap-1.5 flex-shrink-0 transition-colors"
+              >
+                {allAlerts.length} nuevas
+                <Icon name="arrow-right" size={14} />
+              </Link>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {allAlerts.slice(0, 3).map((alert) => (
-                <div
+                <Link
                   key={alert.id}
-                  className="bg-dark-900/50 rounded-lg p-3 border border-primary-500/20 animate-pulse-slow"
+                  to="/alerts"
+                  className="block bg-slate-900/60 hover:bg-slate-900/80 rounded-lg p-3.5 border border-primary-500/20 hover:border-primary-500/40 transition-all duration-200 hover:scale-[1.02]"
                 >
                   <div className="flex items-start gap-3">
-                    <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
-                      alert.type === 'value_bet' ? 'bg-gold-400' :
-                      alert.type === 'odds_change' ? 'bg-primary-400' :
-                      'bg-accent-400'
+                    <div className={`w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0 ${
+                      alert.type === 'value_bet' ? 'bg-gold-400 shadow-lg shadow-gold-400/50' :
+                      alert.type === 'odds_change' ? 'bg-primary-400 shadow-lg shadow-primary-400/50' :
+                      'bg-accent-400 shadow-lg shadow-accent-400/50'
                     }`}></div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-white truncate">{alert.title}</p>
-                      <p className="text-xs text-gray-400 mt-1 line-clamp-2">{alert.message}</p>
+                      <p className="text-sm font-bold text-white truncate mb-1">{alert.title}</p>
+                      <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed">{alert.message}</p>
                     </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>
@@ -228,15 +235,19 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 mb-4 sm:mb-6 md:mb-8">
           {/* Left Column - Quick Tools */}
           <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-            {/* Quick Access Tools Grid */}
-            <div className="bg-slate-800/50 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-700/50">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Herramientas Rápidas</h2>
+            {/* Quick Access Tools Grid - Enhanced */}
+            <div className="bg-gradient-to-br from-slate-800/60 to-slate-900/60 rounded-xl sm:rounded-2xl p-5 sm:p-6 border border-slate-700/50 shadow-lg backdrop-blur-sm">
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+                  <Icon name="zap" size={24} className="text-primary-400" />
+                  Herramientas Rápidas
+                </h2>
                 <Link
                   to="/alerts"
-                  className="text-xs sm:text-sm text-primary-400 hover:text-primary-300 font-medium flex-shrink-0 ml-2"
+                  className="text-sm text-primary-400 hover:text-primary-300 font-semibold flex items-center gap-1.5 transition-colors"
                 >
-                  Ver todas →
+                  Ver todas
+                  <Icon name="arrow-right" size={16} />
                 </Link>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
@@ -244,47 +255,53 @@ export default function Home() {
                   <Link
                     key={tool.to}
                     to={tool.to}
-                    className={`bg-gradient-to-br ${tool.color} rounded-xl p-4 sm:p-5 border-2 ${tool.borderColor} hover:border-opacity-80 transition-all hover:scale-105 active:scale-95 group min-h-[100px] sm:min-h-[120px] flex flex-col items-center justify-center relative`}
+                    className={`bg-gradient-to-br ${tool.color} rounded-xl p-4 sm:p-5 border-2 ${tool.borderColor} hover:border-opacity-100 transition-all duration-200 hover:scale-105 active:scale-95 group min-h-[110px] sm:min-h-[130px] flex flex-col items-center justify-center relative shadow-md hover:shadow-xl overflow-hidden`}
                   >
+                    {/* Animated background gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/0 via-white/0 to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    
                     {tool.badge && (
-                      <span className="absolute top-2 right-2 px-2 py-0.5 bg-gold-500/30 text-gold-300 text-xs font-bold rounded-full border border-gold-500/50">
+                      <span className="absolute top-2 right-2 px-2 py-0.5 bg-gold-500/40 text-gold-200 text-xs font-bold rounded-full border border-gold-500/60 shadow-md z-10">
                         {tool.badge}
                       </span>
                     )}
-                    <div className="mb-2 sm:mb-3 flex items-center justify-center">
-                      <div className="p-2.5 sm:p-3 rounded-xl bg-white/5 group-hover:bg-white/10 transition-colors">
-                        <Icon name={tool.icon} size={24} className="text-white" strokeWidth={2} />
+                    <div className="mb-2 sm:mb-3 flex items-center justify-center relative z-10">
+                      <div className="p-3 rounded-xl bg-white/10 group-hover:bg-white/20 transition-all duration-200 shadow-lg">
+                        <Icon name={tool.icon} size={26} className="text-white" strokeWidth={2.5} />
                       </div>
                     </div>
-                    <h3 className="text-xs sm:text-sm font-bold text-white text-center leading-tight">{tool.label}</h3>
+                    <h3 className="text-xs sm:text-sm font-bold text-white text-center leading-tight relative z-10">{tool.label}</h3>
                   </Link>
                 ))}
               </div>
             </div>
 
-            {/* Value Bet Calculator */}
-            <div className="bg-slate-800/50 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-700/50">
+            {/* Value Bet Calculator - Enhanced */}
+            <div className="bg-gradient-to-br from-slate-800/60 to-slate-900/60 rounded-xl sm:rounded-2xl p-5 sm:p-6 border border-slate-700/50 shadow-lg backdrop-blur-sm">
               <ValueBetCalculator />
             </div>
           </div>
 
-          {/* Right Column - Social Proof */}
+          {/* Right Column - Social Proof - Enhanced */}
           <div className="lg:col-span-1">
             {!shouldShow && (
-              <div className="bg-slate-800/50 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-700/50 sticky top-20">
+              <div className="bg-gradient-to-br from-slate-800/60 to-slate-900/60 rounded-xl sm:rounded-2xl p-5 sm:p-6 border border-slate-700/50 shadow-lg backdrop-blur-sm sticky top-20">
                 <SocialProof />
               </div>
             )}
           </div>
         </div>
 
-        {/* Events Section - Better organized */}
-        <div className="bg-slate-800/30 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 border border-slate-700/50 mb-4 sm:mb-6 md:mb-8">
-          <div className="flex items-center justify-between mb-4 sm:mb-6">
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">Eventos</h2>
+        {/* Events Section - Enhanced design */}
+        <div className="bg-gradient-to-br from-slate-800/60 to-slate-900/60 rounded-xl sm:rounded-2xl p-5 sm:p-6 md:p-8 border border-slate-700/50 shadow-lg backdrop-blur-sm mb-4 sm:mb-6 md:mb-8">
+          <div className="flex items-center justify-between mb-5 sm:mb-6">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white flex items-center gap-3">
+              <Icon name="events" size={28} className="text-primary-400" />
+              Eventos
+            </h2>
             <Link
               to="/events"
-              className="text-sm sm:text-base text-primary-400 hover:text-primary-300 font-semibold flex items-center gap-2 flex-shrink-0"
+              className="text-sm sm:text-base text-primary-400 hover:text-primary-300 font-semibold flex items-center gap-2 flex-shrink-0 transition-colors hover:gap-3"
             >
               Ver todos
               <Icon name="arrow-right" size={18} />

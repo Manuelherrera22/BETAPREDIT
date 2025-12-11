@@ -87,27 +87,63 @@ export default function Layout({ children }: LayoutProps) {
                 </span>
               </Link>
               
-              {/* Desktop Navigation - Show only essential items */}
-              <div className="hidden lg:ml-6 lg:flex lg:space-x-1 xl:space-x-2">
+              {/* Desktop Navigation - Show essential items + More menu */}
+              <div className="hidden lg:ml-6 lg:flex lg:items-center lg:space-x-1 xl:space-x-2">
                 {desktopNavItems.map((item) => (
                   <Link
                     key={item.to}
                     to={item.to}
-                    className={`inline-flex items-center px-3 xl:px-4 py-2 text-xs xl:text-sm font-semibold rounded-lg transition-all ${
+                    className={`inline-flex items-center px-3 xl:px-4 py-2 text-xs xl:text-sm font-semibold rounded-lg transition-all duration-200 ${
                       isActive(item.to)
-                        ? 'bg-primary-500/20 text-white border border-primary-500/40 shadow-lg shadow-primary-500/10'
-                        : 'text-gray-300 hover:text-white hover:bg-slate-700/50 hover:border hover:border-slate-600/50'
+                        ? 'bg-gradient-to-r from-primary-500/20 to-primary-600/20 text-white border border-primary-500/50 shadow-lg shadow-primary-500/20'
+                        : 'text-gray-300 hover:text-white hover:bg-gradient-to-r hover:from-slate-700/50 hover:to-slate-600/50 hover:border hover:border-slate-600/50'
                     }`}
                   >
                     <Icon name={item.icon} className="mr-1.5 xl:mr-2" size={18} />
                     <span className="hidden xl:inline">{item.label}</span>
                     {item.badge && (
-                      <span className={`ml-1.5 xl:ml-2 px-2 py-0.5 ${item.badgeColor} text-white text-xs rounded-full font-bold`}>
+                      <span className={`ml-1.5 xl:ml-2 px-2 py-0.5 ${item.badgeColor} text-white text-xs rounded-full font-bold shadow-md`}>
                         {item.badge}
                       </span>
                     )}
                   </Link>
                 ))}
+                
+                {/* More Menu Dropdown - Access to all other items */}
+                <div className="relative group">
+                  <button className="inline-flex items-center px-3 xl:px-4 py-2 text-xs xl:text-sm font-semibold rounded-lg transition-all duration-200 text-gray-300 hover:text-white hover:bg-gradient-to-r hover:from-slate-700/50 hover:to-slate-600/50 hover:border hover:border-slate-600/50">
+                    <Icon name="menu" className="mr-1.5 xl:mr-2" size={18} />
+                    <span className="hidden xl:inline">Más</span>
+                    <Icon name="arrow-down-right" className="ml-1" size={12} />
+                  </button>
+                  
+                  {/* Dropdown Menu */}
+                  <div className="absolute top-full left-0 mt-2 w-56 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                    <div className="p-2">
+                      {allNavItems.filter(item => !desktopNavItems.some(d => d.to === item.to)).map((item) => (
+                        <Link
+                          key={item.to}
+                          to={item.to}
+                          className={`flex items-center justify-between px-4 py-2.5 rounded-lg transition-colors mb-1 last:mb-0 ${
+                            isActive(item.to)
+                              ? 'bg-primary-500/20 text-white border border-primary-500/40'
+                              : 'text-gray-300 hover:text-white hover:bg-slate-700/50'
+                          }`}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <Icon name={item.icon} size={18} />
+                            <span className="font-medium text-sm">{item.label}</span>
+                          </div>
+                          {item.badge && (
+                            <span className={`px-2 py-0.5 ${item.badgeColor} text-white text-xs rounded-full font-semibold`}>
+                              {item.badge}
+                            </span>
+                          )}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
