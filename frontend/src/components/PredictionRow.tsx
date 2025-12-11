@@ -157,6 +157,8 @@ export default function PredictionRow({ prediction }: PredictionRowProps) {
               <PredictionAnalysisExplained
                 prediction={{
                   ...prediction,
+                  eventId: predictionWithFactors.eventId || predictionWithFactors.event?.id,
+                  marketId: predictionWithFactors.marketId || predictionWithFactors.market?.id,
                   sport: predictionWithFactors.event?.sport?.name || predictionWithFactors.event?.sport?.slug,
                 }}
                 factors={predictionWithFactors.factorExplanation?.advancedFeatures || predictionWithFactors.factors}

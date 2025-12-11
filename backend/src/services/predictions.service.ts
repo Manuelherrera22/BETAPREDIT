@@ -170,6 +170,8 @@ class PredictionsService {
 
       return {
         ...prediction,
+        eventId: prediction.eventId,
+        marketId: prediction.marketId,
         factorExplanation,
       };
     } catch (error: any) {
