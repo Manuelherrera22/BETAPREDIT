@@ -16,6 +16,15 @@ import { createDirectories } from './utils/createDirectories';
 // Load environment variables FIRST
 dotenv.config();
 
+// Validate environment variables
+import { validateEnvironmentVariables } from './config/env-validator';
+try {
+  validateEnvironmentVariables();
+} catch (error: any) {
+  console.error('❌ Error validando variables de entorno:', error.message);
+  process.exit(1);
+}
+
 // Initialize Sentry (before other imports)
 import { initSentry } from './config/sentry';
 initSentry();
