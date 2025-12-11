@@ -1,4 +1,12 @@
-# ============================================
+/**
+ * Script para crear archivos .env.example completos
+ */
+
+const fs = require('fs');
+const path = require('path');
+
+// Backend .env.example
+const backendEnvExample = `# ============================================
 # BETAPREDIT - Backend Environment Variables
 # ============================================
 # 
@@ -146,3 +154,84 @@ ENABLE_AUTO_PREDICTIONS=true
 # 3. Genera secrets seguros para JWT_SECRET y JWT_REFRESH_SECRET
 # 4. Las variables marcadas como opcionales tienen valores por defecto
 # 5. Revisa la documentación en ENV_VARIABLES.md para más detalles
+`;
+
+// Frontend .env.example
+const frontendEnvExample = `# ============================================
+# BETAPREDIT - Frontend Environment Variables
+# ============================================
+# 
+# Copia este archivo a .env y completa los valores
+# cp .env.example .env
+#
+# Nota: En Vite, las variables deben empezar con VITE_
+# ============================================
+
+# ============================================
+# REQUERIDAS - Deben estar configuradas
+# ============================================
+
+# URL del Backend API
+# En desarrollo: http://localhost:3000
+# En producción: https://api.betapredit.com
+VITE_API_URL=http://localhost:3000
+
+# ============================================
+# SUPABASE - Autenticación y Edge Functions
+# ============================================
+# Obtén estas credenciales en: https://supabase.com/dashboard
+
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key-here
+
+# ============================================
+# STRIPE - Pagos (Frontend)
+# ============================================
+# Obtén tu public key en: https://dashboard.stripe.com/apikeys
+
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your-stripe-publishable-key-here
+
+# Price IDs para suscripciones (opcional)
+VITE_STRIPE_PRICE_ID_BASIC=price_basic_placeholder
+VITE_STRIPE_PRICE_ID_PRO=price_pro_placeholder
+VITE_STRIPE_PRICE_ID_PREMIUM=price_premium_placeholder
+
+# ============================================
+# SENTRY - Error Tracking (Frontend)
+# ============================================
+# Obtén tu DSN en: https://sentry.io/settings/projects/
+
+VITE_SENTRY_DSN=https://your-sentry-dsn@sentry.io/project-id
+VITE_SENTRY_ENVIRONMENT=development
+
+# ============================================
+# CONFIGURACIÓN DE ENTORNO
+# ============================================
+
+# Modo de la aplicación
+# development | production
+VITE_APP_ENV=development
+
+# ============================================
+# NOTAS
+# ============================================
+#
+# 1. NUNCA commitees el archivo .env al repositorio
+# 2. Todas las variables deben empezar con VITE_ para que Vite las exponga
+# 3. Las variables se acceden en el código con: import.meta.env.VITE_VARIABLE_NAME
+# 4. Después de cambiar .env, reinicia el servidor de desarrollo
+# 5. En producción, configura estas variables en tu plataforma de hosting
+#    (Netlify, Vercel, Railway, etc.)
+`;
+
+// Escribir archivos
+const backendPath = path.join(__dirname, '../backend/.env.example');
+const frontendPath = path.join(__dirname, '../frontend/.env.example');
+
+fs.writeFileSync(backendPath, backendEnvExample, 'utf8');
+fs.writeFileSync(frontendPath, frontendEnvExample, 'utf8');
+
+console.log('✅ Archivos .env.example creados exitosamente');
+console.log('   - backend/.env.example');
+console.log('   - frontend/.env.example');
+
