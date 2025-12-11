@@ -135,26 +135,33 @@ export class ErrorHandler {
   /**
    * Get user-friendly error message
    */
-  static getUserMessage(error: AppError | Error | any): string {
-    if (error instanceof Error) {
-      return error.message;
+  static getUserMessage(error: AppError | Error | any, context?: { action?: string; resource?: string }): string {
+    // Import and use the improved error messages utility
+    try {
+      const { getUserFriendlyMessage } = require('./errorMessages');
+      return getUserFriendlyMessage(error, context);
+    } catch {
+      // Fallback to basic messages if module not available
+      if (error instanceof Error) {
+        return error.message;
+      }
+
+      if (error.message) {
+        return error.message;
+      }
+
+      // Map common error codes to user-friendly messages
+      const errorMessages: Record<string, string> = {
+        NETWORK_ERROR: 'Problema de conexión. Por favor, verifica tu internet e intenta de nuevo.',
+        UNAUTHORIZED: 'Por favor, inicia sesión para continuar.',
+        FORBIDDEN: 'No tienes permiso para realizar esta acción.',
+        NOT_FOUND: 'No se encontró el recurso solicitado.',
+        VALIDATION_ERROR: 'Por favor, verifica los datos ingresados e intenta de nuevo.',
+        SERVER_ERROR: 'Error del servidor. Por favor, intenta más tarde.',
+      };
+
+      return errorMessages[error.code || ''] || error.message || 'Ocurrió un error inesperado';
     }
-
-    if (error.message) {
-      return error.message;
-    }
-
-    // Map common error codes to user-friendly messages
-    const errorMessages: Record<string, string> = {
-      NETWORK_ERROR: 'Connection problem. Please check your internet and try again.',
-      UNAUTHORIZED: 'Please log in to continue.',
-      FORBIDDEN: 'You do not have permission for this action.',
-      NOT_FOUND: 'The requested resource was not found.',
-      VALIDATION_ERROR: 'Please check your input and try again.',
-      SERVER_ERROR: 'Server error. Please try again later.',
-    };
-
-    return errorMessages[error.code || ''] || error.message || 'An unexpected error occurred';
   }
 
   /**

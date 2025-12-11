@@ -1,126 +1,137 @@
 /**
  * Error Display Component
- * Shows user-friendly error messages with retry options
+ * Displays user-friendly error messages with suggestions and retry options
  */
 
-import { useState } from 'react';
+import { ReactNode } from 'react';
+import { getUserFriendlyMessage, getErrorSuggestion, isRetryableError } from '../utils/errorMessages';
 import Icon from './icons/IconSystem';
 
 interface ErrorDisplayProps {
-  error: Error | string;
-  onRetry?: () => void;
+  error: any;
   title?: string;
+  onRetry?: () => void;
+  retryLabel?: string;
   className?: string;
+  showIcon?: boolean;
+  size?: 'sm' | 'md' | 'lg';
 }
 
-export default function ErrorDisplay({ 
-  error, 
-  onRetry, 
-  title = 'Algo salió mal',
-  className = '' 
+export default function ErrorDisplay({
+  error,
+  title,
+  onRetry,
+  retryLabel = 'Intentar de nuevo',
+  className = '',
+  showIcon = true,
+  size = 'md',
 }: ErrorDisplayProps) {
-  const [isRetrying, setIsRetrying] = useState(false);
-  
-  const errorMessage = typeof error === 'string' ? error : error.message;
-  
-  // Mapear errores técnicos a mensajes user-friendly
-  const getUserFriendlyMessage = (msg: string): { message: string; suggestion?: string } => {
-    const lowerMsg = msg.toLowerCase();
-    
-    if (lowerMsg.includes('network') || lowerMsg.includes('fetch')) {
-      return {
-        message: 'Problema de conexión',
-        suggestion: 'Verifica tu conexión a internet e intenta nuevamente'
-      };
-    }
-    
-    if (lowerMsg.includes('401') || lowerMsg.includes('unauthorized')) {
-      return {
-        message: 'Sesión expirada',
-        suggestion: 'Por favor, inicia sesión nuevamente'
-      };
-    }
-    
-    if (lowerMsg.includes('403') || lowerMsg.includes('forbidden')) {
-      return {
-        message: 'Sin permisos',
-        suggestion: 'No tienes permisos para realizar esta acción'
-      };
-    }
-    
-    if (lowerMsg.includes('404') || lowerMsg.includes('not found')) {
-      return {
-        message: 'Recurso no encontrado',
-        suggestion: 'El contenido que buscas no está disponible'
-      };
-    }
-    
-    if (lowerMsg.includes('429') || lowerMsg.includes('rate limit')) {
-      return {
-        message: 'Demasiadas solicitudes',
-        suggestion: 'Espera unos momentos antes de intentar nuevamente'
-      };
-    }
-    
-    if (lowerMsg.includes('500') || lowerMsg.includes('server')) {
-      return {
-        message: 'Error del servidor',
-        suggestion: 'Estamos experimentando problemas técnicos. Intenta más tarde'
-      };
-    }
-    
-    return {
-      message: errorMessage,
-      suggestion: 'Intenta recargar la página o contacta soporte si el problema persiste'
-    };
+  const message = getUserFriendlyMessage(error);
+  const suggestion = getErrorSuggestion(error);
+  const canRetry = isRetryableError(error) && onRetry;
+
+  const sizeClasses = {
+    sm: 'text-sm',
+    md: 'text-base',
+    lg: 'text-lg',
   };
-  
-  const { message, suggestion } = getUserFriendlyMessage(errorMessage);
-  
-  const handleRetry = async () => {
-    if (!onRetry) return;
-    
-    setIsRetrying(true);
-    try {
-      await onRetry();
-    } finally {
-      setTimeout(() => setIsRetrying(false), 1000);
-    }
+
+  const iconSizes = {
+    sm: 16,
+    md: 20,
+    lg: 24,
   };
-  
+
   return (
-    <div className={`bg-dark-800 rounded-xl p-6 border border-red-500/20 ${className}`}>
-      <div className="flex items-start gap-4">
-        <div className="flex-shrink-0">
-          <Icon name="alert" size={24} className="text-red-500" />
-        </div>
-        <div className="flex-1">
-          <h3 className="text-lg font-semibold text-white mb-1">{title}</h3>
-          <p className="text-gray-300 mb-2">{message}</p>
-          {suggestion && (
-            <p className="text-sm text-gray-400 mb-4">{suggestion}</p>
+    <div
+      className={`bg-red-500/10 border border-red-500/30 rounded-xl p-4 sm:p-5 md:p-6 ${className}`}
+    >
+      <div className="flex items-start gap-3 sm:gap-4">
+        {showIcon && (
+          <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-red-500/20 flex items-center justify-center border border-red-500/30">
+            <Icon name="alert" size={iconSizes[size]} className="text-red-400" strokeWidth={2} />
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          {title && (
+            <h3 className={`font-bold text-red-300 mb-2 ${sizeClasses[size]}`}>
+              {title}
+            </h3>
           )}
-          {onRetry && (
+          <p className={`text-red-200 mb-2 ${sizeClasses[size]}`}>
+            {message}
+          </p>
+          {suggestion && (
+            <p className={`text-red-300/80 mb-3 ${sizeClasses[size === 'lg' ? 'md' : 'sm']}`}>
+              💡 {suggestion}
+            </p>
+          )}
+          {canRetry && (
             <button
-              onClick={handleRetry}
-              disabled={isRetrying}
-              className="px-4 py-2 bg-primary-500/20 border border-primary-500/40 text-primary-300 rounded-lg hover:bg-primary-500/30 transition-colors text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              onClick={onRetry}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 rounded-lg text-red-200 text-sm font-semibold transition-colors"
             >
-              {isRetrying ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-primary-300 border-t-transparent rounded-full animate-spin"></div>
-                  Reintentando...
-                </>
-              ) : (
-                <>
-                  <Icon name="activity" size={16} />
-                  Reintentar
-                </>
-              )}
+              <Icon name="refresh-cw" size={16} />
+              {retryLabel}
             </button>
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Inline Error Display (smaller, for forms)
+ */
+export function InlineError({ error, className = '' }: { error: any; className?: string }) {
+  const message = getUserFriendlyMessage(error);
+  
+  return (
+    <div className={`flex items-center gap-2 text-red-400 text-sm mt-1 ${className}`}>
+      <Icon name="alert" size={14} />
+      <span>{message}</span>
+    </div>
+  );
+}
+
+/**
+ * Empty State with Error
+ */
+export function ErrorEmptyState({
+  error,
+  title = 'Error al cargar',
+  onRetry,
+  icon = 'alert',
+}: {
+  error: any;
+  title?: string;
+  onRetry?: () => void;
+  icon?: string;
+}) {
+  const message = getUserFriendlyMessage(error);
+  const suggestion = getErrorSuggestion(error);
+  const canRetry = isRetryableError(error) && onRetry;
+
+  return (
+    <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+      <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mb-4 border border-red-500/30">
+        <Icon name={icon as any} size={32} className="text-red-400" strokeWidth={2} />
+      </div>
+      <h3 className="text-lg font-bold text-white mb-2">{title}</h3>
+      <p className="text-gray-400 mb-3 max-w-md">{message}</p>
+      {suggestion && (
+        <p className="text-sm text-gray-500 mb-4 max-w-md">💡 {suggestion}</p>
+      )}
+      {canRetry && onRetry && (
+        <button
+          onClick={onRetry}
+          className="inline-flex items-center gap-2 px-6 py-3 bg-primary-500/20 hover:bg-primary-500/30 border border-primary-500/40 rounded-lg text-primary-200 font-semibold transition-colors"
+        >
+          <Icon name="refresh-cw" size={18} />
+          Intentar de nuevo
+        </button>
+      )}
     </div>
   );
 }

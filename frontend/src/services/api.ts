@@ -34,24 +34,30 @@ api.interceptors.request.use(
 // Response interceptor for error handling
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    // Import error handler
-    import('../utils/errorHandler').then(({ ErrorHandler }) => {
-      // Log error for tracking
-      ErrorHandler.logError(error, `API: ${error.config?.method?.toUpperCase()} ${error.config?.url}`);
-    });
+  async (error) => {
+    // Import error handler and error messages
+    const { ErrorHandler } = await import('../utils/errorHandler');
+    const { getUserFriendlyMessage, isRetryableError } = await import('../utils/errorMessages');
+    
+    // Log error for tracking
+    ErrorHandler.logError(error, `API: ${error.config?.method?.toUpperCase()} ${error.config?.url}`);
 
     // Handle network errors (backend not available)
     if (!error.response) {
       // Network error - backend might not be available
       console.warn('API request failed - backend may not be available:', error.message);
       
-      // Don't redirect on network errors, just reject
-      return Promise.reject({
-        message: 'Network error. Please check your connection.',
+      // Create enhanced error object
+      const networkError = {
+        message: getUserFriendlyMessage(error, { action: 'conectarse al servidor' }),
         code: 'NETWORK_ERROR',
+        status: 0,
         isNetworkError: true,
-      });
+        isRetryable: true,
+        originalError: error,
+      };
+      
+      return Promise.reject(networkError);
     }
 
     // Handle authentication errors
@@ -67,6 +73,16 @@ api.interceptors.response.use(
       }
     }
 
+    // Enhance error object with user-friendly message
+    const enhancedError = {
+      ...error,
+      userMessage: getUserFriendlyMessage(error.response?.data || error, {
+        action: error.config?.method === 'GET' ? 'obtener datos' : 'realizar acción',
+      }),
+      isRetryable: isRetryableError(error),
+      code: error.response?.data?.error?.code || `HTTP_${error.response?.status}`,
+    };
+
     // For 404 errors, log but don't show critical error
     if (error.response?.status === 404) {
       console.warn('API endpoint not found:', error.config?.url);
@@ -77,7 +93,7 @@ api.interceptors.response.use(
       console.error('Server error:', error.response?.data);
     }
 
-    return Promise.reject(error);
+    return Promise.reject(enhancedError);
   }
 )
 
