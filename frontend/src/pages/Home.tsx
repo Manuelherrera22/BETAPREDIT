@@ -414,16 +414,8 @@ export default function Home() {
             </div>
             
             <div className="space-y-2.5">
-              {trulyLiveEvents.length > 0 ? (
-                trulyLiveEvents
-                  .sort((a: Event, b: Event) => {
-                    // Priorizar eventos con más importancia (más mercados, más recientes)
-                    const aImportance = (a.markets?.length || 0) + (a.homeScore !== undefined ? 10 : 0);
-                    const bImportance = (b.markets?.length || 0) + (b.homeScore !== undefined ? 10 : 0);
-                    return bImportance - aImportance;
-                  })
-                  .slice(0, 5)
-                  .map((event: Event) => (
+              {sortedLiveEvents && sortedLiveEvents.length > 0 ? (
+                sortedLiveEvents.map((event: Event) => (
                     <Link
                       key={event.id}
                       to={`/events/${event.id}`}
@@ -559,8 +551,8 @@ export default function Home() {
               </Link>
             </div>
             <div className="space-y-2">
-              {upcomingEvents && upcomingEvents.length > 0 ? (
-                upcomingEvents.slice(0, 5).map((event: Event) => (
+              {limitedUpcomingEvents && limitedUpcomingEvents.length > 0 ? (
+                limitedUpcomingEvents.map((event: Event) => (
                   <Link
                     key={event.id}
                     to={`/events/${event.id}`}
