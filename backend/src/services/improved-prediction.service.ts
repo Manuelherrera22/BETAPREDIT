@@ -44,11 +44,10 @@ class ImprovedPredictionService {
       const standardDeviation = Math.sqrt(variance);
       const marketConsensus = 1 - Math.min(standardDeviation * 2, 0.5); // Normalize to 0-1
 
-      // Calculate value adjustment
-      // If there's high disagreement (low consensus), there might be value
-      const valueAdjustment = marketConsensus < 0.7 ? 1.05 : 1.02; // 5% or 2% adjustment
-
-      // Get historical accuracy if available
+      // CRITICAL FIX: Remove arbitrary adjustments that create false probabilities
+      // Use market average as base, only adjust with REAL historical data if available
+      
+      // Get historical accuracy if available (REAL data only)
       let historicalAccuracy: number | undefined;
       try {
         // Try to get historical performance for this selection type
@@ -60,16 +59,18 @@ class ImprovedPredictionService {
       }
 
       // Calculate predicted probability
-      // Base: market average
-      // Adjustment: value adjustment factor
-      // Confidence: based on market consensus and historical data
-      let predictedProbability = marketAverage * valueAdjustment;
+      // Base: market average (this is REAL data from bookmakers)
+      // Only adjust if we have REAL historical accuracy data
+      let predictedProbability = marketAverage; // Start with market average (real data)
 
-      // Apply historical accuracy if available
-      if (historicalAccuracy !== undefined) {
-        // Weight: 70% market average, 30% historical
-        predictedProbability = (marketAverage * 0.7) + (historicalAccuracy * 0.3);
+      // Apply historical accuracy ONLY if we have real historical data
+      if (historicalAccuracy !== undefined && historicalAccuracy > 0) {
+        // Weight: 80% market average (real), 20% historical (real)
+        // This is a small adjustment based on REAL historical performance
+        predictedProbability = (marketAverage * 0.8) + (historicalAccuracy * 0.2);
       }
+      
+      // NO arbitrary adjustments - only use real data
 
       // Ensure probability is between 0 and 1
       predictedProbability = Math.max(0.01, Math.min(0.99, predictedProbability));
@@ -119,15 +120,15 @@ class ImprovedPredictionService {
       };
     } catch (error: any) {
       logger.error('Error calculating predicted probability:', error);
-      // Fallback to simple average
+      // Fallback to simple average (REAL data from bookmakers)
       const avgImpliedProb = allBookmakerOdds.reduce((sum, odd) => sum + (1 / odd), 0) / allBookmakerOdds.length;
       return {
-        predictedProbability: avgImpliedProb * 1.05,
+        predictedProbability: avgImpliedProb, // NO arbitrary adjustment
         confidence: 0.6,
         factors: {
           marketAverage: avgImpliedProb,
           marketConsensus: 0.7,
-          valueAdjustment: 1.05,
+          valueAdjustment: 1.0, // No adjustment
         },
       };
     }

@@ -52,42 +52,72 @@ class RedisMock {
 }
 
 let redisClient: any;
+let useMock = false;
+let errorLogged = false;
 
-try {
-  const redisConfig = {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379'),
-    password: process.env.REDIS_PASSWORD,
-    retryStrategy: (times: number) => {
-      const delay = Math.min(times * 50, 2000);
-      return delay;
-    },
-    maxRetriesPerRequest: 3,
-    lazyConnect: true,
-  };
-
-  redisClient = new Redis(redisConfig);
-  
-  redisClient.on('error', (_error: Error) => {
-    logger.warn('Redis not available, using in-memory cache');
-    redisClient = new RedisMock();
-  });
-} catch (error) {
-  logger.warn('Redis not available, using in-memory cache');
+// Check if Redis should be disabled via environment variable
+if (process.env.REDIS_DISABLED === 'true') {
+  logger.info('Redis disabled via REDIS_DISABLED, using in-memory cache');
   redisClient = new RedisMock();
+  useMock = true;
+} else {
+  try {
+    const redisConfig = {
+      host: process.env.REDIS_HOST || 'localhost',
+      port: parseInt(process.env.REDIS_PORT || '6379'),
+      password: process.env.REDIS_PASSWORD,
+      retryStrategy: (times: number) => {
+        // Stop retrying after 3 attempts
+        if (times > 3) {
+          if (!useMock && !errorLogged) {
+            logger.warn('Redis connection failed after retries, using in-memory cache');
+            errorLogged = true;
+            useMock = true;
+          }
+          return null; // Stop retrying
+        }
+        const delay = Math.min(times * 50, 2000);
+        return delay;
+      },
+      maxRetriesPerRequest: 1, // Reduce retries
+      lazyConnect: true,
+      enableOfflineQueue: false, // Don't queue commands when offline
+      connectTimeout: 2000, // 2 second timeout
+      showFriendlyErrorStack: false, // Reduce error noise
+    };
+
+    redisClient = new Redis(redisConfig);
+    
+    // Set up error handlers
+    redisClient.on('connect', () => {
+      logger.info('✅ Redis connected');
+      useMock = false;
+      errorLogged = false;
+    });
+
+    redisClient.on('error', (error: Error) => {
+      // Only log error once, not repeatedly
+      if (!errorLogged) {
+        // Check if it's a connection error (not just a command error)
+        if (error.message.includes('ECONNREFUSED') || error.message.includes('connect')) {
+          logger.warn('Redis not available, using in-memory cache');
+          useMock = true;
+          errorLogged = true;
+        }
+      }
+    });
+
+    redisClient.on('close', () => {
+      if (!useMock && !errorLogged) {
+        logger.debug('Redis connection closed');
+      }
+    });
+  } catch (error) {
+    logger.warn('Redis initialization failed, using in-memory cache');
+    redisClient = new RedisMock();
+    useMock = true;
+  }
 }
-
-redisClient.on('connect', () => {
-  logger.info('✅ Redis connected');
-});
-
-redisClient.on('error', (error: Error) => {
-  logger.error('❌ Redis error:', error);
-});
-
-redisClient.on('close', () => {
-  logger.warn('Redis connection closed');
-});
 
 // Helper functions for common operations
 export const redisHelpers = {
