@@ -23,28 +23,39 @@ export default function Layout({ children }: LayoutProps) {
     setMobileMenuOpen(false)
   }
 
-  // Organized navigation - grouped by category
-  const navigationItems = [
-    // Main
+  // Organized navigation - simplified for desktop, full menu for mobile
+  // Desktop: Show only most important items
+  const desktopNavItems = [
     { to: '/dashboard', label: 'Inicio', icon: 'home' as IconName },
-    { to: '/events', label: 'Eventos', icon: 'events' as IconName },
-    
-    // Predictions (grouped)
     { to: '/predictions', label: 'Predicciones', icon: 'predictions' as IconName, badge: 'Pro', badgeColor: 'bg-gold-500' },
-    { to: '/prediction-tracking', label: 'Seguimiento', icon: 'tracking' as IconName },
+    { to: '/events', label: 'Eventos', icon: 'events' as IconName },
+    { to: '/odds-comparison', label: 'Cuotas', icon: 'odds' as IconName },
+    { to: '/statistics', label: 'Estadísticas', icon: 'statistics' as IconName },
+    { to: '/alerts', label: 'Alertas', icon: 'alerts' as IconName },
+  ]
+  
+  // Full navigation for mobile menu
+  const allNavItems = [
+    // Main
+    { to: '/dashboard', label: 'Inicio', icon: 'home' as IconName, category: 'Principal' },
+    { to: '/events', label: 'Eventos', icon: 'events' as IconName, category: 'Principal' },
+    
+    // Predictions
+    { to: '/predictions', label: 'Predicciones', icon: 'predictions' as IconName, badge: 'Pro', badgeColor: 'bg-gold-500', category: 'Predicciones' },
+    { to: '/prediction-tracking', label: 'Seguimiento', icon: 'tracking' as IconName, category: 'Predicciones' },
     
     // Betting Tools
-    { to: '/odds-comparison', label: 'Comparar Cuotas', icon: 'odds' as IconName },
-    { to: '/arbitrage', label: 'Arbitraje', icon: 'arbitrage' as IconName },
-    { to: '/my-bets', label: 'Mis Apuestas', icon: 'bets' as IconName },
+    { to: '/odds-comparison', label: 'Comparar Cuotas', icon: 'odds' as IconName, category: 'Herramientas' },
+    { to: '/arbitrage', label: 'Arbitraje', icon: 'arbitrage' as IconName, category: 'Herramientas' },
+    { to: '/my-bets', label: 'Mis Apuestas', icon: 'bets' as IconName, category: 'Herramientas' },
     
     // Analytics
-    { to: '/statistics', label: 'Estadísticas', icon: 'statistics' as IconName },
-    { to: '/bankroll', label: 'Bankroll', icon: 'bankroll' as IconName },
+    { to: '/statistics', label: 'Estadísticas', icon: 'statistics' as IconName, category: 'Analytics' },
+    { to: '/bankroll', label: 'Bankroll', icon: 'bankroll' as IconName, category: 'Analytics' },
     
     // Alerts & Account
-    { to: '/alerts', label: 'Alertas', icon: 'alerts' as IconName },
-    { to: '/profile', label: 'Perfil', icon: 'profile' as IconName },
+    { to: '/alerts', label: 'Alertas', icon: 'alerts' as IconName, category: 'Alertas y Cuenta' },
+    { to: '/profile', label: 'Perfil', icon: 'profile' as IconName, category: 'Alertas y Cuenta' },
   ]
 
   const isActive = (path: string) => location.pathname === path
@@ -76,22 +87,22 @@ export default function Layout({ children }: LayoutProps) {
                 </span>
               </Link>
               
-              {/* Desktop Navigation - Show main items only */}
+              {/* Desktop Navigation - Show only essential items */}
               <div className="hidden lg:ml-6 lg:flex lg:space-x-1 xl:space-x-2">
-                {navigationItems.map((item) => (
+                {desktopNavItems.map((item) => (
                   <Link
                     key={item.to}
                     to={item.to}
-                    className={`inline-flex items-center px-2 xl:px-3 py-2 text-xs xl:text-sm font-medium rounded-lg transition-colors ${
+                    className={`inline-flex items-center px-3 xl:px-4 py-2 text-xs xl:text-sm font-semibold rounded-lg transition-all ${
                       isActive(item.to)
-                        ? 'bg-primary-500/20 text-white border border-primary-500/40'
-                        : 'text-gray-300 hover:text-white hover:bg-slate-700/50'
+                        ? 'bg-primary-500/20 text-white border border-primary-500/40 shadow-lg shadow-primary-500/10'
+                        : 'text-gray-300 hover:text-white hover:bg-slate-700/50 hover:border hover:border-slate-600/50'
                     }`}
                   >
-                    <Icon name={item.icon} className="mr-1 xl:mr-1.5" size={16} />
+                    <Icon name={item.icon} className="mr-1.5 xl:mr-2" size={18} />
                     <span className="hidden xl:inline">{item.label}</span>
                     {item.badge && (
-                      <span className={`ml-1 xl:ml-1.5 px-1.5 py-0.5 ${item.badgeColor} text-white text-xs rounded-full`}>
+                      <span className={`ml-1.5 xl:ml-2 px-2 py-0.5 ${item.badgeColor} text-white text-xs rounded-full font-bold`}>
                         {item.badge}
                       </span>
                     )}
@@ -166,31 +177,45 @@ export default function Layout({ children }: LayoutProps) {
                   <p className="text-sm font-medium text-white truncate">{user?.email}</p>
                 </div>
 
-                {/* Navigation Items */}
+                {/* Navigation Items - Grouped by category */}
                 <div className="flex-1 overflow-y-auto">
-                  <nav className="p-4 space-y-1">
-                    {navigationItems.map((item) => (
-                      <Link
-                        key={item.to}
-                        to={item.to}
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={`flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
-                          isActive(item.to)
-                            ? 'bg-primary-500/20 text-white border border-primary-500/40'
-                            : 'text-gray-300 hover:text-white hover:bg-slate-700/50'
-                        }`}
-                      >
-                      <div className="flex items-center space-x-3">
-                        <Icon name={item.icon} className="text-gray-300" size={20} />
-                        <span className="font-medium">{item.label}</span>
-                      </div>
-                        {item.badge && (
-                          <span className={`px-2 py-0.5 ${item.badgeColor} text-white text-xs rounded-full font-semibold`}>
-                            {item.badge}
-                          </span>
-                        )}
-                      </Link>
-                    ))}
+                  <nav className="p-4">
+                    {['Principal', 'Predicciones', 'Herramientas', 'Analytics', 'Alertas y Cuenta'].map((category) => {
+                      const categoryItems = allNavItems.filter(item => item.category === category);
+                      if (categoryItems.length === 0) return null;
+                      
+                      return (
+                        <div key={category} className="mb-6 last:mb-0">
+                          <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 px-2">
+                            {category}
+                          </h3>
+                          <div className="space-y-1">
+                            {categoryItems.map((item) => (
+                              <Link
+                                key={item.to}
+                                to={item.to}
+                                onClick={() => setMobileMenuOpen(false)}
+                                className={`flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
+                                  isActive(item.to)
+                                    ? 'bg-primary-500/20 text-white border border-primary-500/40'
+                                    : 'text-gray-300 hover:text-white hover:bg-slate-700/50'
+                                }`}
+                              >
+                                <div className="flex items-center space-x-3">
+                                  <Icon name={item.icon} className="text-gray-300" size={20} />
+                                  <span className="font-medium">{item.label}</span>
+                                </div>
+                                {item.badge && (
+                                  <span className={`px-2 py-0.5 ${item.badgeColor} text-white text-xs rounded-full font-semibold`}>
+                                    {item.badge}
+                                  </span>
+                                )}
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </nav>
                 </div>
 

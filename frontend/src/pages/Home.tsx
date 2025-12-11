@@ -161,8 +161,8 @@ export default function Home() {
           </div>
         )}
 
-        {/* Quick Stats - Reales */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4 lg:gap-6 mb-4 sm:mb-6 md:mb-8">
+        {/* Quick Stats - Reales - Better spacing */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-5 lg:gap-6 mb-6 sm:mb-8 md:mb-10">
           <StatsCard
             title="Win Rate"
             value={`${displayStats.winRate.toFixed(1)}%`}
@@ -224,67 +224,74 @@ export default function Home() {
           </div>
         )}
 
-        {/* Quick Access Tools Grid */}
-        <div className="mb-4 sm:mb-6 md:mb-8">
-          <div className="flex items-center justify-between mb-3 sm:mb-4">
-            <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Herramientas Rápidas</h2>
-            <Link
-              to="/alerts"
-              className="text-xs sm:text-sm text-primary-400 hover:text-primary-300 font-medium flex-shrink-0 ml-2"
-            >
-              <span className="hidden sm:inline">Ver todas →</span>
-              <span className="sm:hidden">Ver →</span>
-            </Link>
+        {/* Main Content Grid - Better Organization */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 mb-4 sm:mb-6 md:mb-8">
+          {/* Left Column - Quick Tools */}
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+            {/* Quick Access Tools Grid */}
+            <div className="bg-slate-800/50 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-700/50">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Herramientas Rápidas</h2>
+                <Link
+                  to="/alerts"
+                  className="text-xs sm:text-sm text-primary-400 hover:text-primary-300 font-medium flex-shrink-0 ml-2"
+                >
+                  Ver todas →
+                </Link>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+                {quickTools.map((tool) => (
+                  <Link
+                    key={tool.to}
+                    to={tool.to}
+                    className={`bg-gradient-to-br ${tool.color} rounded-xl p-4 sm:p-5 border-2 ${tool.borderColor} hover:border-opacity-80 transition-all hover:scale-105 active:scale-95 group min-h-[100px] sm:min-h-[120px] flex flex-col items-center justify-center relative`}
+                  >
+                    {tool.badge && (
+                      <span className="absolute top-2 right-2 px-2 py-0.5 bg-gold-500/30 text-gold-300 text-xs font-bold rounded-full border border-gold-500/50">
+                        {tool.badge}
+                      </span>
+                    )}
+                    <div className="mb-2 sm:mb-3 flex items-center justify-center">
+                      <div className="p-2.5 sm:p-3 rounded-xl bg-white/5 group-hover:bg-white/10 transition-colors">
+                        <Icon name={tool.icon} size={24} className="text-white" strokeWidth={2} />
+                      </div>
+                    </div>
+                    <h3 className="text-xs sm:text-sm font-bold text-white text-center leading-tight">{tool.label}</h3>
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* Value Bet Calculator */}
+            <div className="bg-slate-800/50 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-700/50">
+              <ValueBetCalculator />
+            </div>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-            {quickTools.map((tool) => (
-              <Link
-                key={tool.to}
-                to={tool.to}
-                className={`bg-gradient-to-br ${tool.color} rounded-xl p-4 sm:p-5 border-2 ${tool.borderColor} hover:border-opacity-80 transition-all hover:scale-105 active:scale-95 group min-h-[110px] sm:min-h-[130px] flex flex-col items-center justify-center relative`}
-              >
-                {tool.badge && (
-                  <span className="absolute top-2 right-2 px-2 py-0.5 bg-gold-500/30 text-gold-300 text-xs font-bold rounded-full border border-gold-500/50">
-                    {tool.badge}
-                  </span>
-                )}
-                <div className="mb-3 flex items-center justify-center">
-                  <div className="p-3 rounded-xl bg-white/5 group-hover:bg-white/10 transition-colors">
-                    <Icon name={tool.icon} size={28} className="text-white" strokeWidth={2} />
-                  </div>
-                </div>
-                <h3 className="text-sm sm:text-base font-bold text-white text-center leading-tight">{tool.label}</h3>
-              </Link>
-            ))}
+
+          {/* Right Column - Social Proof */}
+          <div className="lg:col-span-1">
+            {!shouldShow && (
+              <div className="bg-slate-800/50 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-700/50 sticky top-20">
+                <SocialProof />
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Value Bet Calculator */}
-        <div className="mb-4 sm:mb-6 md:mb-8">
-          <ValueBetCalculator />
-        </div>
-
-        {/* Social Proof - Show after onboarding or for returning users */}
-        {!shouldShow && (
-          <div className="mb-4 sm:mb-6 md:mb-8">
-            <SocialProof />
-          </div>
-        )}
-
-        {/* Events Section */}
-        <div className="mb-4 sm:mb-6 md:mb-8">
-          <div className="flex items-center justify-between mb-3 sm:mb-4 md:mb-6">
-            <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Eventos</h2>
+        {/* Events Section - Better organized */}
+        <div className="bg-slate-800/30 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 border border-slate-700/50 mb-4 sm:mb-6 md:mb-8">
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">Eventos</h2>
             <Link
               to="/events"
-              className="text-xs sm:text-sm text-primary-400 hover:text-primary-300 font-medium flex-shrink-0 ml-2"
+              className="text-sm sm:text-base text-primary-400 hover:text-primary-300 font-semibold flex items-center gap-2 flex-shrink-0"
             >
-              <span className="hidden sm:inline">Ver todos →</span>
-              <span className="sm:hidden">Ver →</span>
+              Ver todos
+              <Icon name="arrow-right" size={18} />
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
             {/* Live Events */}
             <div className="w-full">
               <h3 className="text-base sm:text-lg md:text-xl font-semibold text-white mb-2 sm:mb-3 md:mb-4">

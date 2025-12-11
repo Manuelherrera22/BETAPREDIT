@@ -306,49 +306,47 @@ export default function Predictions() {
       </div>
 
       <div className="relative max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
-        {/* Header Section */}
+        {/* Header Section - Better organized */}
         <div className="mb-6 sm:mb-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4 sm:mb-6">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
             <div className="flex-1 min-w-0">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
-                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight bg-gradient-to-r from-white via-primary-200 to-white bg-clip-text text-transparent">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-3">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight">
                   Predicciones Premium
                 </h1>
                 <span className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-300 rounded-full text-xs sm:text-sm font-black border-2 border-amber-500/40 shadow-lg shadow-amber-500/20 w-fit">
                   ⭐ PREMIUM
                 </span>
               </div>
-              <p className="text-gray-300 text-base sm:text-lg md:text-xl font-medium">
+              <p className="text-gray-300 text-sm sm:text-base md:text-lg font-medium max-w-2xl">
                 Análisis probabilístico avanzado con comparación en tiempo real vs cuotas del mercado
               </p>
             </div>
             <button
               onClick={() => generatePredictionsMutation.mutate()}
               disabled={generatePredictionsMutation.isPending}
-              className="px-4 sm:px-6 md:px-8 py-3 sm:py-4 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-xl sm:rounded-2xl font-black text-sm sm:text-base md:text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 sm:gap-3 shadow-2xl shadow-primary-500/50 hover:scale-105 w-full md:w-auto shrink-0"
+              className="px-5 sm:px-6 py-3 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-xl font-bold text-sm sm:text-base transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-primary-500/30 hover:scale-105 w-full md:w-auto shrink-0"
             >
               {generatePredictionsMutation.isPending ? (
                 <>
-                  <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   <span>Generando...</span>
                 </>
               ) : (
                 <>
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
+                  <Icon name="zap" size={20} />
                   <span>Generar Predicciones</span>
                 </>
               )}
             </button>
           </div>
 
-          {/* Important Disclaimer */}
-          <div className="bg-gradient-to-r from-amber-500/10 via-yellow-500/10 to-amber-500/10 border-l-4 border-amber-500 rounded-lg sm:rounded-xl p-4 sm:p-5 mb-4 sm:mb-6 shadow-lg">
-            <div className="flex items-start gap-2 sm:gap-3">
-              <div className="text-2xl sm:text-3xl shrink-0">⚠️</div>
+          {/* Important Disclaimer - More compact */}
+          <div className="bg-gradient-to-r from-amber-500/10 via-yellow-500/10 to-amber-500/10 border-l-4 border-amber-500 rounded-lg p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <Icon name="alert" size={24} className="text-amber-400 shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
-                <h3 className="text-amber-300 font-black mb-2 text-base sm:text-lg">Importante: Predicciones Probabilísticas</h3>
+                <h3 className="text-amber-300 font-bold mb-1.5 text-sm sm:text-base">Importante: Predicciones Probabilísticas</h3>
                 <p className="text-amber-100/90 text-xs sm:text-sm leading-relaxed">
                   Estas son <strong>predicciones probabilísticas</strong> basadas en análisis de datos y modelos estadísticos, 
                   <strong> no son garantías de resultados</strong>. Los niveles de confianza indican la certeza del modelo, 
@@ -370,16 +368,17 @@ export default function Predictions() {
           />
         </div>
 
-        {/* Filters Section */}
-        <div className="bg-slate-800/70 backdrop-blur-xl rounded-xl sm:rounded-2xl border-2 border-slate-700/50 p-4 sm:p-6 mb-6 sm:mb-8 shadow-2xl">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
+        {/* Filters Section - Better organized */}
+        <div className="bg-slate-800/70 backdrop-blur-xl rounded-xl border border-slate-700/50 p-4 sm:p-6 mb-6 sm:mb-8 shadow-lg">
+          <h3 className="text-lg font-bold text-white mb-4">Filtros y Opciones</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {/* Sport Filter */}
             <div>
-              <label className="block text-sm font-black text-gray-300 mb-3 uppercase tracking-wide">Deporte</label>
+              <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">Deporte</label>
               <select
                 value={selectedSport}
                 onChange={(e) => setSelectedSport(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-900/80 border-2 border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all font-medium"
+                className="w-full px-3 py-2.5 bg-slate-900/80 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
               >
                 <option value="all">🌍 Todos los Deportes</option>
                 {sports?.filter(s => s.active).map((sport) => (
@@ -392,8 +391,8 @@ export default function Predictions() {
 
             {/* Confidence Filter */}
             <div>
-              <label className="block text-sm font-black text-gray-300 mb-3 uppercase tracking-wide">
-                Confianza: <span className="text-primary-400">{(minConfidence * 100).toFixed(0)}%</span>
+              <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">
+                Confianza: <span className="text-primary-400 font-bold">{(minConfidence * 100).toFixed(0)}%</span>
               </label>
               <input
                 type="range"
@@ -402,7 +401,7 @@ export default function Predictions() {
                 step="0.05"
                 value={minConfidence}
                 onChange={(e) => setMinConfidence(parseFloat(e.target.value))}
-                className="w-full h-3 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
+                className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
               />
               <div className="flex justify-between text-xs text-gray-500 mt-1">
                 <span>0%</span>
@@ -412,8 +411,8 @@ export default function Predictions() {
 
             {/* Value Filter */}
             <div>
-              <label className="block text-sm font-black text-gray-300 mb-3 uppercase tracking-wide">
-                Valor: <span className="text-primary-400">{minValue >= 0 ? '+' : ''}{(minValue * 100).toFixed(0)}%</span>
+              <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">
+                Valor: <span className="text-primary-400 font-bold">{minValue >= 0 ? '+' : ''}{(minValue * 100).toFixed(0)}%</span>
               </label>
               <input
                 type="range"
@@ -422,7 +421,7 @@ export default function Predictions() {
                 step="0.01"
                 value={minValue}
                 onChange={(e) => setMinValue(parseFloat(e.target.value))}
-                className="w-full h-3 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
+                className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
               />
               <div className="flex justify-between text-xs text-gray-500 mt-1">
                 <span>-10%</span>
@@ -432,7 +431,7 @@ export default function Predictions() {
 
             {/* View Mode */}
             <div className="sm:col-span-2 md:col-span-1">
-              <label className="block text-sm font-black text-gray-300 mb-3 uppercase tracking-wide">Vista</label>
+              <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">Vista</label>
               <div className="flex gap-2">
                 <button
                   onClick={() => setViewMode('grid')}
@@ -465,11 +464,11 @@ export default function Predictions() {
 
             {/* Sort By */}
             <div>
-              <label className="block text-sm font-black text-gray-300 mb-3 uppercase tracking-wide">Ordenar</label>
+              <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">Ordenar</label>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as 'confidence' | 'value' | 'time')}
-                className="w-full px-4 py-3 bg-slate-900/80 border-2 border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all font-medium"
+                className="w-full px-3 py-2.5 bg-slate-900/80 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
               >
                 <option value="value">Por Valor</option>
                 <option value="confidence">Por Confianza</option>
