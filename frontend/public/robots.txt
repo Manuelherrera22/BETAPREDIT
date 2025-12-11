@@ -1,0 +1,30 @@
+# robots.txt for BETAPREDIT
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /profile/
+Disallow: /my-bets/
+Disallow: /bankroll/
+Disallow: /statistics/
+Disallow: /alerts/
+Disallow: /predictions/
+Disallow: /prediction-history/
+Disallow: /prediction-tracking/
+Disallow: /arbitrage/
+Disallow: /responsible-gaming/
+Disallow: /referrals/
+Disallow: /2fa/
+Disallow: /auth/
+
+# Allow public pages
+Allow: /
+Allow: /login
+Allow: /register
+Allow: /pricing
+Allow: /faq
+
+# Sitemap
+Sitemap: https://betapredit.com/sitemap.xml
+

@@ -11,11 +11,18 @@ import ValueProposition from '../components/ValueProposition';
 import ResultsComparison from '../components/ResultsComparison';
 import QuickDemo from '../components/QuickDemo';
 import TestimonialCard from '../components/TestimonialCard';
+import SEO from '../components/SEO';
 
 export default function Landing() {
   const { isAuthenticated } = useAuthStore();
 
   return (
+    <>
+      <SEO
+        title="BETAPREDIT - Análisis Predictivo de Apuestas Deportivas"
+        description="Plataforma profesional de análisis predictivo para apuestas deportivas. Predicciones basadas en IA, value bets, arbitraje y estadísticas avanzadas."
+        keywords={['apuestas deportivas', 'predicciones', 'value bets', 'arbitraje', 'análisis predictivo', 'IA']}
+      />
     <div className="min-h-screen bg-gradient-to-br from-navy-950 via-navy-900 to-slate-950 relative overflow-hidden">
       <SportPattern />
       <AnimatedBackground />
