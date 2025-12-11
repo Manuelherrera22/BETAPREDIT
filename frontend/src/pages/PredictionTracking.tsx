@@ -6,7 +6,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { predictionsService } from '../services/predictionsService';
-import SimpleChart from '../components/SimpleChart';
 import PredictionRow from '../components/PredictionRow';
 import SkeletonLoader from '../components/SkeletonLoader';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';

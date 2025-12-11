@@ -49,7 +49,6 @@ export default function PredictionAnalysisExplained({ prediction, factors }: Pre
   const sportType = prediction.sport?.toLowerCase() || '';
   const isBasketball = sportType.includes('basketball') || sportType.includes('nba');
   const isFootball = sportType.includes('football') || sportType.includes('nfl');
-  const isSoccer = sportType.includes('soccer') || sportType.includes('football') || sportType.includes('epl') || sportType.includes('liga');
   const isBaseball = sportType.includes('baseball') || sportType.includes('mlb');
   const isHockey = sportType.includes('hockey') || sportType.includes('nhl');
 
@@ -200,7 +199,7 @@ export default function PredictionAnalysisExplained({ prediction, factors }: Pre
       {h2h.team1WinRate !== undefined && (
         <Section
           title="Historial Directo (H2H)"
-          icon="users"
+          icon="activity"
           expanded={expandedSections.has('h2h')}
           onToggle={() => toggleSection('h2h')}
         >

@@ -5,7 +5,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { api } from '../services/api';
+import api from '../services/api';
 import SkeletonLoader from './SkeletonLoader';
 
 interface OddsHistoryChartProps {

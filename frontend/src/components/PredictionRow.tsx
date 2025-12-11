@@ -58,8 +58,6 @@ export default function PredictionRow({ prediction }: PredictionRowProps) {
     });
   };
 
-  const factorExplanation = predictionWithFactors?.factorExplanation;
-
   return (
     <>
       <tr className="border-b border-primary-500/10 hover:bg-dark-800/50 transition-colors">
