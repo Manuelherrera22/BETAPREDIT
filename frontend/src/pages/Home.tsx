@@ -1,3 +1,4 @@
+import { useMemo, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { eventsService, type Event } from '../services/eventsService'
 import { format } from 'date-fns'
@@ -59,23 +60,25 @@ export default function Home() {
     retry: false, // No reintentar si falla
   })
   
-  // Combinar alertas y notificaciones
-  const allAlerts = [
-    ...(valueBetAlerts || []).map((alert: any) => ({
-      id: alert.id,
-      type: 'value_bet',
-      title: 'Value Bet Detectado',
-      message: `${alert.event?.name || 'Evento'} - ${alert.selection} con +${alert.valuePercentage.toFixed(1)}% de valor`,
-      timestamp: alert.createdAt,
-    })),
-    ...(Array.isArray(notifications) ? notifications : []).map((notif: any) => ({
-      id: notif.id,
-      type: notif.type,
-      title: notif.title,
-      message: notif.message,
-      timestamp: notif.createdAt,
-    })),
-  ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 5)
+  // Combinar alertas y notificaciones - Memoizado para evitar recálculos innecesarios
+  const allAlerts = useMemo(() => {
+    return [
+      ...(valueBetAlerts || []).map((alert: any) => ({
+        id: alert.id,
+        type: 'value_bet',
+        title: 'Value Bet Detectado',
+        message: `${alert.event?.name || 'Evento'} - ${alert.selection} con +${alert.valuePercentage.toFixed(1)}% de valor`,
+        timestamp: alert.createdAt,
+      })),
+      ...(Array.isArray(notifications) ? notifications : []).map((notif: any) => ({
+        id: notif.id,
+        type: notif.type,
+        title: notif.title,
+        message: notif.message,
+        timestamp: notif.createdAt,
+      })),
+    ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 5)
+  }, [valueBetAlerts, notifications])
 
   // Cargar eventos en vivo - actualización más frecuente
   const { data: liveEvents, isLoading: eventsLoading } = useQuery({
@@ -105,26 +108,31 @@ export default function Home() {
     retry: false,
   })
 
-  // Filtrar eventos realmente en vivo (con status LIVE)
-  const trulyLiveEvents = (liveEvents || []).filter((event: Event) => 
-    event.status === 'LIVE' || (event.homeScore !== undefined && event.awayScore !== undefined)
-  )
+  // Filtrar eventos realmente en vivo (con status LIVE) - Memoizado
+  const trulyLiveEvents = useMemo(() => {
+    return (liveEvents || []).filter((event: Event) => 
+      event.status === 'LIVE' || (event.homeScore !== undefined && event.awayScore !== undefined)
+    )
+  }, [liveEvents])
 
-  // Eventos que están por empezar (próximos 30 minutos) - Preview
-  const previewEvents = (upcomingEvents || []).filter((event: Event) => {
-    const startTime = new Date(event.startTime);
+  // Eventos que están por empezar (próximos 30 minutos) - Preview - Memoizado
+  const previewEvents = useMemo(() => {
     const now = new Date();
     const thirtyMinutesFromNow = new Date(now.getTime() + 30 * 60 * 1000);
-    return startTime >= now && startTime <= thirtyMinutesFromNow;
-  })
+    
+    return (upcomingEvents || []).filter((event: Event) => {
+      const startTime = new Date(event.startTime);
+      return startTime >= now && startTime <= thirtyMinutesFromNow;
+    })
+  }, [upcomingEvents])
 
-  // Calcular stats para mostrar
-  const displayStats = {
+  // Calcular stats para mostrar - Memoizado
+  const displayStats = useMemo(() => ({
     winRate: userStats?.winRate || 0,
     roi: userStats?.roi || 0,
     valueBets: userStats?.valueBetsFound || 0,
     bankroll: userStats?.totalStaked || 0,
-  }
+  }), [userStats])
 
   // Loading state mejorado con skeleton
   if (eventsLoading && !liveEvents) {
@@ -158,15 +166,15 @@ export default function Home() {
     )
   }
 
-  // Quick access tools - Organized and essential only
-  const quickTools = [
+  // Quick access tools - Organized and essential only - Memoizado (no cambia)
+  const quickTools = useMemo(() => [
     { to: '/predictions', label: 'Predicciones', icon: 'predictions' as IconName, color: 'from-gold-500/20 to-gold-600/20', borderColor: 'border-gold-500/40', badge: 'Pro' },
     { to: '/events', label: 'Eventos', icon: 'events' as IconName, color: 'from-primary-500/20 to-primary-600/20', borderColor: 'border-primary-500/40' },
     { to: '/odds-comparison', label: 'Comparar Cuotas', icon: 'odds' as IconName, color: 'from-accent-500/20 to-accent-600/20', borderColor: 'border-accent-500/40' },
     { to: '/my-bets', label: 'Mis Apuestas', icon: 'bets' as IconName, color: 'from-purple-500/20 to-purple-600/20', borderColor: 'border-purple-500/40' },
     { to: '/statistics', label: 'Estadísticas', icon: 'statistics' as IconName, color: 'from-blue-500/20 to-blue-600/20', borderColor: 'border-blue-500/40' },
     { to: '/alerts', label: 'Alertas', icon: 'alerts' as IconName, color: 'from-red-500/20 to-red-600/20', borderColor: 'border-red-500/40' },
-  ]
+  ], [])
 
   return (
     <>
@@ -474,7 +482,7 @@ export default function Home() {
                 </Link>
               </div>
               <div className="space-y-2">
-                {previewEvents.slice(0, 3).map((event: Event) => {
+                {useMemo(() => previewEvents.slice(0, 3), [previewEvents]).map((event: Event) => {
                   const startTime = new Date(event.startTime);
                   const now = new Date();
                   const minutesUntilStart = Math.floor((startTime.getTime() - now.getTime()) / (1000 * 60));
