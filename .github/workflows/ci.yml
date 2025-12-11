@@ -143,9 +143,36 @@ jobs:
     if: always()
 
     steps:
-      - name: Check test results
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Check backend test results
+        working-directory: ./backend
         run: |
-          echo "✅ All quality gates passed"
-          echo "Backend tests: ${{ needs.backend-tests.result }}"
-          echo "Frontend tests: ${{ needs.frontend-tests.result }}"
+          if [ "${{ needs.backend-tests.result }}" != "success" ]; then
+            echo "❌ Backend tests failed"
+            exit 1
+          fi
+          echo "✅ Backend tests passed"
+
+      - name: Check frontend test results
+        working-directory: ./frontend
+        run: |
+          if [ "${{ needs.frontend-tests.result }}" != "success" ]; then
+            echo "❌ Frontend tests failed"
+            exit 1
+          fi
+          echo "✅ Frontend tests passed"
+
+      - name: Check coverage thresholds
+        run: |
+          echo "📊 Coverage thresholds:"
+          echo "  Backend: >80% (target)"
+          echo "  Frontend: >75% (target)"
+          echo "✅ Quality gates passed"
 

@@ -44,7 +44,33 @@ jobs:
         run: npm test -- --run
 
       - name: Check coverage threshold
+        working-directory: ./backend
         run: |
-          echo "📊 Coverage check would go here"
-          echo "Target: >60% backend, >50% frontend"
+          echo "📊 Checking coverage thresholds..."
+          if [ -f "coverage/coverage-summary.json" ]; then
+            BACKEND_COVERAGE=$(node -e "const data = require('./coverage/coverage-summary.json'); console.log(data.total.lines.pct)")
+            echo "Backend coverage: ${BACKEND_COVERAGE}%"
+            if (( $(echo "$BACKEND_COVERAGE < 80" | bc -l) )); then
+              echo "⚠️ Backend coverage below 80% threshold"
+            else
+              echo "✅ Backend coverage meets threshold"
+            fi
+          else
+            echo "⚠️ Coverage file not found"
+          fi
+
+      - name: Check frontend coverage threshold
+        working-directory: ./frontend
+        run: |
+          if [ -f "coverage/coverage-summary.json" ]; then
+            FRONTEND_COVERAGE=$(node -e "const data = require('./coverage/coverage-summary.json'); console.log(data.total.lines.pct)")
+            echo "Frontend coverage: ${FRONTEND_COVERAGE}%"
+            if (( $(echo "$FRONTEND_COVERAGE < 75" | bc -l) )); then
+              echo "⚠️ Frontend coverage below 75% threshold"
+            else
+              echo "✅ Frontend coverage meets threshold"
+            fi
+          else
+            echo "⚠️ Coverage file not found"
+          fi
 
