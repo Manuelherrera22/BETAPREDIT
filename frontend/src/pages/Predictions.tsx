@@ -14,7 +14,6 @@ import { eventsService } from '../services/eventsService';
 import { theOddsApiService } from '../services/theOddsApiService';
 import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useWebSocket } from '../hooks/useWebSocket';
 import PredictionCard from '../components/PredictionCard';

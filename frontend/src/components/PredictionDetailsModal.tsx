@@ -3,7 +3,6 @@
  * Shows complete analysis when clicking "Ver Detalles"
  */
 
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { predictionsService } from '../services/predictionsService';
 import PredictionAnalysisExplained from './PredictionAnalysisExplained';
