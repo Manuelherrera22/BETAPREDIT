@@ -492,6 +492,86 @@ class ScheduledTasksService {
   }
 
   /**
+   * Start prediction regeneration task for incomplete predictions
+   */
+  private startPredictionRegeneration(intervalMs: number) {
+    const taskName = 'prediction-regeneration';
+
+    // Run immediately on start (with delay)
+    setTimeout(() => {
+      this.runPredictionRegeneration();
+    }, 120000); // Wait 2 minutes after server start
+
+    // Then run on interval
+    const interval = setInterval(() => {
+      this.runPredictionRegeneration();
+    }, intervalMs);
+
+    this.intervals.set(taskName, interval);
+    logger.info(`Started prediction regeneration task (interval: ${intervalMs / 1000}s)`);
+  }
+
+  /**
+   * Run prediction regeneration for predictions with incomplete data
+   */
+  private async runPredictionRegeneration() {
+    try {
+      logger.info('Running prediction regeneration for incomplete data...');
+
+      // Find predictions with incomplete factors (missing advancedFeatures or marketOdds)
+      const predictions = await prisma.prediction.findMany({
+        where: {
+          createdAt: {
+            gte: new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24 hours
+          },
+        },
+        include: {
+          event: {
+            include: {
+              sport: true,
+            },
+          },
+          market: true,
+        },
+        take: 50, // Limit to 50 predictions per run
+      });
+
+      let regenerated = 0;
+      let errors = 0;
+
+      for (const prediction of predictions) {
+        try {
+          const factors = prediction.factors as any;
+          
+          // Check if prediction has incomplete data
+          const hasIncompleteData = 
+            !factors?.advancedFeatures?.marketOdds ||
+            !factors?.advancedFeatures?.homeForm ||
+            !factors?.advancedFeatures?.awayForm ||
+            !factors?.marketAverage;
+
+          if (hasIncompleteData && prediction.event) {
+            logger.info(`Regenerating prediction ${prediction.id} with incomplete data`);
+            
+            // Regenerate prediction using auto-predictions service
+            await autoPredictionsService.generatePredictionsForSyncedEvents([prediction.eventId]);
+            regenerated++;
+          }
+        } catch (error: any) {
+          logger.error(`Error regenerating prediction ${prediction.id}:`, error.message);
+          errors++;
+        }
+      }
+
+      if (regenerated > 0) {
+        logger.info(`Regenerated ${regenerated} predictions with incomplete data (${errors} errors)`);
+      }
+    } catch (error: any) {
+      logger.error('Error running prediction regeneration:', error);
+    }
+  }
+
+  /**
    * Get status of scheduled tasks
    */
   getStatus() {
