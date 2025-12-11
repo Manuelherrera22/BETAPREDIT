@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from 'react'
+import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { eventsService, type Event } from '../services/eventsService'
 import { format } from 'date-fns'
@@ -482,7 +482,7 @@ export default function Home() {
                 </Link>
               </div>
               <div className="space-y-2">
-                {useMemo(() => previewEvents.slice(0, 3), [previewEvents]).map((event: Event) => {
+                {limitedPreviewEvents.map((event: Event) => {
                   const startTime = new Date(event.startTime);
                   const now = new Date();
                   const minutesUntilStart = Math.floor((startTime.getTime() - now.getTime()) / (1000 * 60));
