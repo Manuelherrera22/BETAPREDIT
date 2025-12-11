@@ -92,3 +92,5 @@ Puedo modificar el frontend para usar The Odds API directamente (sin backend), p
 - [ ] Frontend redeployado
 - [ ] Comparador funcionando en producción
 
+
+

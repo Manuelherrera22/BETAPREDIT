@@ -164,3 +164,5 @@ Si tienes problemas:
 3. Verifica que las migraciones se ejecutaron correctamente
 4. Prueba la conexión con `npx prisma studio`
 
+
+

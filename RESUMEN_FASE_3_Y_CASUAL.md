@@ -244,3 +244,5 @@ const isCasualMode = userMode === 'casual'
 
 **Estado:** ✅ Base implementada, pendiente migración y pruebas
 
+
+

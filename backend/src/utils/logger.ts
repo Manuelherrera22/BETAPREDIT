@@ -13,7 +13,27 @@ const consoleFormat = winston.format.combine(
   winston.format.printf(({ timestamp, level, message, ...meta }) => {
     let msg = `${timestamp} [${level}]: ${message}`;
     if (Object.keys(meta).length > 0) {
-      msg += ` ${JSON.stringify(meta)}`;
+      try {
+        // Use a custom replacer to handle circular references
+        const seen = new WeakSet();
+        const safeMeta = JSON.stringify(meta, (key, value) => {
+          if (typeof value === 'object' && value !== null) {
+            if (seen.has(value)) {
+              return '[Circular]';
+            }
+            seen.add(value);
+          }
+          // Filter out problematic properties
+          if (key === 'agent' || key === 'sockets' || key === '_httpMessage') {
+            return undefined;
+          }
+          return value;
+        });
+        msg += ` ${safeMeta}`;
+      } catch (e) {
+        // Fallback: just show message if JSON.stringify fails
+        msg += ` [Meta data could not be serialized]`;
+      }
     }
     return msg;
   })

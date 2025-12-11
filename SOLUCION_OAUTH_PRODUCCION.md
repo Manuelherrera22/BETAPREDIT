@@ -127,3 +127,5 @@ El frontend usa `window.location.origin` automáticamente, así que:
 
 Por eso necesitas **ambas URLs** en la lista de Redirect URLs.
 
+
+

@@ -109,3 +109,5 @@ Si ya tienes el backend desplegado:
 - El backend debe estar corriendo 24/7
 - Considera usar Supabase Edge Functions para reducir dependencia del backend
 
+
+

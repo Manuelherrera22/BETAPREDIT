@@ -17,6 +17,7 @@ import { advancedFeaturesService } from './advanced-features.service';
 import { normalizedPredictionService } from './normalized-prediction.service';
 import { multiMarketPredictionsService } from './multi-market-predictions.service';
 import { multiSportFeaturesService } from './multi-sport-features.service';
+import { advancedPredictionAnalysisService } from './advanced-prediction-analysis.service';
 
 class AutoPredictionsService {
   private readonly MODEL_VERSION = 'v2.0-auto';
@@ -938,11 +939,41 @@ class AutoPredictionsService {
           // CRITICAL FIX: Always normalize probabilities, never use independent calculations
           // Variables already declared above (lines 446-460), just use them
           
-          // Calculate confidence based on market consensus
-          const variance = impliedProbs.reduce((sum, p) => sum + Math.pow(p - avgImpliedProb, 2), 0) / impliedProbs.length;
-          const stdDev = Math.sqrt(variance);
-          const marketConsensus = 1 - Math.min(stdDev * 2, 0.5);
-          const confidence = Math.max(0.45, Math.min(0.82, marketConsensus * 0.9));
+          // CRITICAL: Use advanced prediction analysis service for individual confidence calculation
+          // This ensures each selection gets its own confidence based on real data analysis
+          let confidence = 0.65; // Default fallback
+          
+          try {
+            // Use advanced prediction analysis to get individual confidence for this selection
+            const advancedAnalysis = await advancedPredictionAnalysisService.analyzeAndPredict(
+              event.id,
+              selection,
+              {
+                home: selections.home || [],
+                away: selections.away || [],
+                draw: selections.draw || [],
+              },
+              advancedFeatures
+            );
+            
+            // Use the confidence from the advanced analysis (already calculated per selection)
+            confidence = advancedAnalysis.confidence || 0.65;
+          } catch (error: any) {
+            logger.warn(`Could not get advanced analysis for ${selection}, using fallback confidence: ${error.message}`);
+            // Fallback: Calculate confidence based on market consensus and data quality
+            const variance = impliedProbs.reduce((sum, p) => sum + Math.pow(p - avgImpliedProb, 2), 0) / impliedProbs.length;
+            const stdDev = Math.sqrt(variance);
+            const marketConsensus = 1 - Math.min(stdDev * 2, 0.5);
+            
+            // Adjust confidence based on available data
+            let dataQuality = 0.5; // Base quality
+            if (advancedFeatures.homeForm?.isRealData) dataQuality += 0.15;
+            if (advancedFeatures.awayForm?.isRealData) dataQuality += 0.15;
+            if (advancedFeatures.h2h?.isRealData || advancedFeatures.headToHead?.isRealData) dataQuality += 0.1;
+            if (advancedFeatures.marketOdds?.bookmakerCount > 5) dataQuality += 0.1;
+            
+            confidence = Math.max(0.45, Math.min(0.95, marketConsensus * 0.7 + dataQuality * 0.3));
+          }
           
           // Use normalized probability instead of independent calculation
           prediction = {

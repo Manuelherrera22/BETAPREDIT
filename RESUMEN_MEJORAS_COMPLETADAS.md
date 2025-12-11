@@ -102,3 +102,5 @@ Las siguientes funcionalidades están completamente operativas:
 - ✅ QuickValueBetDemo con datos reales
 - ✅ SocialProof con métricas reales de plataforma
 
+
+

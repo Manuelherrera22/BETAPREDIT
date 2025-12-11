@@ -125,3 +125,5 @@ Abre la consola del navegador en el frontend y verifica:
 4. **Abrir frontend** y verificar conexión WebSocket
 5. **Probar funcionalidades** en tiempo real
 
+
+

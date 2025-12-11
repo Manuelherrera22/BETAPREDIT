@@ -137,3 +137,5 @@ Abre la consola del navegador (F12) y verifica que no haya errores relacionados 
 
 ¡Listo! Tu sistema ahora está 100% en Supabase (Database + Auth) 🎉
 
+
+

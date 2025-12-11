@@ -38,3 +38,5 @@ export const externalBetSchema = z.object({
 export type PlaceBetInput = z.infer<typeof placeBetSchema>;
 export type ExternalBetInput = z.infer<typeof externalBetSchema>;
 
+
+

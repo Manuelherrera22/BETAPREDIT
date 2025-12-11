@@ -425,3 +425,5 @@
 
 **Con estas 3 mejoras críticas, el score subiría a 8.5/10 y estaría listo para lanzamiento público.**
 
+
+

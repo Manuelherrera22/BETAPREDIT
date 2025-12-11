@@ -109,3 +109,5 @@ Después de desplegar:
 - El backend debe estar corriendo 24/7 para producción
 - Considera usar Supabase Edge Functions para reducir dependencia del backend
 
+
+

@@ -172,3 +172,5 @@ Si quieres verificar que las variables están configuradas:
 
 ¡Después de estos pasos, el login con Google debería funcionar! 🚀
 
+
+

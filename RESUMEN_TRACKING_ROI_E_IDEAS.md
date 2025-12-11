@@ -232,3 +232,5 @@
 
 **Estado:** ✅ Tracking ROI implementado, listo para probar. Ideas WOW documentadas y priorizadas.
 
+
+

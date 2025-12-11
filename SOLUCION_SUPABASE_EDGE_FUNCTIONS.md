@@ -141,3 +141,5 @@ Después de estos pasos:
 - ✅ Todo funcionará desde Supabase
 - ✅ API key estará segura
 
+
+

@@ -7,6 +7,7 @@ import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../../middleware/auth';
 import { predictionsService } from '../../services/predictions.service';
 import { autoPredictionsService } from '../../services/auto-predictions.service';
+import { automlTrainingService } from '../../services/automl-training.service';
 import { logger } from '../../utils/logger';
 
 class PredictionsController {
@@ -137,6 +138,60 @@ class PredictionsController {
       const prediction = await predictionsService.getPredictionWithFactors(predictionId);
       res.json({ success: true, data: prediction });
     } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Re-train ML model with all advanced features (50+)
+   * POST /api/predictions/train-model
+   */
+  async trainModel(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const {
+        framework = 'autogluon',
+        timeLimit = 7200, // 2 hours for comprehensive training
+        limit = 5000, // More data = better model
+      } = req.body;
+
+      logger.info(`Starting model training with ${limit} samples, ${timeLimit}s time limit, framework: ${framework}`);
+
+      // Start training (this is async and may take a while)
+      const trainingPromise = automlTrainingService.trainSportsModel({
+        framework: framework as 'autogluon' | 'autosklearn' | 'tpot',
+        timeLimit: parseInt(timeLimit as string, 10),
+        useRealData: true,
+        limit: parseInt(limit as string, 10),
+      });
+
+      // Return immediately with status
+      res.json({
+        success: true,
+        message: 'Model training started. This may take 1-2 hours. Check logs for progress.',
+        data: {
+          framework,
+          timeLimit,
+          limit,
+          status: 'training',
+        },
+      });
+
+      // Wait for training to complete and log results
+      trainingPromise
+        .then((result) => {
+          logger.info('Model training completed successfully:', {
+            accuracy: result.accuracy,
+            trainingTime: result.trainingTime,
+            bestModel: result.bestModel,
+            featuresCount: result.features.length,
+            modelPath: result.modelPath,
+          });
+        })
+        .catch((error) => {
+          logger.error('Model training failed:', error);
+        });
+    } catch (error: any) {
+      logger.error('Error starting model training:', error);
       next(error);
     }
   }

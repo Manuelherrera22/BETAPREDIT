@@ -180,3 +180,5 @@ postgresql://postgres:[PASSWORD]@db.mdjzqxhjbisnlfpbjfgb.supabase.co:5432/postgr
 
 **Ambas funcionan, pero la primera (pooler) es mejor para producción.**
 
+
+

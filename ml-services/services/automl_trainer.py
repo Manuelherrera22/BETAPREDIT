@@ -181,7 +181,9 @@ class AutoMLTrainer:
         else:
             problem_type = "regression"
         
-        # Train
+        # Train with ALL algorithms and best quality
+        # 'best_quality' preset uses: NeuralNetTorch, CatBoost, LightGBM, XGBoost, 
+        # RandomForest, ExtraTrees, NeuralNetFastAI, and creates weighted ensembles
         predictor = TabularPredictor(
             label='target',
             problem_type=problem_type,
@@ -189,8 +191,20 @@ class AutoMLTrainer:
         ).fit(
             df,
             time_limit=time_limit,
-            presets='best_quality',  # Best quality preset
-            verbosity=2
+            presets='best_quality',  # Uses ALL available algorithms + ensembles
+            verbosity=2,
+            # Additional hyperparameters for better quality
+            hyperparameters={
+                'NN_TORCH': {},  # Neural Networks
+                'CAT': {},  # CatBoost
+                'GBM': {},  # LightGBM
+                'XGB': {},  # XGBoost
+                'RF': {},  # Random Forest
+                'XT': {},  # Extra Trees
+                'FASTAI': {},  # FastAI Neural Networks
+            },
+            num_bag_folds=5,  # 5-fold bagging for better generalization
+            num_stack_levels=2,  # 2-level stacking for ensembles
         )
         
         training_time = (datetime.now() - start_time).total_seconds()

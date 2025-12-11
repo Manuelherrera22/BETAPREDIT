@@ -157,3 +157,5 @@ Conecta desde el frontend usando Socket.IO client.
 4. Actualizar frontend para usar WebSockets
 5. Probar las integraciones
 
+
+

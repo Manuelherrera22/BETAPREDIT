@@ -101,3 +101,5 @@ El código actualizado ahora:
 - ✅ NO hace fallback a backend si Supabase está configurado
 - ✅ Muestra errores específicos de Supabase
 
+
+

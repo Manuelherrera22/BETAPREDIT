@@ -107,3 +107,5 @@ console.log('Supabase Key:', import.meta.env.VITE_SUPABASE_ANON_KEY ? 'Configura
 
 Si ambos muestran valores, las variables están cargadas. Si muestran `undefined`, no están configuradas.
 
+
+

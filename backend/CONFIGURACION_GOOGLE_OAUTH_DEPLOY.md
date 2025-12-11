@@ -86,3 +86,5 @@ FRONTEND_URL=https://tu-dominio.com
 - Verifica que `FRONTEND_URL` esté configurado correctamente
 - Asegúrate de que el frontend esté accesible en esa URL
 
+
+

@@ -154,3 +154,5 @@ export default function TrendAnalysis({ data, currentRoi, currentWinRate }: Tren
   );
 }
 
+
+

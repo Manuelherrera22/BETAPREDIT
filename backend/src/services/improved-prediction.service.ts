@@ -99,14 +99,14 @@ class ImprovedPredictionService {
         confidence = (confidence * 0.8) + (Math.min(historicalAccuracy, 0.75) * 0.2);
       }
       
-      // REALISTIC BOUNDS: 0.45 to 0.82 (not 0.95!)
-      // Most predictions should be in the 0.55-0.75 range
-      confidence = Math.max(0.45, Math.min(0.82, confidence));
+      // REALISTIC BOUNDS: 0.45 to 0.95 (allow higher confidence for high-quality data)
+      // Each prediction should reflect its actual data quality
+      confidence = Math.max(0.45, Math.min(0.95, confidence));
       
       // Add small random variation to avoid all predictions having same confidence
-      // This simulates real-world uncertainty
-      const randomVariation = (Math.random() - 0.5) * 0.06; // ±3% variation
-      confidence = Math.max(0.45, Math.min(0.82, confidence + randomVariation));
+      // This simulates real-world uncertainty, but keep it minimal to preserve data-driven confidence
+      const randomVariation = (Math.random() - 0.5) * 0.02; // ±1% variation (reduced to preserve data-driven confidence)
+      confidence = Math.max(0.45, Math.min(0.95, confidence + randomVariation));
 
       return {
         predictedProbability,

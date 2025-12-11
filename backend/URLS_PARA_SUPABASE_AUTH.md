@@ -81,3 +81,5 @@ Si quieres migrar a **Supabase Auth** completamente, necesitarías:
 
 ¿Quieres que migre el sistema de autenticación a Supabase Auth?
 
+
+

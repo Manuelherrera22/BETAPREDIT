@@ -27,3 +27,5 @@ router.get('/teams/search', apiFootballController.searchTeams.bind(apiFootballCo
 
 export default router;
 
+
+

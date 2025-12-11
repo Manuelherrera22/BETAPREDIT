@@ -33,3 +33,5 @@ router.get('/scan-all', valueBetDetectionController.scanAll);
 
 export default router;
 
+
+

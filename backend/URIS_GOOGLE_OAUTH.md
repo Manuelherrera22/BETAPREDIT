@@ -130,3 +130,5 @@ Después de configurar, verifica que:
 3. El frontend esté corriendo en el puerto correcto
 4. No haya errores de CORS
 
+
+

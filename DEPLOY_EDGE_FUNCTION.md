@@ -93,3 +93,5 @@ Solo verifica que:
 - [ ] El secret esté configurado
 - [ ] El frontend esté redeployado en Netlify
 
+
+

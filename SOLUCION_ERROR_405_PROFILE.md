@@ -103,3 +103,5 @@ El proxy de Netlify solo funciona para peticiones GET/POST/PUT/DELETE estándar.
 2. Desplegar el backend en el mismo dominio (subdominio)
 3. Usar Supabase Edge Functions para todas las operaciones
 
+
+

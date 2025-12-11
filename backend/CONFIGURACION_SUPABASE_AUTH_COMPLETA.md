@@ -131,3 +131,5 @@ El sistema ahora:
 - Supabase Auth maneja automáticamente las URLs de redirección
 - No necesitas configurar `GOOGLE_REDIRECT_URI` cuando usas Supabase Auth
 
+
+

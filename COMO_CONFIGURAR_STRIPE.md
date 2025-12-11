@@ -196,3 +196,5 @@ Cuando estés listo para producción:
 - **Stripe Subscriptions**: https://stripe.com/docs/billing/subscriptions/overview
 - **Stripe Webhooks**: https://stripe.com/docs/webhooks
 
+
+

@@ -57,3 +57,5 @@ La función fue desplegada con `--no-verify-jwt`, lo que debería permitir que f
 
 **Última actualización**: 2025-12-09
 
+
+

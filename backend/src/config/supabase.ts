@@ -68,3 +68,5 @@ export const isSupabaseConfigured = () => {
 // Initialize on import
 initializeSupabase();
 
+
+

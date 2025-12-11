@@ -59,7 +59,21 @@ class AutoMLTrainingService {
 
       return response.data;
     } catch (error: any) {
-      logger.error('Error training AutoML model:', error);
+      // Log error without circular structure issues
+      const errorInfo: any = {
+        message: error.message,
+        code: error.code,
+      };
+      if (error.response) {
+        errorInfo.status = error.response.status;
+        errorInfo.statusText = error.response.statusText;
+        errorInfo.data = error.response.data;
+      }
+      if (error.config) {
+        errorInfo.url = error.config.url;
+        errorInfo.method = error.config.method;
+      }
+      logger.error('Error training AutoML model:', errorInfo);
       throw error;
     }
   }
@@ -121,10 +135,13 @@ class AutoMLTrainingService {
     useRealData?: boolean;
     limit?: number;
   }): Promise<AutoMLTrainingResponse> {
+    // Use autogluon as default (best performance for tabular data)
     const framework = options?.framework || 'autogluon';
-    const timeLimit = options?.timeLimit || 3600;
+    // Increase time limit for better model quality with 50+ features
+    const timeLimit = options?.timeLimit || 7200; // 2 hours for comprehensive training
     const useRealData = options?.useRealData !== false; // Default to true
-    const limit = options?.limit || 1000;
+    // Increase limit to get more training data for better accuracy
+    const limit = options?.limit || 5000; // More data = better model
 
     let trainingData: Array<{
       features: Record<string, number>;
@@ -172,8 +189,14 @@ class AutoMLTrainingService {
   }>> {
     try {
       // Use the SQL function to get predictions with all data
+      // Cast parameters to correct types for PostgreSQL
       const predictions = await prisma.$queryRaw<any[]>`
-        SELECT * FROM get_predictions_for_training(${limit}, 0.0, NULL, NULL)
+        SELECT * FROM get_predictions_for_training(
+          ${limit}::INTEGER, 
+          0.0::FLOAT, 
+          NULL::TIMESTAMP, 
+          NULL::TIMESTAMP
+        )
       `;
 
       const trainingData = predictions.map(pred => {
@@ -236,9 +259,10 @@ class AutoMLTrainingService {
     }
 
     // Extract advanced features from factors JSON
+    // Also check alternative structures (homeForm, awayForm, h2h, market)
     if (factors && typeof factors === 'object') {
 
-      // Market Intelligence Features (from marketOdds)
+      // Market Intelligence Features (from marketOdds or market)
       if (factors.marketOdds) {
         const mo = factors.marketOdds;
         features.market_avg_implied_prob = Number(mo.impliedProbability) || 0;
@@ -264,6 +288,7 @@ class AutoMLTrainingService {
       }
 
       // Team Form Features (recent matches)
+      // Check both 'form' and 'homeForm'/'awayForm' structures
       if (factors.form) {
         const form = factors.form;
         features.form_win_rate = Number(form.winRate) || 0;
@@ -272,13 +297,40 @@ class AutoMLTrainingService {
         features.form_matches_count = Number(form.matchesCount) || 0;
         features.form_impact = Number(form.impact) || 0;
         features.form_momentum = Number(form.momentum) || 0;
-        features.team_form_momentum = Number(form.momentum) || 0; // Alias for consistency
+        features.team_form_momentum = Number(form.momentum) || 0;
         features.team_form_recent_wins = Number(form.recentWins) || 0;
         features.team_form_recent_losses = Number(form.recentLosses) || 0;
         features.team_form_recent_draws = Number(form.recentDraws) || 0;
         features.team_form_goals_per_match = features.form_matches_count > 0 
           ? features.form_goals_scored / features.form_matches_count 
           : 0;
+      }
+      
+      // Extract homeForm and awayForm features separately (if available)
+      if (factors.homeForm) {
+        const hf = factors.homeForm;
+        features.home_form_win_rate_5 = Number(hf.winRate5) || 0;
+        features.home_form_win_rate_10 = Number(hf.winRate10) || 0;
+        features.home_form_goals_for_avg = Number(hf.goalsForAvg5) || 0;
+        features.home_form_goals_against_avg = Number(hf.goalsAgainstAvg5) || 0;
+        features.home_form_streak = Number(hf.currentStreak) || 0;
+        features.home_form_trend = Number(hf.formTrend) || 0;
+        features.home_form_wins_5 = Number(hf.wins5) || 0;
+        features.home_form_losses_5 = Number(hf.losses5) || 0;
+        features.home_form_draws_5 = Number(hf.draws5) || 0;
+      }
+      
+      if (factors.awayForm) {
+        const af = factors.awayForm;
+        features.away_form_win_rate_5 = Number(af.winRate5) || 0;
+        features.away_form_win_rate_10 = Number(af.winRate10) || 0;
+        features.away_form_goals_for_avg = Number(af.goalsForAvg5) || 0;
+        features.away_form_goals_against_avg = Number(af.goalsAgainstAvg5) || 0;
+        features.away_form_streak = Number(af.currentStreak) || 0;
+        features.away_form_trend = Number(af.formTrend) || 0;
+        features.away_form_wins_5 = Number(af.wins5) || 0;
+        features.away_form_losses_5 = Number(af.losses5) || 0;
+        features.away_form_draws_5 = Number(af.draws5) || 0;
       }
 
       // Head-to-Head Features
@@ -292,6 +344,28 @@ class AutoMLTrainingService {
         features.h2h_home_advantage = Number(h2h.homeAdvantage) || 0;
         features.h2h_avg_total_goals = Number(h2h.avgTotalGoals) || 0;
         features.h2h_btts_rate = Number(h2h.bothTeamsScoredRate) || 0;
+      }
+      
+      // Extract h2h features separately (if available)
+      if (factors.h2h) {
+        const h2h = factors.h2h;
+        features.h2h_team1_win_rate = Number(h2h.team1WinRate) || 0;
+        features.h2h_draw_rate = Number(h2h.drawRate) || 0;
+        features.h2h_total_matches = Number(h2h.totalMatches) || 0;
+        features.h2h_both_teams_scored_rate = Number(h2h.bothTeamsScoredRate) || 0;
+        // Also set the main h2h features if not already set
+        if (!features.h2h_win_rate) {
+          features.h2h_win_rate = features.h2h_team1_win_rate;
+        }
+        if (!features.h2h_goals_avg) {
+          features.h2h_goals_avg = Number(h2h.totalGoalsAvg) || 0;
+        }
+        if (!features.h2h_recent_trend) {
+          features.h2h_recent_trend = Number(h2h.recentTrend) || 0;
+        }
+        if (!features.h2h_avg_total_goals) {
+          features.h2h_avg_total_goals = features.h2h_goals_avg;
+        }
       }
 
       // Injuries/Suspensions Features
@@ -329,7 +403,33 @@ class AutoMLTrainingService {
         features.market_confidence = Number(mi.confidence) || 0;
       }
       
-      // Market Intelligence (alternative structure)
+      // Extract market features separately (if available)
+      if (factors.market) {
+        const market = factors.market;
+        features.market_consensus_direct = Number(market.consensus) || 0;
+        features.market_efficiency = Number(market.efficiency) || 0;
+        features.market_sharp_money = Number(market.sharpMoneyIndicator) || 0;
+        features.market_value_opportunity = Number(market.valueOpportunity) || 0;
+        features.market_odds_spread = Number(market.oddsSpread) || 0;
+        // Also set main market features if not already set
+        if (!features.market_consensus) {
+          features.market_consensus = features.market_consensus_direct;
+        }
+        if (!features.market_volatility) {
+          features.market_volatility = 1 - features.market_efficiency;
+        }
+        if (!features.market_sentiment) {
+          features.market_sentiment = features.market_sharp_money;
+        }
+        if (!features.market_volume) {
+          features.market_volume = features.market_value_opportunity;
+        }
+        if (!features.odds_range) {
+          features.odds_range = features.market_odds_spread;
+        }
+      }
+      
+      // Market Intelligence (alternative structure - direct properties)
       if (factors.market_consensus !== undefined) {
         features.market_consensus_alt = Number(factors.market_consensus) || 0;
       }
@@ -338,6 +438,17 @@ class AutoMLTrainingService {
       }
       if (factors.market_sentiment !== undefined) {
         features.market_sentiment_alt = Number(factors.market_sentiment) || 0;
+      }
+      
+      // Form advantage features (from auto-predictions service)
+      if (factors.formAdvantage !== undefined) {
+        features.form_advantage = Number(factors.formAdvantage) || 0;
+      }
+      if (factors.goalsAdvantage !== undefined) {
+        features.goals_advantage = Number(factors.goalsAdvantage) || 0;
+      }
+      if (factors.defenseAdvantage !== undefined) {
+        features.defense_advantage = Number(factors.defenseAdvantage) || 0;
       }
 
       // Team Strength Features

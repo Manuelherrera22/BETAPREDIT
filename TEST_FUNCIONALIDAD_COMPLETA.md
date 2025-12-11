@@ -264,3 +264,5 @@ npm run build
 
 La estructura está completa, los imports son correctos, y no hay errores de sintaxis. El sistema está listo para ser probado en runtime.
 
+
+

@@ -146,3 +146,5 @@ Por eso solo necesitas la URL de Supabase en Google Cloud Console.
 
 ¡Después de agregar la URL de Supabase en Google Cloud Console, el login debería funcionar! 🚀
 
+
+

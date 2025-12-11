@@ -62,3 +62,5 @@ Después del redeploy:
 
 **¿Ya verificaste las variables en Netlify?** Si no están, agrégalas y redesplega.
 
+
+

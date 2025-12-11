@@ -101,3 +101,5 @@ Para verificar que todo está configurado:
 ### Error: "Google OAuth no está configurado"
 - Verifica que `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, y `GOOGLE_REDIRECT_URI` estén en `backend/.env`
 
+
+

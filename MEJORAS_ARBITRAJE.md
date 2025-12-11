@@ -122,3 +122,5 @@ Cuando busques oportunidades de arbitraje, deberías ver:
 **Última actualización**: 2025-12-09
 **Estado**: ✅ Implementado y desplegado
 
+
+

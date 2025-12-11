@@ -253,3 +253,5 @@ Supabase (PostgreSQL)
 **Última actualización**: 2025-12-09
 **Estado**: En progreso - Arbitraje mejorado, pendiente sincronización de eventos
 
+
+

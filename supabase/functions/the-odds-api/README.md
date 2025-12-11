@@ -51,3 +51,5 @@ El frontend debe usar esta URL en lugar de `/api/the-odds-api`:
 const SUPABASE_FUNCTIONS_URL = 'https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1';
 ```
 
+
+

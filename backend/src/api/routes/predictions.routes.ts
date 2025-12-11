@@ -40,6 +40,13 @@ router.get('/stats', predictionsController.getPredictionStats.bind(predictionsCo
 router.get('/history', predictionsController.getPredictionHistory.bind(predictionsController));
 
 /**
+ * @route   POST /api/predictions/train-model
+ * @desc    Re-train ML model with all advanced features (50+)
+ * @access  Private
+ */
+router.post('/train-model', predictionsController.trainModel.bind(predictionsController));
+
+/**
  * @route   POST /api/predictions/generate
  * @desc    Manually trigger prediction generation for upcoming events
  * @access  Private

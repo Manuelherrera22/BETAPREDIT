@@ -245,8 +245,6 @@ class NormalizedPredictionService {
 
       // Step 6: Use ADVANCED prediction analysis for each selection
       // This uses ALL available data (form, H2H, detailed stats) for better predictions
-      const allOdds = [...selections.home, ...selections.away, ...(selections.draw || [])];
-      
       // Get advanced analysis for each selection
       const homeAnalysis = await advancedPredictionAnalysisService.analyzeAndPredict(
         eventId,

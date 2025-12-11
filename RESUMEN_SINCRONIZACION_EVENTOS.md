@@ -117,3 +117,5 @@ const comparisonData = await theOddsApiService.compareOdds(
 - ⏳ **Frontend**: Pendiente de probar
 - ⏳ **Supabase**: Pendiente de verificar datos
 
+
+

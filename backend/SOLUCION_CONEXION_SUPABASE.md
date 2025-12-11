@@ -141,3 +141,5 @@ Deberías ver en los logs:
 ✅ Connected to Supabase database successfully
 ```
 
+
+

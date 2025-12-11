@@ -418,8 +418,8 @@ class MultiMarketPredictionsService {
 
     // Adjust confidence based on data quality
     if (advancedFeatures.homeForm && advancedFeatures.awayForm) {
-      // More data = slightly higher confidence
-      prediction.confidence = Math.min(0.82, prediction.confidence * 1.05);
+      // More data = slightly higher confidence, but respect the upper bound of 0.95
+      prediction.confidence = Math.min(0.95, prediction.confidence * 1.05);
     }
 
     return {

@@ -263,3 +263,5 @@ node -e "require('dotenv').config(); console.log('DATABASE_URL:', process.env.DA
 3. **Corregir APIs que fallen** una por una
 4. **Probar frontend** después de cada corrección
 
+
+
