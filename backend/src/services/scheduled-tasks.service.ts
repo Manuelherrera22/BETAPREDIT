@@ -49,6 +49,9 @@ class ScheduledTasksService {
     // Update predictions for finished events every 5 minutes
     this.startPredictionAccuracyUpdate(5 * 60 * 1000); // 5 minutes
 
+    // Regenerate predictions with incomplete data every 30 minutes
+    this.startPredictionRegeneration(30 * 60 * 1000); // 30 minutes
+
     logger.info('Scheduled tasks started');
   }
 
