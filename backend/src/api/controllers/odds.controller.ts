@@ -3,6 +3,7 @@ import { oddsService } from '../../services/odds.service';
 import { oddsComparisonService } from '../../services/odds-comparison.service';
 import { AppError } from '../../middleware/errorHandler';
 import { AuthRequest } from '../../middleware/auth';
+import { prisma } from '../../config/database';
 
 class OddsController {
   async getEventOdds(req: AuthRequest, res: Response, next: NextFunction) {
@@ -41,12 +42,37 @@ class OddsController {
   async getOddsHistory(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { eventId } = req.params;
-      const { startDate, endDate, limit } = req.query;
-      const history = await oddsService.getOddsHistory(eventId, {
-        startDate: startDate as string,
-        endDate: endDate as string,
-        limit: limit ? parseInt(limit as string) : 100,
-      });
+      const { startDate, endDate, limit, marketId, selection } = req.query;
+      
+      let history;
+      if (marketId && selection) {
+        // Get history for specific market and selection
+        history = await prisma.oddsHistory.findMany({
+          where: {
+            eventId,
+            marketId: marketId as string,
+            selection: selection as string,
+            ...(startDate || endDate ? {
+              timestamp: {
+                ...(startDate ? { gte: new Date(startDate as string) } : {}),
+                ...(endDate ? { lte: new Date(endDate as string) } : {}),
+              },
+            } : {}),
+          },
+          orderBy: {
+            timestamp: 'desc',
+          },
+          take: limit ? parseInt(limit as string) : 100,
+        });
+      } else {
+        // Get all history for event
+        history = await oddsService.getOddsHistory(eventId, {
+          startDate: startDate as string,
+          endDate: endDate as string,
+          limit: limit ? parseInt(limit as string) : 100,
+        });
+      }
+      
       res.json({ success: true, data: history });
     } catch (error) {
       next(error);

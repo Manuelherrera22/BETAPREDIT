@@ -7,10 +7,13 @@
 import { useState } from 'react';
 import Icon, { type IconName } from './icons/IconSystem';
 import TeamComparisonCharts from './TeamComparisonCharts';
+import OddsHistoryChart from './OddsHistoryChart';
 
 interface PredictionAnalysisExplainedProps {
   prediction: {
     id: string;
+    eventId?: string;
+    marketId?: string;
     eventName: string;
     selection: string;
     predictedProbability: number;
@@ -516,6 +519,22 @@ export default function PredictionAnalysisExplained({ prediction, factors }: Pre
           )}
         </div>
       </Section>
+
+      {/* Odds History Chart */}
+      {prediction.eventId && prediction.marketId && (
+        <Section
+          title="Historial de Cambios de Cuotas"
+          icon="line-chart"
+          expanded={expandedSections.has('odds-history')}
+          onToggle={() => toggleSection('odds-history')}
+        >
+          <OddsHistoryChart
+            eventId={prediction.eventId}
+            marketId={prediction.marketId}
+            selection={prediction.selection}
+          />
+        </Section>
+      )}
 
       {/* Data Source Verification */}
       <div className="bg-dark-800/50 rounded-lg p-4 border border-primary-500/10">
