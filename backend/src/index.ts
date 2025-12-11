@@ -293,6 +293,11 @@ const gracefulShutdown = async () => {
   // Stop scheduled tasks
   scheduledTasksService.stop();
   
+  // Stop odds tracking
+  if (process.env.ENABLE_ODDS_TRACKING !== 'false') {
+    oddsTrackingService.stopTracking();
+  }
+  
   httpServer.close(() => {
     logger.info('HTTP server closed');
   });
@@ -310,11 +315,22 @@ process.on('SIGINT', gracefulShutdown);
 import { scheduledTasksService } from './services/scheduled-tasks.service';
 scheduledTasksService.start();
 
+// Initialize odds tracking service
+import { oddsTrackingService } from './services/odds-tracking.service';
+if (process.env.ENABLE_ODDS_TRACKING !== 'false') {
+  oddsTrackingService.startTracking().catch((error) => {
+    logger.error('Error starting odds tracking:', error);
+  });
+}
+
 // Start server
 httpServer.listen(PORT, () => {
   logger.info(`🚀 Server running on port ${PORT}`);
   logger.info(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
   logger.info(`⏰ Scheduled tasks started`);
+  if (process.env.ENABLE_ODDS_TRACKING !== 'false') {
+    logger.info(`📈 Odds tracking enabled`);
+  }
 });
 
 export { app, io };
