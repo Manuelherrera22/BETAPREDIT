@@ -263,22 +263,16 @@ export default function Statistics() {
           value={`${currentStats.winRate.toFixed(1)}%`}
           change={statistics ? "Datos en tiempo real" : "Sin datos disponibles"}
           trend={currentStats.winRate > 50 ? "up" : "down"}
-          icon={
-            <svg className="w-6 h-6 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-            </svg>
-          }
+          icon="trending-up"
+          gradient="from-emerald-500/20 to-green-500/20"
         />
         <StatsCard
           title="ROI Mensual"
           value={`${currentStats.roi >= 0 ? '+' : ''}${currentStats.roi.toFixed(1)}%`}
           change={statistics ? "Datos en tiempo real" : "Sin datos disponibles"}
           trend={currentStats.roi > 0 ? "up" : "down"}
-          icon={
-            <svg className="w-6 h-6 text-accent-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          }
+          icon="wallet"
+          gradient="from-primary-500/20 to-accent-500/20"
         />
         <StatsCard
           title="Value Bets Encontrados"
@@ -286,22 +280,16 @@ export default function Statistics() {
           subtitle={timeRange === 'week' ? 'Esta semana' : timeRange === 'month' ? 'Este mes' : 'Este año'}
           change={statistics ? "Datos en tiempo real" : "Sin datos disponibles"}
           trend="up"
-          icon={
-            <svg className="w-6 h-6 text-gold-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          }
+          icon="zap"
+          gradient="from-gold-500/20 to-amber-500/20"
         />
         <StatsCard
           title="Bankroll Actual"
           value={`€${(currentStats.totalStaked + currentStats.netProfit).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`}
           change={currentStats.netProfit >= 0 ? `+${currentStats.netProfit.toFixed(2)}` : currentStats.netProfit.toFixed(2)}
           trend={currentStats.netProfit > 0 ? "up" : "down"}
-          icon={
-            <svg className="w-6 h-6 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-          }
+          icon="wallet"
+          gradient="from-blue-500/20 to-cyan-500/20"
         />
       </div>
 
