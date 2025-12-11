@@ -277,69 +277,56 @@ export default function Home() {
           </div>
         )}
 
-        {/* Main Content Grid - Better Organization */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 mb-4 sm:mb-6 md:mb-8">
-          {/* Left Column - Quick Tools */}
-          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-            {/* Quick Access Tools Grid - Varied Design */}
-            <div className="bg-slate-800/60 rounded-2xl p-6 sm:p-7 border border-slate-700/40 shadow-lg backdrop-blur-sm">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary-500/20 to-accent-500/20 flex items-center justify-center shadow-md border border-primary-500/30">
-                    <Icon name="zap" size={16} className="text-primary-300" strokeWidth={2} />
+        {/* Main Content - Better Distribution */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 mb-4 sm:mb-6 md:mb-8">
+          {/* Left Column - Main Content (8 columns) */}
+          <div className="lg:col-span-8 space-y-4 sm:space-y-6">
+            {/* Quick Access Tools Grid */}
+            <div className="bg-slate-800/50 rounded-xl p-5 sm:p-6 border border-slate-700/40 shadow-lg">
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500/20 to-accent-500/20 flex items-center justify-center border border-primary-500/30">
+                    <Icon name="zap" size={14} className="text-primary-300" strokeWidth={2} />
                   </div>
                   <div>
-                    <h2 className="text-xl sm:text-2xl font-bold text-white">Herramientas Rápidas</h2>
-                    <p className="text-xs text-gray-400 mt-0.5">Acceso rápido a funciones principales</p>
+                    <h2 className="text-lg sm:text-xl font-bold text-white">Herramientas Rápidas</h2>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Acceso rápido</p>
                   </div>
                 </div>
-                <Link
-                  to="/alerts"
-                  className="text-sm text-primary-400 hover:text-primary-300 font-semibold flex items-center gap-1.5 transition-colors hover:gap-2"
-                >
-                  Ver todas
-                  <Icon name="arrow-right" size={16} />
-                </Link>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {quickTools.map((tool) => (
                   <Link
                     key={tool.to}
                     to={tool.to}
-                    className={`bg-gradient-to-br ${tool.color} rounded-xl p-4 sm:p-5 border-2 ${tool.borderColor} hover:border-opacity-100 transition-all duration-300 hover:scale-105 active:scale-95 group min-h-[120px] sm:min-h-[140px] flex flex-col items-center justify-center relative shadow-lg hover:shadow-2xl overflow-hidden`}
+                    className={`bg-gradient-to-br ${tool.color} rounded-lg p-3.5 sm:p-4 border ${tool.borderColor} hover:border-opacity-100 transition-all duration-200 hover:scale-[1.02] group min-h-[100px] sm:min-h-[110px] flex flex-col items-center justify-center relative shadow-md hover:shadow-lg overflow-hidden`}
                   >
-                    {/* Animated shimmer effect */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                    
-                    {/* Glow effect on hover */}
-                    <div className={`absolute inset-0 bg-gradient-to-br ${tool.color} opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-300`}></div>
-                    
                     {tool.badge && (
-                      <span className="absolute top-2.5 right-2.5 px-2.5 py-1 bg-gold-500/50 text-gold-100 text-[10px] font-black rounded-full border border-gold-400/60 shadow-lg z-10 uppercase tracking-wide">
+                      <span className="absolute top-2 right-2 px-1.5 py-0.5 bg-gold-500/40 text-gold-200 text-[9px] font-bold rounded-full border border-gold-500/50 z-10">
                         {tool.badge}
                       </span>
                     )}
-                    <div className="mb-3 flex items-center justify-center relative z-10">
-                      <div className="p-2.5 rounded-lg bg-white/8 group-hover:bg-white/15 transition-all duration-300 shadow-md group-hover:scale-105 border border-white/10">
-                        <Icon name={tool.icon} size={20} className="text-white/90" strokeWidth={2} />
+                    <div className="mb-2 flex items-center justify-center relative z-10">
+                      <div className="p-2 rounded-lg bg-white/8 group-hover:bg-white/12 transition-all duration-200 border border-white/10">
+                        <Icon name={tool.icon} size={18} className="text-white/90" strokeWidth={2} />
                       </div>
                     </div>
-                    <h3 className="text-xs sm:text-sm font-bold text-white text-center leading-tight relative z-10 group-hover:text-primary-200 transition-colors">{tool.label}</h3>
+                    <h3 className="text-xs font-semibold text-white text-center leading-tight relative z-10">{tool.label}</h3>
                   </Link>
                 ))}
               </div>
             </div>
 
-            {/* Value Bet Calculator - Different Style */}
-            <div className="bg-slate-900/50 rounded-2xl p-5 sm:p-6 border-2 border-primary-500/20 shadow-xl backdrop-blur-md">
+            {/* Value Bet Calculator */}
+            <div className="bg-slate-800/50 rounded-xl p-5 sm:p-6 border border-slate-700/40 shadow-lg">
               <ValueBetCalculator />
             </div>
           </div>
 
-          {/* Right Column - Social Proof - Varied Style */}
-          <div className="lg:col-span-1">
+          {/* Right Column - Social Proof (4 columns) */}
+          <div className="lg:col-span-4">
             {!shouldShow && (
-              <div className="bg-slate-800/70 rounded-2xl p-5 sm:p-6 border border-accent-500/20 shadow-lg backdrop-blur-sm sticky top-20">
+              <div className="bg-slate-800/50 rounded-xl p-4 sm:p-5 border border-slate-700/40 shadow-lg backdrop-blur-sm sticky top-20">
                 <SocialProof />
               </div>
             )}

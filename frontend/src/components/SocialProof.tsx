@@ -107,42 +107,45 @@ export default function SocialProof() {
 
   return (
     <div className="space-y-6">
-      {/* Platform Metrics - Elegant Design */}
-      <div className="bg-slate-800/50 rounded-xl p-5 border border-slate-700/40">
-        <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">
-          <span className="w-1 h-4 bg-primary-500 rounded-full"></span>
+      {/* Platform Metrics - Professional Design */}
+      <div className="bg-slate-800/40 rounded-xl p-4 border border-slate-700/30">
+        <h3 className="text-sm font-semibold text-gray-300 mb-3 uppercase tracking-wider">
           Métricas de la Plataforma
         </h3>
         {isLoading ? (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="animate-pulse">
-                <div className="h-6 bg-slate-700 rounded mb-1.5"></div>
-                <div className="h-3 bg-slate-700 rounded w-3/4"></div>
+                <div className="h-4 bg-slate-700 rounded mb-1"></div>
+                <div className="h-3 bg-slate-700 rounded w-1/2"></div>
               </div>
             ))}
           </div>
         ) : metrics.length > 0 ? (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-3">
             {metrics.map((metric, index) => (
-              <div key={index} className="bg-slate-900/40 rounded-lg p-3 border border-slate-700/30">
-                <p className="text-lg font-bold text-white mb-0.5">{metric.value}</p>
-                <p className="text-[10px] text-gray-400 leading-tight mb-1">{metric.label}</p>
+              <div key={index} className="flex items-center justify-between py-2 border-b border-slate-700/30 last:border-0">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-gray-400 mb-0.5 truncate">{metric.label}</p>
+                  <p className="text-base font-bold text-white">{metric.value}</p>
+                </div>
                 {metric.change && (
-                  <p
-                    className={`text-[10px] font-semibold ${
-                      metric.trend === 'up' ? 'text-emerald-400' : 'text-red-400'
-                    }`}
-                  >
-                    {metric.change}
-                  </p>
+                  <div className="flex-shrink-0 ml-3">
+                    <p
+                      className={`text-xs font-semibold ${
+                        metric.trend === 'up' ? 'text-emerald-400' : 'text-red-400'
+                      }`}
+                    >
+                      {metric.change}
+                    </p>
+                  </div>
                 )}
               </div>
             ))}
           </div>
         ) : (
-          <div className="text-center py-4">
-            <p className="text-sm text-gray-400">Cargando métricas...</p>
+          <div className="text-center py-3">
+            <p className="text-xs text-gray-500">Sin métricas disponibles</p>
           </div>
         )}
       </div>
