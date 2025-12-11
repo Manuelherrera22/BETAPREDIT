@@ -106,30 +106,32 @@ export default function SocialProof() {
     : [];
 
   return (
-    <div className="space-y-8">
-      {/* Platform Metrics */}
-      <div className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-6 border border-primary-500/20">
-        <h3 className="text-xl font-black text-white mb-4">Métricas de la Plataforma</h3>
+    <div className="space-y-6">
+      {/* Platform Metrics - Elegant Design */}
+      <div className="bg-slate-800/50 rounded-xl p-5 border border-slate-700/40">
+        <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+          <span className="w-1 h-4 bg-primary-500 rounded-full"></span>
+          Métricas de la Plataforma
+        </h3>
         {isLoading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="text-center animate-pulse">
-                <div className="h-8 bg-dark-800 rounded mb-2"></div>
-                <div className="h-4 bg-dark-800 rounded mb-1"></div>
-                <div className="h-3 bg-dark-800 rounded w-2/3 mx-auto"></div>
+              <div key={i} className="animate-pulse">
+                <div className="h-6 bg-slate-700 rounded mb-1.5"></div>
+                <div className="h-3 bg-slate-700 rounded w-3/4"></div>
               </div>
             ))}
           </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        ) : metrics.length > 0 ? (
+          <div className="grid grid-cols-2 gap-3">
             {metrics.map((metric, index) => (
-              <div key={index} className="text-center">
-                <p className="text-2xl font-black text-white mb-1">{metric.value}</p>
-                <p className="text-xs text-gray-400 mb-1">{metric.label}</p>
+              <div key={index} className="bg-slate-900/40 rounded-lg p-3 border border-slate-700/30">
+                <p className="text-lg font-bold text-white mb-0.5">{metric.value}</p>
+                <p className="text-[10px] text-gray-400 leading-tight mb-1">{metric.label}</p>
                 {metric.change && (
                   <p
-                    className={`text-xs font-semibold ${
-                      metric.trend === 'up' ? 'text-green-400' : 'text-red-400'
+                    className={`text-[10px] font-semibold ${
+                      metric.trend === 'up' ? 'text-emerald-400' : 'text-red-400'
                     }`}
                   >
                     {metric.change}
@@ -138,28 +140,35 @@ export default function SocialProof() {
               </div>
             ))}
           </div>
+        ) : (
+          <div className="text-center py-4">
+            <p className="text-sm text-gray-400">Cargando métricas...</p>
+          </div>
         )}
       </div>
 
-      {/* Testimonials */}
+      {/* Testimonials - Modern & Elegant */}
       <div>
-        <h3 className="text-xl font-black text-white mb-4">Lo que dicen nuestros usuarios</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+          <span className="w-1 h-4 bg-accent-500 rounded-full"></span>
+          Lo que dicen nuestros usuarios
+        </h3>
+        <div className="space-y-3">
           {testimonials.map((testimonial) => (
             <div
               key={testimonial.id}
-              className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-6 border border-primary-500/20 hover:border-primary-400/40 transition-all"
+              className="bg-slate-800/60 rounded-xl p-4 border border-slate-700/40 hover:border-primary-500/30 transition-all duration-200 hover:shadow-lg"
             >
-              <div className="flex items-start gap-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-accent-500 rounded-full flex items-center justify-center text-white font-bold">
+              <div className="flex items-start gap-3 mb-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-primary-500/30 to-accent-500/30 rounded-full flex items-center justify-center text-white font-bold text-sm border border-primary-500/40 flex-shrink-0">
                   {testimonial.name.charAt(0)}
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="font-bold text-white">{testimonial.name}</p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <p className="font-semibold text-white text-sm">{testimonial.name}</p>
                     {testimonial.verified && (
                       <svg
-                        className="w-4 h-4 text-accent-400"
+                        className="w-3.5 h-3.5 text-primary-400 flex-shrink-0"
                         fill="currentColor"
                         viewBox="0 0 20 20"
                       >
@@ -175,25 +184,27 @@ export default function SocialProof() {
                 </div>
               </div>
 
-              <p className="text-gray-300 text-sm mb-4 leading-relaxed">"{testimonial.text}"</p>
+              <p className="text-gray-300 text-xs leading-relaxed mb-3 line-clamp-3">"{testimonial.text}"</p>
 
-              <div className="pt-4 border-t border-primary-500/20">
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <div>
-                    <p className="text-xs text-gray-400 mb-1">ROI</p>
-                    <p className="text-sm font-bold text-green-400">
+              <div className="pt-3 border-t border-slate-700/40">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex-1 text-center">
+                    <p className="text-[10px] text-gray-500 mb-0.5">ROI</p>
+                    <p className="text-xs font-bold text-emerald-400">
                       +{testimonial.results.roi}%
                     </p>
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-400 mb-1">Win Rate</p>
-                    <p className="text-sm font-bold text-primary-400">
+                  <div className="w-px h-6 bg-slate-700/50"></div>
+                  <div className="flex-1 text-center">
+                    <p className="text-[10px] text-gray-500 mb-0.5">Win Rate</p>
+                    <p className="text-xs font-bold text-primary-400">
                       {testimonial.results.winRate}%
                     </p>
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-400 mb-1">Value Bets</p>
-                    <p className="text-sm font-bold text-accent-400">
+                  <div className="w-px h-6 bg-slate-700/50"></div>
+                  <div className="flex-1 text-center">
+                    <p className="text-[10px] text-gray-500 mb-0.5">Value Bets</p>
+                    <p className="text-xs font-bold text-accent-400">
                       {testimonial.results.valueBets}
                     </p>
                   </div>
