@@ -78,19 +78,45 @@ export default function Home() {
     })),
   ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 5)
 
-  // Cargar eventos reales
+  // Cargar eventos en vivo - actualización más frecuente
   const { data: liveEvents, isLoading: eventsLoading } = useQuery({
     queryKey: ['liveEvents'],
     queryFn: () => eventsService.getLiveEvents(),
-    refetchInterval: 30000,
+    refetchInterval: 15000, // Actualizar cada 15 segundos para eventos en vivo
     retry: false,
   })
 
+  // Cargar eventos próximos - incluir los que empiezan pronto
   const { data: upcomingEvents } = useQuery({
     queryKey: ['upcomingEvents'],
-    queryFn: () => eventsService.getUpcomingEvents(),
-    refetchInterval: 30000,
+    queryFn: async () => {
+      const events = await eventsService.getUpcomingEvents();
+      // Filtrar eventos que empiezan en las próximas 2 horas para mostrar como "preview"
+      const now = new Date();
+      const twoHoursFromNow = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+      
+      return events.filter((event: Event) => {
+        const startTime = new Date(event.startTime);
+        return startTime <= twoHoursFromNow && event.status === 'SCHEDULED';
+      }).sort((a: Event, b: Event) => 
+        new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+      );
+    },
+    refetchInterval: 30000, // Actualizar cada 30 segundos
     retry: false,
+  })
+
+  // Filtrar eventos realmente en vivo (con status LIVE)
+  const trulyLiveEvents = (liveEvents || []).filter((event: Event) => 
+    event.status === 'LIVE' || (event.homeScore !== undefined && event.awayScore !== undefined)
+  )
+
+  // Eventos que están por empezar (próximos 30 minutos) - Preview
+  const previewEvents = (upcomingEvents || []).filter((event: Event) => {
+    const startTime = new Date(event.startTime);
+    const now = new Date();
+    const thirtyMinutesFromNow = new Date(now.getTime() + 30 * 60 * 1000);
+    return startTime >= now && startTime <= thirtyMinutesFromNow;
   })
 
   // Calcular stats para mostrar
@@ -333,67 +359,69 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Events Section - Unique Design */}
-        <div className="bg-slate-900/40 rounded-2xl p-5 sm:p-6 md:p-8 border-2 border-slate-700/30 shadow-2xl backdrop-blur-md mb-4 sm:mb-6 md:mb-8">
-          <div className="flex items-center justify-between mb-5 sm:mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary-500/20 to-accent-500/20 flex items-center justify-center shadow-md border border-primary-500/30">
-                <Icon name="events" size={16} className="text-primary-300" strokeWidth={2} />
+        {/* Events Section - Live & Upcoming */}
+        <div className="space-y-6 mb-4 sm:mb-6 md:mb-8">
+          {/* Live Events Section - Priority */}
+          <div className="bg-slate-900/40 rounded-2xl p-5 sm:p-6 border-2 border-red-500/20 shadow-2xl backdrop-blur-md">
+            <div className="flex items-center justify-between mb-4 sm:mb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-red-500/20 to-red-600/20 flex items-center justify-center shadow-md border border-red-500/30">
+                  <Icon name="activity" size={16} className="text-red-300" strokeWidth={2} />
+                </div>
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+                    <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></span>
+                    Eventos en Vivo
+                  </h2>
+                  <p className="text-xs text-gray-400 mt-0.5">Actualización cada 15 segundos</p>
+                </div>
               </div>
-              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">
-                Eventos
-              </h2>
+              <Link
+                to="/events?status=LIVE"
+                className="text-sm text-primary-400 hover:text-primary-300 font-semibold flex items-center gap-2 transition-colors"
+              >
+                Ver todos
+                <Icon name="arrow-right" size={16} />
+              </Link>
             </div>
-            <Link
-              to="/events"
-              className="text-sm sm:text-base text-primary-400 hover:text-primary-300 font-semibold flex items-center gap-2 flex-shrink-0 transition-colors hover:gap-3"
-            >
-              Ver todos
-              <Icon name="arrow-right" size={18} />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
-            {/* Live Events - Premium Cards */}
-            <div className="w-full">
-              <div className="flex items-center gap-2 mb-3 sm:mb-4">
-                <div className="w-1 h-6 bg-gradient-to-b from-red-500 to-red-600 rounded-full"></div>
-                <h3 className="text-base sm:text-lg md:text-xl font-bold text-white flex items-center gap-2">
-                  <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></span>
-                  Eventos en Vivo
-                </h3>
-              </div>
-              <div className="space-y-2.5 sm:space-y-3">
-                {liveEvents && liveEvents.length > 0 ? (
-                  liveEvents.slice(0, 5).map((event: Event) => (
+            
+            <div className="space-y-2.5">
+              {trulyLiveEvents.length > 0 ? (
+                trulyLiveEvents
+                  .sort((a: Event, b: Event) => {
+                    // Priorizar eventos con más importancia (más mercados, más recientes)
+                    const aImportance = (a.markets?.length || 0) + (a.homeScore !== undefined ? 10 : 0);
+                    const bImportance = (b.markets?.length || 0) + (b.homeScore !== undefined ? 10 : 0);
+                    return bImportance - aImportance;
+                  })
+                  .slice(0, 5)
+                  .map((event: Event) => (
                     <Link
                       key={event.id}
                       to={`/events/${event.id}`}
-                      className="block bg-gradient-to-br from-slate-800/90 to-slate-900/90 rounded-xl p-3 sm:p-4 border border-red-500/20 hover:border-red-500/40 hover:shadow-lg hover:shadow-red-500/10 transition-all duration-200 hover:scale-[1.02] group backdrop-blur-sm"
+                      className="block bg-gradient-to-br from-red-900/30 via-slate-800/90 to-slate-900/90 rounded-xl p-3.5 sm:p-4 border-2 border-red-500/30 hover:border-red-500/50 hover:shadow-xl hover:shadow-red-500/20 transition-all duration-200 hover:scale-[1.01] group backdrop-blur-sm"
                     >
                       <div className="flex justify-between items-start gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-2 flex-wrap">
-                            <span className="px-2 py-0.5 bg-slate-700/50 rounded-md text-[10px] sm:text-xs text-gray-300 uppercase tracking-wider font-semibold">
+                            <span className="px-2 py-0.5 bg-red-500/20 border border-red-500/50 rounded-md text-[10px] sm:text-xs text-red-300 uppercase tracking-wider font-bold">
                               {event.sport?.name}
                             </span>
-                            {event.status === 'LIVE' && (
-                              <span className="px-2 py-0.5 bg-red-500/20 border border-red-500/50 rounded-full text-red-300 text-[10px] sm:text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-red-500/20">
-                                <span className="w-1.5 h-1.5 bg-red-400 rounded-full animate-pulse"></span>
-                                EN VIVO
-                              </span>
-                            )}
+                            <span className="px-2 py-0.5 bg-red-500/30 border border-red-500/60 rounded-full text-red-200 text-[10px] sm:text-xs font-black flex items-center gap-1.5 shadow-lg shadow-red-500/30">
+                              <span className="w-1.5 h-1.5 bg-red-400 rounded-full animate-pulse"></span>
+                              EN VIVO
+                            </span>
                           </div>
-                          <p className="text-white font-bold text-sm sm:text-base md:text-lg mb-1.5 line-clamp-2 leading-tight">
+                          <p className="text-white font-bold text-sm sm:text-base md:text-lg mb-2 line-clamp-2 leading-tight">
                             {event.homeTeam} <span className="text-gray-500 font-normal">vs</span> {event.awayTeam}
                           </p>
-                          {event.status === 'LIVE' && event.homeScore !== undefined && event.awayScore !== undefined && (
+                          {event.homeScore !== undefined && event.awayScore !== undefined && (
                             <div className="flex items-center gap-2 mt-2">
-                              <span className="text-xl sm:text-2xl md:text-3xl font-black bg-gradient-to-r from-red-400 via-primary-400 to-accent-400 bg-clip-text text-transparent">
+                              <span className="text-2xl sm:text-3xl md:text-4xl font-black bg-gradient-to-r from-red-400 via-red-300 to-accent-400 bg-clip-text text-transparent">
                                 {event.homeScore}
                               </span>
-                              <span className="text-gray-500">-</span>
-                              <span className="text-xl sm:text-2xl md:text-3xl font-black bg-gradient-to-r from-red-400 via-primary-400 to-accent-400 bg-clip-text text-transparent">
+                              <span className="text-gray-500 text-lg">-</span>
+                              <span className="text-2xl sm:text-3xl md:text-4xl font-black bg-gradient-to-r from-red-400 via-red-300 to-accent-400 bg-clip-text text-transparent">
                                 {event.awayScore}
                               </span>
                             </div>
@@ -403,71 +431,137 @@ export default function Home() {
                           <p className="text-[10px] sm:text-xs text-gray-400 whitespace-nowrap mb-2">
                             {format(new Date(event.startTime || new Date()), 'HH:mm', { locale: es })}
                           </p>
-                          <Icon name="arrow-right" size={18} className="text-primary-400 group-hover:text-primary-300 group-hover:translate-x-1 transition-all" />
+                          <Icon name="arrow-right" size={18} className="text-red-400 group-hover:text-red-300 group-hover:translate-x-1 transition-all" />
                         </div>
                       </div>
                     </Link>
                   ))
-                ) : (
-                  <EmptyState
-                    icon="events"
-                    title="No hay eventos en vivo"
-                    message="No hay eventos en curso en este momento. Revisa los próximos eventos o vuelve más tarde."
-                    actionLabel="Ver Próximos Eventos"
-                    actionTo="/events"
-                  />
-                )}
-              </div>
+              ) : (
+                <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/40 text-center">
+                  <Icon name="events" size={32} className="text-gray-600 mx-auto mb-3" />
+                  <p className="text-sm font-semibold text-gray-400 mb-1">No hay eventos en vivo</p>
+                  <p className="text-xs text-gray-500 mb-4">Los eventos aparecerán aquí cuando estén en curso</p>
+                  <Link
+                    to="/events"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500/20 hover:bg-primary-500/30 border border-primary-500/40 rounded-lg text-primary-300 text-sm font-semibold transition-colors"
+                  >
+                    Ver Próximos Eventos
+                    <Icon name="arrow-right" size={14} />
+                  </Link>
+                </div>
+              )}
             </div>
+          </div>
 
-            {/* Upcoming Events - Premium Cards */}
-            <div className="w-full">
-              <div className="flex items-center gap-2 mb-3 sm:mb-4">
-                <div className="w-1 h-6 bg-gradient-to-b from-primary-500 to-accent-500 rounded-full"></div>
-                <h3 className="text-base sm:text-lg md:text-xl font-bold text-white flex items-center gap-2">
-                  <Icon name="clock" size={18} className="text-primary-400" />
-                  Próximos Eventos
-                </h3>
+          {/* Preview Events - Starting Soon */}
+          {previewEvents.length > 0 && (
+            <div className="bg-slate-800/50 rounded-2xl p-5 sm:p-6 border border-amber-500/20 shadow-lg backdrop-blur-sm">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500/20 to-yellow-500/20 flex items-center justify-center border border-amber-500/30">
+                    <Icon name="clock" size={14} className="text-amber-300" strokeWidth={2} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg sm:text-xl font-bold text-white">Empiezan Pronto</h3>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Próximos 30 minutos</p>
+                  </div>
+                </div>
+                <Link
+                  to="/events"
+                  className="text-xs text-amber-400 hover:text-amber-300 font-semibold flex items-center gap-1.5"
+                >
+                  Ver todos
+                  <Icon name="arrow-right" size={14} />
+                </Link>
               </div>
-              <div className="space-y-2.5 sm:space-y-3">
-                {upcomingEvents && upcomingEvents.length > 0 ? (
-                  upcomingEvents.slice(0, 5).map((event: Event) => (
+              <div className="space-y-2">
+                {previewEvents.slice(0, 3).map((event: Event) => {
+                  const startTime = new Date(event.startTime);
+                  const now = new Date();
+                  const minutesUntilStart = Math.floor((startTime.getTime() - now.getTime()) / (1000 * 60));
+                  
+                  return (
                     <Link
                       key={event.id}
                       to={`/events/${event.id}`}
-                      className="block bg-gradient-to-br from-slate-800/90 to-slate-900/90 rounded-xl p-3 sm:p-4 border border-primary-500/20 hover:border-primary-500/40 hover:shadow-lg hover:shadow-primary-500/10 transition-all duration-200 hover:scale-[1.02] group backdrop-blur-sm"
+                      className="block bg-slate-900/50 rounded-lg p-3 border border-amber-500/20 hover:border-amber-500/40 transition-all duration-200 hover:scale-[1.01] group"
                     >
                       <div className="flex justify-between items-start gap-3">
                         <div className="flex-1 min-w-0">
-                          <span className="inline-block px-2 py-0.5 bg-slate-700/50 rounded-md text-[10px] sm:text-xs text-gray-300 uppercase tracking-wider font-semibold mb-2">
+                          <span className="inline-block px-2 py-0.5 bg-slate-700/50 rounded-md text-[10px] text-gray-300 uppercase tracking-wider font-semibold mb-1.5">
                             {event.sport?.name}
                           </span>
-                          <p className="text-white font-bold text-sm sm:text-base md:text-lg line-clamp-2 leading-tight mb-1">
+                          <p className="text-white font-semibold text-sm line-clamp-2 leading-tight mb-1">
                             {event.homeTeam} <span className="text-gray-500 font-normal">vs</span> {event.awayTeam}
                           </p>
-                          <div className="flex items-center gap-1.5 mt-2">
-                            <Icon name="clock" size={14} className="text-gray-500" />
-                            <p className="text-xs text-gray-400">
-                              {format(new Date(event.startTime), 'dd MMM, HH:mm', { locale: es })}
+                          <div className="flex items-center gap-1.5">
+                            <Icon name="clock" size={12} className="text-amber-400" />
+                            <p className="text-xs text-amber-300 font-semibold">
+                              {minutesUntilStart > 0 ? `En ${minutesUntilStart} min` : 'Empezando ahora'}
                             </p>
                           </div>
                         </div>
-                        <div className="flex-shrink-0 flex items-center">
-                          <Icon name="arrow-right" size={18} className="text-primary-400 group-hover:text-primary-300 group-hover:translate-x-1 transition-all" />
-                        </div>
+                        <Icon name="arrow-right" size={16} className="text-amber-400 group-hover:text-amber-300 group-hover:translate-x-1 transition-all flex-shrink-0" />
                       </div>
                     </Link>
-                  ))
-                ) : (
-                  <EmptyState
-                    icon="events"
-                    title="No hay eventos próximos"
-                    message="No hay eventos programados en este momento. Los eventos aparecerán aquí cuando estén disponibles."
-                    actionLabel="Explorar Eventos"
-                    actionTo="/events"
-                  />
-                )}
+                  );
+                })}
               </div>
+            </div>
+          )}
+
+          {/* Upcoming Events Section */}
+          <div className="bg-slate-800/50 rounded-2xl p-5 sm:p-6 border border-slate-700/40 shadow-lg backdrop-blur-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500/20 to-accent-500/20 flex items-center justify-center border border-primary-500/30">
+                  <Icon name="events" size={14} className="text-primary-300" strokeWidth={2} />
+                </div>
+                <div>
+                  <h3 className="text-lg sm:text-xl font-bold text-white">Próximos Eventos</h3>
+                  <p className="text-[10px] text-gray-400 mt-0.5">Próximas 2 horas</p>
+                </div>
+              </div>
+              <Link
+                to="/events"
+                className="text-xs text-primary-400 hover:text-primary-300 font-semibold flex items-center gap-1.5"
+              >
+                Ver todos
+                <Icon name="arrow-right" size={14} />
+              </Link>
+            </div>
+            <div className="space-y-2">
+              {upcomingEvents && upcomingEvents.length > 0 ? (
+                upcomingEvents.slice(0, 5).map((event: Event) => (
+                  <Link
+                    key={event.id}
+                    to={`/events/${event.id}`}
+                    className="block bg-slate-900/50 rounded-lg p-3 border border-primary-500/20 hover:border-primary-500/40 transition-all duration-200 hover:scale-[1.01] group"
+                  >
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <span className="inline-block px-2 py-0.5 bg-slate-700/50 rounded-md text-[10px] text-gray-300 uppercase tracking-wider font-semibold mb-1.5">
+                          {event.sport?.name}
+                        </span>
+                        <p className="text-white font-semibold text-sm line-clamp-2 leading-tight mb-1">
+                          {event.homeTeam} <span className="text-gray-500 font-normal">vs</span> {event.awayTeam}
+                        </p>
+                        <div className="flex items-center gap-1.5">
+                          <Icon name="clock" size={12} className="text-gray-500" />
+                          <p className="text-xs text-gray-400">
+                            {format(new Date(event.startTime), 'dd MMM, HH:mm', { locale: es })}
+                          </p>
+                        </div>
+                      </div>
+                      <Icon name="arrow-right" size={16} className="text-primary-400 group-hover:text-primary-300 group-hover:translate-x-1 transition-all flex-shrink-0" />
+                    </div>
+                  </Link>
+                ))
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-xs text-gray-500">No hay eventos próximos</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
