@@ -474,19 +474,29 @@ class PredictionsService {
 
   /**
    * Get predictions for an event
+   * Returns predictions with all fields including factors
    */
   async getEventPredictions(eventId: string) {
     const predictions = await prisma.prediction.findMany({
       where: { eventId },
       include: {
         market: true,
+        event: {
+          include: {
+            sport: true,
+          },
+        },
       },
       orderBy: {
         predictedProbability: 'desc',
       },
     });
 
-    return predictions;
+    // Ensure factors are included and properly structured
+    return predictions.map((p) => ({
+      ...p,
+      factors: p.factors || {}, // Ensure factors is always an object
+    }));
   }
 
   /**

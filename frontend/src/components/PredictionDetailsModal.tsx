@@ -55,11 +55,22 @@ export default function PredictionDetailsModal({
     sport: sport || '',
   };
 
-  // Extract factors from the prediction response
+  // Extract factors from the prediction response - check multiple locations
   const factors = predictionWithFactors?.factorExplanation?.advancedFeatures || 
                   predictionWithFactors?.factors?.advancedFeatures ||
                   predictionWithFactors?.factorExplanation ||
+                  predictionWithFactors?.factors || // Direct factors from DB
                   null;
+  
+  // Debug: Log factors to help diagnose
+  if (process.env.NODE_ENV === 'development' && predictionWithFactors) {
+    console.log('Prediction with factors:', {
+      hasFactorExplanation: !!predictionWithFactors.factorExplanation,
+      hasFactors: !!predictionWithFactors.factors,
+      factorsKeys: predictionWithFactors.factors ? Object.keys(predictionWithFactors.factors) : [],
+      extractedFactors: factors ? Object.keys(factors) : [],
+    });
+  }
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">

@@ -154,6 +154,30 @@ export default function Predictions() {
                   }
                 }
                 
+                // Try to get market odds from factors if available
+                if (pred.factors) {
+                  const factors = pred.factors as any;
+                  if (factors.marketAverage) {
+                    // Calculate average odds from marketAverage
+                    const selection = pred.selection.toLowerCase();
+                    let impliedProb = 0.33; // Default
+                    if (selection.includes('home') || selection === '1') {
+                      impliedProb = factors.marketAverage.home || impliedProb;
+                    } else if (selection.includes('away') || selection === '2') {
+                      impliedProb = factors.marketAverage.away || impliedProb;
+                    } else if (selection.includes('draw') || selection === 'x' || selection === '3') {
+                      impliedProb = factors.marketAverage.draw || impliedProb;
+                    }
+                    if (impliedProb > 0) {
+                      marketOdds = 1 / impliedProb;
+                    }
+                  }
+                  // Also check marketOdds directly
+                  if (factors.advancedFeatures?.marketOdds?.median) {
+                    marketOdds = factors.advancedFeatures.marketOdds.median;
+                  }
+                }
+                
                 const impliedMarketProb = 1 / marketOdds;
                 const value = pred.predictedProbability - impliedMarketProb;
                 const valuePercentage = value * 100;
@@ -179,6 +203,7 @@ export default function Predictions() {
                   value: valuePercentage,
                   confidence: pred.confidence,
                   recommendation,
+                  factors: pred.factors, // Include factors for modal
                 };
               });
               
