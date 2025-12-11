@@ -16,7 +16,6 @@ import { valueBetAlertsService } from '../services/valueBetAlertsService'
 import { notificationsService } from '../services/notificationsService'
 import { userProfileService } from '../services/userProfileService'
 import Icon, { type IconName } from '../components/icons/IconSystem'
-import EmptyState from '../components/EmptyState'
 import SkeletonLoader from '../components/SkeletonLoader'
 
 export default function Home() {
