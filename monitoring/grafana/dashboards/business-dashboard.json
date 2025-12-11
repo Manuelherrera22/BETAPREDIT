@@ -1,0 +1,97 @@
+{
+  "dashboard": {
+    "title": "BETAPREDIT - Negocio",
+    "tags": ["betapredit", "business"],
+    "timezone": "browser",
+    "schemaVersion": 27,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Predicciones Generadas",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(predictions_generated_total[5m])",
+            "legendFormat": "{{sport}} {{market_type}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Value Bets Detectados",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(value_bets_detected_total[5m])",
+            "legendFormat": "{{sport}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Apuestas Realizadas",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(bets_placed_total[5m])",
+            "legendFormat": "{{sport}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "Usuarios Activos",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "active_users",
+            "legendFormat": "{{period}}"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 8}
+      },
+      {
+        "id": 5,
+        "title": "Precisión de Predicciones",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "predictions_accuracy",
+            "legendFormat": "{{sport}} {{market_type}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+      },
+      {
+        "id": 6,
+        "title": "APIs Externas - Requests",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(external_api_requests_total[1m])",
+            "legendFormat": "{{provider}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+      },
+      {
+        "id": 7,
+        "title": "Cache Hit Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(cache_hits_total[5m]) / (rate(cache_hits_total[5m]) + rate(cache_misses_total[5m]))",
+            "legendFormat": "{{cache_type}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+      }
+    ]
+  }
+}
+

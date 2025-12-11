@@ -1,0 +1,99 @@
+groups:
+  - name: betapredit_alerts
+    interval: 30s
+    rules:
+      # Alertas de sistema
+      - alert: HighErrorRate
+        expr: rate(http_request_errors_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Alta tasa de errores HTTP"
+          description: "La tasa de errores HTTP es {{ $value }} errores/segundo"
+
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Tiempo de respuesta alto"
+          description: "El percentil 95 del tiempo de respuesta es {{ $value }} segundos"
+
+      - alert: DatabaseSlowQueries
+        expr: rate(db_query_duration_seconds_sum[5m]) / rate(db_query_duration_seconds_count[5m]) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Queries de base de datos lentas"
+          description: "El tiempo promedio de queries es {{ $value }} segundos"
+
+      - alert: DatabaseConnectionErrors
+        expr: rate(db_query_errors_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Errores de conexión a la base de datos"
+          description: "Tasa de errores de DB: {{ $value }} errores/segundo"
+
+      # Alertas de negocio
+      - alert: LowPredictionAccuracy
+        expr: predictions_accuracy < 0.5
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Precisión de predicciones baja"
+          description: "La precisión de predicciones es {{ $value }}%"
+
+      - alert: NoValueBetsDetected
+        expr: rate(value_bets_detected_total[1h]) == 0
+        for: 2h
+        labels:
+          severity: warning
+        annotations:
+          summary: "No se han detectado value bets"
+          description: "No se han detectado value bets en las últimas 2 horas"
+
+      # Alertas de APIs externas
+      - alert: ExternalAPIHighErrorRate
+        expr: rate(external_api_errors_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Alta tasa de errores en APIs externas"
+          description: "Tasa de errores: {{ $value }} errores/segundo para {{ $labels.provider }}"
+
+      - alert: ExternalAPIDown
+        expr: up{job="betapredit-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backend no disponible"
+          description: "El backend de BETAPREDIT no está respondiendo"
+
+      # Alertas de cache
+      - alert: LowCacheHitRate
+        expr: rate(cache_hits_total[5m]) / (rate(cache_hits_total[5m]) + rate(cache_misses_total[5m])) < 0.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Tasa de aciertos de cache baja"
+          description: "La tasa de aciertos de cache es {{ $value }}%"
+
+      # Alertas de sistema
+      - alert: SystemDown
+        expr: up{job="betapredit-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Sistema caído"
+          description: "El sistema BETAPREDIT no está disponible"
+
