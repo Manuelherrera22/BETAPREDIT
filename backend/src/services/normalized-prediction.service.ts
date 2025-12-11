@@ -311,34 +311,24 @@ class NormalizedPredictionService {
         adjustedDraw = normalizedDraw;
       }
 
-      // Step 9: Calculate confidence based on advanced analysis
-      // Use the confidence from the specific selection's analysis (not max of all)
-      // This ensures each prediction has its own appropriate confidence level
-      const selection = prediction.selection || '';
-      const isHome = selection.toLowerCase().includes('home') || selection.toLowerCase() === '1';
-      const isAway = selection.toLowerCase().includes('away') || selection.toLowerCase() === '2';
-      const isDraw = selection.toLowerCase().includes('draw') || selection.toLowerCase() === 'x' || selection.toLowerCase() === '3';
+      // Step 9: Calculate confidence for each selection based on its specific analysis
+      // Each selection gets its own confidence from its analysis, not the max of all
+      // This ensures each prediction reflects the actual quality of data for that specific selection
       
-      let confidence: number;
-      if (isHome && homeAnalysis) {
-        confidence = homeAnalysis.confidence;
-      } else if (isAway && awayAnalysis) {
-        confidence = awayAnalysis.confidence;
-      } else if (isDraw && drawAnalysis) {
-        confidence = drawAnalysis.confidence;
-      } else {
-        // Fallback: use max if selection doesn't match
-        const confidences = [
-          homeAnalysis?.confidence || 0.6,
-          awayAnalysis?.confidence || 0.6,
-          drawAnalysis?.confidence || 0.6,
-        ];
-        confidence = Math.max(...confidences);
-      }
+      // Home confidence
+      const homeConfidence = homeAnalysis 
+        ? Math.max(0.45, Math.min(0.95, homeAnalysis.confidence))
+        : this.calculateConfidence(selections, advancedFeatures, totalImplied);
       
-      // Ensure confidence is within reasonable bounds (0.45 to 0.95)
-      // Allow higher confidence for high-quality predictions
-      confidence = Math.max(0.45, Math.min(0.95, confidence));
+      // Away confidence  
+      const awayConfidence = awayAnalysis
+        ? Math.max(0.45, Math.min(0.95, awayAnalysis.confidence))
+        : this.calculateConfidence(selections, advancedFeatures, totalImplied);
+      
+      // Draw confidence
+      const drawConfidence = drawAnalysis
+        ? Math.max(0.45, Math.min(0.95, drawAnalysis.confidence))
+        : this.calculateConfidence(selections, advancedFeatures, totalImplied);
 
       // Step 10: Prepare factors for storage (include advanced analysis)
       const factors = {
@@ -383,17 +373,17 @@ class NormalizedPredictionService {
       return {
         home: {
           predictedProbability: Math.max(0.01, Math.min(0.99, adjustedHome)),
-          confidence,
+          confidence: homeConfidence,
           factors,
         },
         away: {
           predictedProbability: Math.max(0.01, Math.min(0.99, adjustedAway)),
-          confidence,
+          confidence: awayConfidence,
           factors,
         },
         draw: drawAvgImplied > 0 ? {
           predictedProbability: Math.max(0.01, Math.min(0.99, adjustedDraw)),
-          confidence,
+          confidence: drawConfidence,
           factors,
         } : undefined,
       };
