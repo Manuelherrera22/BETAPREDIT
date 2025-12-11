@@ -148,6 +148,8 @@ model Event {
   @@index([startTime])
   @@index([externalId])
   @@index([isActive])
+  @@index([status, startTime]) // Composite index for upcoming/live events queries
+  @@index([sportId, status, startTime]) // Composite index for filtered event queries
 }
 
 enum EventStatus {
@@ -753,6 +755,8 @@ model Prediction {
   @@index([eventId])
   @@index([wasCorrect])
   @@index([createdAt])
+  @@index([eventId, marketId]) // Composite index for common query pattern
+  @@index([eventId, selection]) // Composite index for event + selection queries
 }
 
 // Model for tracking ML model performance

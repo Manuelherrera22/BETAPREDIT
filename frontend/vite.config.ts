@@ -67,6 +67,13 @@ export default defineConfig({
       },
     },
     chunkSizeWarningLimit: 1000,
+    // Performance optimizations
+    target: 'esnext',
+    cssCodeSplit: true,
+    // Tree shaking
+    treeshake: {
+      moduleSideEffects: false,
+    },
   },
   server: {
     port: 5173,

@@ -492,13 +492,45 @@ class PredictionsService {
    * Returns predictions with all fields including factors
    */
   async getEventPredictions(eventId: string) {
+    // Optimized query: use select instead of include to reduce data transfer
     const predictions = await prisma.prediction.findMany({
       where: { eventId },
-      include: {
-        market: true,
+      select: {
+        id: true,
+        eventId: true,
+        marketId: true,
+        selection: true,
+        predictedProbability: true,
+        confidence: true,
+        modelVersion: true,
+        factors: true,
+        wasCorrect: true,
+        accuracy: true,
+        createdAt: true,
+        updatedAt: true,
+        market: {
+          select: {
+            id: true,
+            type: true,
+            name: true,
+            isActive: true,
+          },
+        },
         event: {
-          include: {
-            sport: true,
+          select: {
+            id: true,
+            name: true,
+            homeTeam: true,
+            awayTeam: true,
+            startTime: true,
+            status: true,
+            sport: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
           },
         },
       },

@@ -18,15 +18,38 @@ class EventsService {
       where.sportId = sportId;
     }
 
+    // Optimized query: use select to reduce data transfer
     const events = await prisma.event.findMany({
       where,
-      include: {
-        sport: true,
+      select: {
+        id: true,
+        name: true,
+        homeTeam: true,
+        awayTeam: true,
+        startTime: true,
+        status: true,
+        homeScore: true,
+        awayScore: true,
+        sport: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
         markets: {
           where: {
             isActive: true,
             isSuspended: false,
           },
+          select: {
+            id: true,
+            type: true,
+            name: true,
+            isActive: true,
+            isSuspended: true,
+          },
+          take: 10, // Limit markets per event
         },
       },
       orderBy: {
