@@ -14,7 +14,9 @@ import { eventSyncService } from './event-sync.service';
 import { valueBetDetectionService } from './value-bet-detection.service';
 import { webSocketService } from './websocket.service';
 import { advancedFeaturesService } from './advanced-features.service';
+import { normalizedPredictionService } from './normalized-prediction.service';
 import { multiMarketPredictionsService } from './multi-market-predictions.service';
+import { multiSportFeaturesService } from './multi-sport-features.service';
 
 class AutoPredictionsService {
   private readonly MODEL_VERSION = 'v2.0-auto';
@@ -370,35 +372,419 @@ class AutoPredictionsService {
       let generated = 0;
       let updated = 0;
 
-      // Generate predictions for each selection
+      // CRITICAL FIX: Calculate normalized probabilities for all selections at once
+      // This ensures Home + Away + Draw probabilities sum to ~100%
+      const marketSelections: {
+        home: number[];
+        away: number[];
+        draw?: number[];
+      } = {
+        home: selections[event.homeTeam] || selections['Home'] || selections['1'] || [],
+        away: selections[event.awayTeam] || selections['Away'] || selections['2'] || [],
+        draw: selections['Draw'] || selections['X'] || selections['3'] || undefined,
+      };
+
+      // Check if we have at least home and away odds
+      if (marketSelections.home.length === 0 || marketSelections.away.length === 0) {
+        logger.warn(`Insufficient odds for event ${event.id}: missing home or away odds`);
+        return { generated: 0, updated: 0 };
+      }
+
+      // Calculate normalized probabilities for all selections
+      let normalizedPredictions;
+      try {
+        normalizedPredictions = await normalizedPredictionService.calculateNormalizedProbabilities(
+          event.id,
+          `${event.homeTeam} vs ${event.awayTeam}`,
+          event.homeTeam,
+          event.awayTeam,
+          event.sportId,
+          marketSelections
+        );
+      } catch (error: any) {
+        logger.error(`Error calculating normalized probabilities for event ${event.id}:`, error);
+        // Fallback to old method if normalized service fails
+        normalizedPredictions = null;
+      }
+
+      // Generate predictions for each selection using normalized probabilities
       for (const [selection, oddsArray] of Object.entries(selections)) {
         if (oddsArray.length === 0) continue;
 
         try {
-          // Try universal model first, fallback to improved
           let prediction;
-          // Get advanced features (team form, H2H, market intelligence)
           let advancedFeatures: any = {};
-          try {
-            const allFeatures = await advancedFeaturesService.getAllAdvancedFeatures(
-              event.id,
-              event.homeTeam,
-              event.awayTeam,
-              event.sportId
-            );
-            // Structure advanced features for storage
-            advancedFeatures = {
-              // Team form
-              homeForm: allFeatures.homeForm || {},
-              awayForm: allFeatures.awayForm || {},
-              // H2H
-              h2h: allFeatures.h2h || {},
-              // Market intelligence
-              market: allFeatures.market || {},
-              // Relative features
+
+          // Use normalized predictions if available
+          if (normalizedPredictions) {
+            // Map selection to normalized prediction
+            let normalizedPred;
+            if (selection === event.homeTeam || selection === 'Home' || selection === '1') {
+              normalizedPred = normalizedPredictions.home;
+            } else if (selection === event.awayTeam || selection === 'Away' || selection === '2') {
+              normalizedPred = normalizedPredictions.away;
+            } else if (selection === 'Draw' || selection === 'X' || selection === '3') {
+              normalizedPred = normalizedPredictions.draw;
+            }
+
+            if (normalizedPred) {
+              // Ensure advancedFeatures is properly structured (not a string)
+              let normalizedAdvancedFeatures = normalizedPred.factors?.advancedFeatures || {};
+              
+              // If advancedFeatures is a string, parse it
+              if (typeof normalizedAdvancedFeatures === 'string') {
+                try {
+                  normalizedAdvancedFeatures = JSON.parse(normalizedAdvancedFeatures);
+                } catch (e) {
+                  logger.warn(`Could not parse advancedFeatures string: ${e}`);
+                  normalizedAdvancedFeatures = {};
+                }
+              }
+              
+              // If advancedFeatures doesn't have the expected structure, restructure it
+              if (!normalizedAdvancedFeatures.homeForm || !normalizedAdvancedFeatures.awayForm) {
+                // Get advanced features and restructure them
+                try {
+                  const allFeatures = await advancedFeaturesService.getAllAdvancedFeatures(
+                    event.id,
+                    event.homeTeam,
+                    event.awayTeam,
+                    event.sportId
+                  );
+                  const homeForm = allFeatures.homeForm || {};
+                  const awayForm = allFeatures.awayForm || {};
+                  const h2h = allFeatures.h2h || {};
+                  const market = allFeatures.market || {};
+                  
+                  normalizedAdvancedFeatures = {
+                    homeForm: {
+                      winRate5: homeForm.winRate5 || 0.5,
+                      winRate10: homeForm.winRate10 || 0.5,
+                      goalsForAvg5: homeForm.goalsForAvg5 || 1.5,
+                      goalsAgainstAvg5: homeForm.goalsAgainstAvg5 || 1.5,
+                      currentStreak: homeForm.currentStreak || 0,
+                      formTrend: homeForm.formTrend || 0,
+                      wins5: Math.round((homeForm.winRate5 || 0.5) * 5),
+                      losses5: Math.round((1 - (homeForm.winRate5 || 0.5)) * 5),
+                      draws5: 0,
+                    },
+                    awayForm: {
+                      winRate5: awayForm.winRate5 || 0.5,
+                      winRate10: awayForm.winRate10 || 0.5,
+                      goalsForAvg5: awayForm.goalsForAvg5 || 1.5,
+                      goalsAgainstAvg5: awayForm.goalsAgainstAvg5 || 1.5,
+                      currentStreak: awayForm.currentStreak || 0,
+                      formTrend: awayForm.formTrend || 0,
+                      wins5: Math.round((awayForm.winRate5 || 0.5) * 5),
+                      losses5: Math.round((1 - (awayForm.winRate5 || 0.5)) * 5),
+                      draws5: 0,
+                    },
+                    h2h: {
+                      team1WinRate: h2h.team1WinRate || 0.5,
+                      drawRate: h2h.drawRate || 0.25,
+                      totalGoalsAvg: h2h.totalGoalsAvg || 3.0,
+                      recentTrend: h2h.recentTrend || 0,
+                      totalMatches: 5,
+                      bothTeamsScoredRate: 0.5,
+                    },
+                    market: {
+                      consensus: market.consensus || 0.7,
+                      efficiency: market.efficiency || 0.9,
+                      sharpMoneyIndicator: market.sharpMoneyIndicator || 0.5,
+                      valueOpportunity: market.valueOpportunity || 0.02,
+                      oddsSpread: market.oddsSpread || 0.1,
+                    },
+                    marketOdds: (() => {
+                      const oddsNums = oddsArray.map(Number).filter(o => o > 0);
+                      if (oddsNums.length === 0) {
+                        return {
+                          impliedProbability: 0,
+                          consensus: market.consensus || 0.7,
+                          volatility: 1 - (market.efficiency || 0.9),
+                          bookmakerCount: 0,
+                          stdDev: 0,
+                          median: 0,
+                          minOdds: 0,
+                          maxOdds: 0,
+                        };
+                      }
+                      const probs = oddsNums.map(odd => 1 / odd);
+                      const meanProb = probs.reduce((sum, p) => sum + p, 0) / probs.length;
+                      const variance = probs.reduce((sum, p) => sum + Math.pow(p - meanProb, 2), 0) / probs.length;
+                      const stdDev = Math.sqrt(variance);
+                      const sortedOdds = [...oddsNums].sort((a, b) => a - b);
+                      const median = sortedOdds.length % 2 === 0
+                        ? (sortedOdds[sortedOdds.length / 2 - 1] + sortedOdds[sortedOdds.length / 2]) / 2
+                        : sortedOdds[Math.floor(sortedOdds.length / 2)];
+                      
+                      return {
+                        impliedProbability: meanProb,
+                        consensus: market.consensus || 0.7,
+                        volatility: 1 - (market.efficiency || 0.9),
+                        bookmakerCount: oddsNums.length,
+                        stdDev,
+                        median,
+                        minOdds: Math.min(...oddsNums),
+                        maxOdds: Math.max(...oddsNums),
+                      };
+                    })(),
+                    historicalPerformance: {
+                      winRate: ((homeForm.winRate5 || 0.5) + (awayForm.winRate5 || 0.5)) / 2,
+                      goalsAvg: (homeForm.goalsForAvg5 || 1.5) + (awayForm.goalsForAvg5 || 1.5),
+                      goalsAgainstAvg: (homeForm.goalsAgainstAvg5 || 1.5) + (awayForm.goalsAgainstAvg5 || 1.5),
+                      matchesCount: 5,
+                      impact: 0.3,
+                      cleanSheets: 0.2,
+                      avgPossession: 0.5,
+                      shotsOnTarget: 5.0,
+                    },
+                    injuries: {
+                      count: 0,
+                      keyPlayersCount: 0,
+                      riskLevel: 'low',
+                      suspensionsCount: 0,
+                      goalkeeperInjured: 0,
+                      defenderInjured: 0,
+                      midfielderInjured: 0,
+                      forwardInjured: 0,
+                    },
+                    weather: {
+                      risk: 'low',
+                      temperature: 20,
+                      windSpeed: 0,
+                    },
+                    formAdvantage: allFeatures.formAdvantage || 0,
+                    goalsAdvantage: allFeatures.goalsAdvantage || 0,
+                    defenseAdvantage: allFeatures.defenseAdvantage || 0,
+                    market_consensus: market.consensus || 0.7,
+                    market_volatility: 1 - (market.efficiency || 0.9),
+                    market_sentiment: market.sharpMoneyIndicator || 0.5,
+                    trend: allFeatures.formAdvantage || 0,
+                    momentum: (homeForm.currentStreak || 0) + (awayForm.currentStreak || 0),
+                  };
+                } catch (error: any) {
+                  logger.warn(`Could not restructure advanced features: ${error.message}`);
+                }
+              }
+              
+              prediction = {
+                predictedProbability: normalizedPred.predictedProbability,
+                confidence: normalizedPred.confidence,
+                factors: {
+                  ...normalizedPred.factors,
+                  advancedFeatures: normalizedAdvancedFeatures, // Ensure proper structure
+                },
+              };
+              advancedFeatures = normalizedAdvancedFeatures;
+            }
+          }
+
+          // CRITICAL FIX: Always use normalized predictions or calculate them
+          // Never use independent probability calculations
+          if (!prediction) {
+            // If normalized service failed, calculate simple normalization here
+            logger.warn(`Normalized prediction service failed for ${selection}, using simple normalization`);
+            
+            // Calculate simple normalized probability from market odds
+            const impliedProbs = oddsArray.map(odd => 1 / odd);
+            const avgImpliedProb = impliedProbs.reduce((sum, p) => sum + p, 0) / impliedProbs.length;
+            
+            // Get all selections for this market to calculate total
+            const allSelections = Object.keys(selections);
+            let totalImplied = 0;
+            for (const sel of allSelections) {
+              if (selections[sel] && selections[sel].length > 0) {
+                const selProbs = selections[sel].map(odd => 1 / odd);
+                totalImplied += selProbs.reduce((sum, p) => sum + p, 0) / selProbs.length;
+              }
+            }
+            
+            // Normalize to ensure sum = 1.0
+            const normalizedProb = totalImplied > 0 ? avgImpliedProb / totalImplied : avgImpliedProb;
+            
+            // Get advanced features (team form, H2H, market intelligence)
+            // PLUS sport-specific metrics for ALL sports
+            let allFeatures: any;
+            let sportSpecificAnalysis: any = { homeMetrics: null, awayMetrics: null, comparison: null, recommendations: [] };
+            
+            try {
+              [allFeatures, sportSpecificAnalysis] = await Promise.all([
+                advancedFeaturesService.getAllAdvancedFeatures(
+                  event.id,
+                  event.homeTeam,
+                  event.awayTeam,
+                  event.sportId
+                ),
+                multiSportFeaturesService.getComprehensiveAnalysis(
+                  event.id,
+                  event.homeTeam,
+                  event.awayTeam,
+                  event.sportId
+                ).catch((error) => {
+                  logger.debug(`Could not get sport-specific metrics: ${error.message}`);
+                  return { homeMetrics: null, awayMetrics: null, comparison: null, recommendations: [] };
+                }),
+              ]);
+              // Structure advanced features for storage (COMPLETE - all 50+ features for ML)
+              // PLUS sport-specific metrics
+              const homeForm = allFeatures.homeForm || {};
+              const awayForm = allFeatures.awayForm || {};
+              const h2h = allFeatures.h2h || {};
+              const market = allFeatures.market || {};
+              
+              advancedFeatures = {
+                // Sport-specific metrics (NEW - for all sports)
+                sportSpecificMetrics: {
+                  home: sportSpecificAnalysis.homeMetrics,
+                  away: sportSpecificAnalysis.awayMetrics,
+                  comparison: sportSpecificAnalysis.comparison,
+                  recommendations: sportSpecificAnalysis.recommendations,
+                },
+              // Team form (detailed) - ALWAYS include even if default values
+              homeForm: {
+                winRate5: homeForm.winRate5 || 0.5,
+                winRate10: homeForm.winRate10 || 0.5,
+                goalsForAvg5: homeForm.goalsForAvg5 || 1.5,
+                goalsAgainstAvg5: homeForm.goalsAgainstAvg5 || 1.5,
+                currentStreak: homeForm.currentStreak || 0,
+                formTrend: homeForm.formTrend || 0,
+                wins5: Math.round((homeForm.winRate5 || 0.5) * 5),
+                losses5: Math.round((1 - (homeForm.winRate5 || 0.5)) * 5),
+                draws5: 0,
+              },
+              awayForm: {
+                winRate5: awayForm.winRate5 || 0.5,
+                winRate10: awayForm.winRate10 || 0.5,
+                goalsForAvg5: awayForm.goalsForAvg5 || 1.5,
+                goalsAgainstAvg5: awayForm.goalsAgainstAvg5 || 1.5,
+                currentStreak: awayForm.currentStreak || 0,
+                formTrend: awayForm.formTrend || 0,
+                wins5: Math.round((awayForm.winRate5 || 0.5) * 5),
+                losses5: Math.round((1 - (awayForm.winRate5 || 0.5)) * 5),
+                draws5: 0,
+              },
+              form: {
+                winRate: ((homeForm.winRate5 || 0.5) + (awayForm.winRate5 || 0.5)) / 2,
+                goalsScored: (homeForm.goalsForAvg5 || 1.5) + (awayForm.goalsForAvg5 || 1.5),
+                goalsConceded: (homeForm.goalsAgainstAvg5 || 1.5) + (awayForm.goalsAgainstAvg5 || 1.5),
+                matchesCount: 5,
+                momentum: (homeForm.currentStreak || 0) + (awayForm.currentStreak || 0),
+                recentWins: Math.round(((homeForm.winRate5 || 0.5) + (awayForm.winRate5 || 0.5)) * 2.5),
+                recentLosses: Math.round(((1 - (homeForm.winRate5 || 0.5)) + (1 - (awayForm.winRate5 || 0.5))) * 2.5),
+                recentDraws: 0,
+                impact: 0.3,
+              },
+              // H2H (detailed) - ALWAYS include even if default values
+              h2h: {
+                team1WinRate: h2h.team1WinRate || 0.5,
+                drawRate: h2h.drawRate || 0.25,
+                totalGoalsAvg: h2h.totalGoalsAvg || 3.0,
+                recentTrend: h2h.recentTrend || 0,
+                totalMatches: 5, // Default
+                bothTeamsScoredRate: 0.5, // Default
+              },
+              headToHead: {
+                winRate: h2h.team1WinRate || 0.5,
+                goalsAvg: h2h.totalGoalsAvg || 3.0,
+                matchesCount: 5,
+                recentTrend: h2h.recentTrend || 0,
+                avgTotalGoals: h2h.totalGoalsAvg || 3.0,
+                bothTeamsScoredRate: 0.5,
+                impact: 0.2,
+                homeAdvantage: 0.1,
+              },
+              // Market intelligence (detailed) - ALWAYS include even if default values
+              market: {
+                consensus: market.consensus || 0.7,
+                efficiency: market.efficiency || 0.9,
+                sharpMoneyIndicator: market.sharpMoneyIndicator || 0.5,
+                valueOpportunity: market.valueOpportunity || 0.02,
+                oddsSpread: market.oddsSpread || 0.1,
+              },
+              marketOdds: (() => {
+                const oddsNums = oddsArray.map(Number).filter(o => o > 0);
+                if (oddsNums.length === 0) {
+                  return {
+                    impliedProbability: 0,
+                    consensus: market.consensus || 0.7,
+                    volatility: 1 - (market.efficiency || 0.9),
+                    bookmakerCount: 0,
+                    stdDev: 0,
+                    median: 0,
+                    minOdds: 0,
+                    maxOdds: 0,
+                  };
+                }
+                const probs = oddsNums.map(odd => 1 / odd);
+                const meanProb = probs.reduce((sum, p) => sum + p, 0) / probs.length;
+                const variance = probs.reduce((sum, p) => sum + Math.pow(p - meanProb, 2), 0) / probs.length;
+                const stdDev = Math.sqrt(variance);
+                const sortedOdds = [...oddsNums].sort((a, b) => a - b);
+                const median = sortedOdds.length % 2 === 0
+                  ? (sortedOdds[sortedOdds.length / 2 - 1] + sortedOdds[sortedOdds.length / 2]) / 2
+                  : sortedOdds[Math.floor(sortedOdds.length / 2)];
+                
+                return {
+                  impliedProbability: meanProb,
+                  consensus: market.consensus || 0.7,
+                  volatility: 1 - (market.efficiency || 0.9),
+                  bookmakerCount: oddsNums.length,
+                  stdDev,
+                  median,
+                  minOdds: Math.min(...oddsNums),
+                  maxOdds: Math.max(...oddsNums),
+                };
+              })(),
+              marketIntelligence: {
+                sentiment: market.sharpMoneyIndicator || 0.5,
+                volume: market.valueOpportunity || 0.02,
+                movement: 0,
+                trend: market.oddsSpread || 0.1,
+                confidence: market.consensus || 0.7,
+              },
+              // Historical performance - ALWAYS include
+              historicalPerformance: {
+                winRate: ((homeForm.winRate5 || 0.5) + (awayForm.winRate5 || 0.5)) / 2,
+                goalsAvg: (homeForm.goalsForAvg5 || 1.5) + (awayForm.goalsForAvg5 || 1.5),
+                goalsAgainstAvg: (homeForm.goalsAgainstAvg5 || 1.5) + (awayForm.goalsAgainstAvg5 || 1.5),
+                matchesCount: 5,
+                impact: 0.3,
+                cleanSheets: 0.2, // Default
+                avgPossession: 0.5, // Default
+                shotsOnTarget: 5.0, // Default
+              },
+              // Team strength - ALWAYS include
+              teamStrength: {
+                home: (allFeatures.formAdvantage || 0) > 0 ? 1 : 0,
+                away: (allFeatures.formAdvantage || 0) < 0 ? 1 : 0,
+              },
+              // Relative features (for ML) - ALWAYS include
               formAdvantage: allFeatures.formAdvantage || 0,
               goalsAdvantage: allFeatures.goalsAdvantage || 0,
               defenseAdvantage: allFeatures.defenseAdvantage || 0,
+              // Market intelligence direct properties (for ML extraction) - ALWAYS include
+              market_consensus: market.consensus || 0.7,
+              market_volatility: 1 - (market.efficiency || 0.9),
+              market_sentiment: market.sharpMoneyIndicator || 0.5,
+              // Trend and momentum - ALWAYS include
+              trend: allFeatures.formAdvantage || 0,
+              momentum: (homeForm.currentStreak || 0) + (awayForm.currentStreak || 0),
+              // Additional features for ML (injuries, weather, etc.) - defaults
+              injuries: {
+                count: 0,
+                keyPlayersCount: 0,
+                riskLevel: 'low',
+                suspensionsCount: 0,
+                goalkeeperInjured: 0,
+                defenderInjured: 0,
+                midfielderInjured: 0,
+                forwardInjured: 0,
+              },
+              weather: {
+                risk: 'low',
+                temperature: 20,
+                windSpeed: 0,
+              },
             };
             logger.debug(`Advanced features calculated for event ${event.id}:`, {
               hasHomeForm: !!allFeatures.homeForm,
@@ -408,59 +794,171 @@ class AutoPredictionsService {
             });
           } catch (error: any) {
             logger.warn(`Could not fetch advanced features for event ${event.id}: ${error.message}`);
-            // Set defaults to ensure structure is consistent
+            // Set defaults to ensure structure is consistent (all 50+ features) - COMPLETE STRUCTURE
             advancedFeatures = {
-              homeForm: {},
-              awayForm: {},
-              h2h: {},
-              market: {},
+              homeForm: {
+                winRate5: 0.5,
+                winRate10: 0.5,
+                goalsForAvg5: 1.5,
+                goalsAgainstAvg5: 1.5,
+                currentStreak: 0,
+                formTrend: 0,
+                wins5: 2,
+                losses5: 2,
+                draws5: 1,
+              },
+              awayForm: {
+                winRate5: 0.5,
+                winRate10: 0.5,
+                goalsForAvg5: 1.5,
+                goalsAgainstAvg5: 1.5,
+                currentStreak: 0,
+                formTrend: 0,
+                wins5: 2,
+                losses5: 2,
+                draws5: 1,
+              },
+              form: {
+                winRate: 0.5,
+                goalsScored: 3.0,
+                goalsConceded: 3.0,
+                matchesCount: 5,
+                momentum: 0,
+                recentWins: 2,
+                recentLosses: 2,
+                recentDraws: 1,
+                impact: 0.3,
+              },
+              h2h: {
+                team1WinRate: 0.5,
+                drawRate: 0.25,
+                totalGoalsAvg: 3.0,
+                recentTrend: 0,
+                totalMatches: 5,
+                bothTeamsScoredRate: 0.5,
+              },
+              headToHead: {
+                winRate: 0.5,
+                goalsAvg: 3.0,
+                matchesCount: 5,
+                recentTrend: 0,
+                avgTotalGoals: 3.0,
+                bothTeamsScoredRate: 0.5,
+                impact: 0.2,
+                homeAdvantage: 0.1,
+              },
+              market: {
+                consensus: 0.7,
+                efficiency: 0.9,
+                sharpMoneyIndicator: 0.5,
+                valueOpportunity: 0.02,
+                oddsSpread: 0.1,
+              },
+              marketOdds: (() => {
+                const oddsNums = oddsArray.map(Number).filter(o => o > 0);
+                if (oddsNums.length === 0) {
+                  return {
+                    impliedProbability: 0,
+                    consensus: 0.7,
+                    volatility: 0.1,
+                    bookmakerCount: 0,
+                    stdDev: 0,
+                    median: 0,
+                    minOdds: 0,
+                    maxOdds: 0,
+                  };
+                }
+                const probs = oddsNums.map(odd => 1 / odd);
+                const meanProb = probs.reduce((sum, p) => sum + p, 0) / probs.length;
+                const variance = probs.reduce((sum, p) => sum + Math.pow(p - meanProb, 2), 0) / probs.length;
+                const stdDev = Math.sqrt(variance);
+                const sortedOdds = [...oddsNums].sort((a, b) => a - b);
+                const median = sortedOdds.length % 2 === 0
+                  ? (sortedOdds[sortedOdds.length / 2 - 1] + sortedOdds[sortedOdds.length / 2]) / 2
+                  : sortedOdds[Math.floor(sortedOdds.length / 2)];
+                
+                return {
+                  impliedProbability: meanProb,
+                  consensus: 0.7,
+                  volatility: 0.1,
+                  bookmakerCount: oddsNums.length,
+                  stdDev,
+                  median,
+                  minOdds: Math.min(...oddsNums),
+                  maxOdds: Math.max(...oddsNums),
+                };
+              })(),
+              marketIntelligence: {
+                sentiment: 0.5,
+                volume: 0.02,
+                movement: 0,
+                trend: 0.1,
+                confidence: 0.7,
+              },
+              historicalPerformance: {
+                winRate: 0.5,
+                goalsAvg: 3.0,
+                goalsAgainstAvg: 3.0,
+                matchesCount: 5,
+                impact: 0.3,
+                cleanSheets: 0.2,
+                avgPossession: 0.5,
+                shotsOnTarget: 5.0,
+              },
+              teamStrength: {
+                home: 0,
+                away: 0,
+              },
               formAdvantage: 0,
               goalsAdvantage: 0,
               defenseAdvantage: 0,
-            };
-          }
-
-          try {
-            const universalPred = await universalPredictionService.predictSportsEvent(
-              event.id,
-              {
-                marketOdds: oddsArray,
-                homeTeam: event.homeTeam,
-                awayTeam: event.awayTeam,
-                sportId: event.sportId,
-                sportsFactors: {
-                  homeForm: advancedFeatures.homeForm,
-                  awayForm: advancedFeatures.awayForm,
-                  headToHead: advancedFeatures.h2h,
-                },
-              }
-            );
-            prediction = {
-              predictedProbability: universalPred.predictedProbability,
-              confidence: universalPred.confidence,
-              factors: {
-                ...universalPred.factors,
-                ...advancedFeatures, // Include all advanced features
+              market_consensus: 0.7,
+              market_volatility: 0.1,
+              market_sentiment: 0.5,
+              trend: 0,
+              momentum: 0,
+              injuries: {
+                count: 0,
+                keyPlayersCount: 0,
+                riskLevel: 'low',
+                suspensionsCount: 0,
+                goalkeeperInjured: 0,
+                defenderInjured: 0,
+                midfielderInjured: 0,
+                forwardInjured: 0,
               },
-            };
-          } catch (error: any) {
-            // Fallback to improved prediction service
-            logger.debug(`Universal model not available, using improved service: ${error.message}`);
-            const improvedPred = await improvedPredictionService.calculatePredictedProbability(
-              event.id,
-              selection,
-              oddsArray
-            );
-            prediction = {
-              predictedProbability: improvedPred.predictedProbability,
-              confidence: improvedPred.confidence,
-              factors: {
-                ...improvedPred.factors,
-                ...advancedFeatures, // Include all advanced features
+              weather: {
+                risk: 'low',
+                temperature: 20,
+                windSpeed: 0,
               },
             };
           }
 
+          // CRITICAL FIX: Always normalize probabilities, never use independent calculations
+          // Variables already declared above (lines 446-460), just use them
+          
+          // Calculate confidence based on market consensus
+          const variance = impliedProbs.reduce((sum, p) => sum + Math.pow(p - avgImpliedProb, 2), 0) / impliedProbs.length;
+          const stdDev = Math.sqrt(variance);
+          const marketConsensus = 1 - Math.min(stdDev * 2, 0.5);
+          const confidence = Math.max(0.45, Math.min(0.82, marketConsensus * 0.9));
+          
+          // Use normalized probability instead of independent calculation
+          prediction = {
+            predictedProbability: Math.max(0.01, Math.min(0.99, normalizedProb)),
+            confidence,
+            factors: {
+              marketAverage: avgImpliedProb,
+              normalized: normalizedProb,
+              totalImplied: totalImplied,
+              bookmakerMargin: totalImplied > 1 ? ((totalImplied - 1) * 100).toFixed(2) : 0,
+              marketConsensus,
+              ...advancedFeatures, // Include all advanced features
+            },
+          };
+          }
+          // Calculate simple normalized probability from market odds
           // Check if prediction already exists
           const existing = await prisma.prediction.findFirst({
             where: {

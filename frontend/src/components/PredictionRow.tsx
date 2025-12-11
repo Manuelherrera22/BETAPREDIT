@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { predictionsService } from '../services/predictionsService';
 import toast from 'react-hot-toast';
+import PredictionAnalysisExplained from './PredictionAnalysisExplained';
 
 interface PredictionRowProps {
   prediction: {
@@ -146,107 +147,20 @@ export default function PredictionRow({ prediction }: PredictionRowProps) {
         </td>
       </tr>
 
-      {/* Factors Row */}
+      {/* Factors Row - Enhanced Analysis */}
       {showFactors && (
         <tr>
           <td colSpan={7} className="px-4 py-4 bg-dark-800/30">
             {loadingFactors ? (
-              <div className="text-center text-gray-400 py-4">Cargando factores...</div>
-            ) : factorExplanation ? (
-              <div className="space-y-4">
-                <h4 className="text-lg font-black text-white mb-3">Factores que Influyeron en la Predicción</h4>
-
-                {/* Key Factors */}
-                {factorExplanation.keyFactors && factorExplanation.keyFactors.length > 0 && (
-                  <div>
-                    <h5 className="text-sm font-semibold text-gray-400 mb-2">Factores Clave</h5>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {factorExplanation.keyFactors.map((factor: any, idx: number) => (
-                        <div
-                          key={idx}
-                          className="bg-dark-900/50 rounded-lg p-3 border border-primary-500/20"
-                        >
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-sm font-semibold text-white">{factor.name}</span>
-                            <span className="text-xs text-primary-400">
-                              Impacto: {(factor.impact * 100).toFixed(0)}%
-                            </span>
-                          </div>
-                          <p className="text-xs text-gray-400">{factor.description}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Confidence Factors */}
-                {factorExplanation.confidenceFactors && factorExplanation.confidenceFactors.length > 0 && (
-                  <div>
-                    <h5 className="text-sm font-semibold text-gray-400 mb-2">Factores de Confianza</h5>
-                    <div className="space-y-2">
-                      {factorExplanation.confidenceFactors.map((factor: any, idx: number) => (
-                        <div
-                          key={idx}
-                          className="bg-dark-900/50 rounded-lg p-3 border border-accent-500/20"
-                        >
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-sm font-semibold text-white">{factor.name}</span>
-                            <span className="text-xs text-accent-400">
-                              {(factor.value * 100).toFixed(0)}%
-                            </span>
-                          </div>
-                          <p className="text-xs text-gray-400">{factor.description}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Risk Factors */}
-                {factorExplanation.riskFactors && factorExplanation.riskFactors.length > 0 && (
-                  <div>
-                    <h5 className="text-sm font-semibold text-gray-400 mb-2">Factores de Riesgo</h5>
-                    <div className="space-y-2">
-                      {factorExplanation.riskFactors.map((factor: any, idx: number) => (
-                        <div
-                          key={idx}
-                          className={`bg-dark-900/50 rounded-lg p-3 border ${
-                            factor.level === 'high'
-                              ? 'border-red-500/20'
-                              : factor.level === 'medium'
-                              ? 'border-yellow-500/20'
-                              : 'border-gray-500/20'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-sm font-semibold text-white">{factor.name}</span>
-                            <span
-                              className={`text-xs px-2 py-1 rounded ${
-                                factor.level === 'high'
-                                  ? 'bg-red-500/20 text-red-400'
-                                  : factor.level === 'medium'
-                                  ? 'bg-yellow-500/20 text-yellow-400'
-                                  : 'bg-gray-500/20 text-gray-400'
-                              }`}
-                            >
-                              {factor.level === 'high' ? 'Alto' : factor.level === 'medium' ? 'Medio' : 'Bajo'}
-                            </span>
-                          </div>
-                          <p className="text-xs text-gray-400">{factor.description}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {(!factorExplanation.keyFactors || factorExplanation.keyFactors.length === 0) &&
-                  (!factorExplanation.confidenceFactors || factorExplanation.confidenceFactors.length === 0) &&
-                  (!factorExplanation.riskFactors || factorExplanation.riskFactors.length === 0) && (
-                    <div className="text-center text-gray-500 py-4">
-                      No hay factores detallados disponibles para esta predicción
-                    </div>
-                  )}
-              </div>
+              <div className="text-center text-gray-400 py-4">Cargando análisis completo...</div>
+            ) : predictionWithFactors ? (
+              <PredictionAnalysisExplained
+                prediction={{
+                  ...prediction,
+                  sport: predictionWithFactors.event?.sport?.name || predictionWithFactors.event?.sport?.slug,
+                }}
+                factors={predictionWithFactors.factorExplanation?.advancedFeatures || predictionWithFactors.factors}
+              />
             ) : (
               <div className="text-center text-gray-500 py-4">
                 No se pudieron cargar los factores de la predicción

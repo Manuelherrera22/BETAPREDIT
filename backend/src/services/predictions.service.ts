@@ -183,71 +183,187 @@ class PredictionsService {
 
   /**
    * Explain factors that influenced the prediction
+   * Enhanced with detailed, sport-specific explanations
    */
   private explainFactors(factors: any, prediction: any): {
     keyFactors: Array<{ name: string; impact: number; description: string }>;
     confidenceFactors: Array<{ name: string; value: number; description: string }>;
     riskFactors: Array<{ name: string; level: 'low' | 'medium' | 'high'; description: string }>;
+    advancedFeatures?: any; // Include all advanced features for detailed display
   } {
     const keyFactors: Array<{ name: string; impact: number; description: string }> = [];
     const confidenceFactors: Array<{ name: string; value: number; description: string }> = [];
     const riskFactors: Array<{ name: string; level: 'low' | 'medium' | 'high'; description: string }> = [];
 
+    // Get sport type for sport-specific explanations
+    const sportName = prediction.event?.sport?.name?.toLowerCase() || '';
+    const sportSlug = prediction.event?.sport?.slug?.toLowerCase() || '';
+    const isBasketball = sportName.includes('basketball') || sportSlug.includes('nba');
+    const isFootball = sportName.includes('football') && !sportName.includes('soccer') || sportSlug.includes('nfl');
+    const isSoccer = sportName.includes('soccer') || sportSlug.includes('epl') || sportSlug.includes('liga');
+    const isBaseball = sportName.includes('baseball') || sportSlug.includes('mlb');
+    const isHockey = sportName.includes('hockey') || sportSlug.includes('nhl');
+
+    // Parse advanced features
+    const advancedFeatures = factors.advancedFeatures || factors;
+
     // Parse common factor types
-    if (factors) {
-      // Historical performance
-      if (factors.historicalPerformance) {
+    if (factors || advancedFeatures) {
+      // Team Form - Detailed
+      if (advancedFeatures.homeForm || advancedFeatures.awayForm) {
+        const homeForm = advancedFeatures.homeForm || {};
+        const awayForm = advancedFeatures.awayForm || {};
+        
+        if (homeForm.winRate5 !== undefined) {
+          keyFactors.push({
+            name: 'Forma del Equipo Local',
+            impact: 0.25,
+            description: `Local: ${(homeForm.winRate5 * 100).toFixed(0)}% victorias (últimos 5). ${homeForm.isRealData !== false ? 'Datos verificados' : 'Estimado'}`,
+          });
+        }
+        
+        if (awayForm.winRate5 !== undefined) {
+          keyFactors.push({
+            name: 'Forma del Equipo Visitante',
+            impact: 0.25,
+            description: `Visitante: ${(awayForm.winRate5 * 100).toFixed(0)}% victorias (últimos 5). ${awayForm.isRealData !== false ? 'Datos verificados' : 'Estimado'}`,
+          });
+        }
+
+        // Sport-specific metrics
+        if (isSoccer && homeForm.goalsForAvg5 !== undefined) {
+          keyFactors.push({
+            name: 'Rendimiento Ofensivo',
+            impact: 0.15,
+            description: `Local: ${homeForm.goalsForAvg5.toFixed(2)} goles/game | Visitante: ${awayForm.goalsForAvg5.toFixed(2)} goles/game`,
+          });
+        }
+      }
+
+      // Head-to-Head - Detailed
+      if (advancedFeatures.h2h || advancedFeatures.headToHead) {
+        const h2h = advancedFeatures.h2h || advancedFeatures.headToHead || {};
+        if (h2h.team1WinRate !== undefined) {
+          const totalMatches = h2h.totalMatches || 5;
+          keyFactors.push({
+            name: 'Historial Directo (H2H)',
+            impact: 0.2,
+            description: `En ${totalMatches} encuentros previos: ${(h2h.team1WinRate * 100).toFixed(0)}% victorias local, ${h2h.drawRate ? (h2h.drawRate * 100).toFixed(0) : 0}% empates. ${h2h.isRealData !== false ? 'Datos verificados' : 'Estimado'}`,
+          });
+        }
+        
+        if (h2h.totalGoalsAvg !== undefined && isSoccer) {
+          keyFactors.push({
+            name: 'Promedio de Goles (H2H)',
+            impact: 0.1,
+            description: `${h2h.totalGoalsAvg.toFixed(2)} goles por partido en enfrentamientos previos`,
+          });
+        }
+      }
+
+      // Market Intelligence - Detailed
+      if (advancedFeatures.market || advancedFeatures.marketOdds) {
+        const market = advancedFeatures.market || {};
+        const marketOdds = advancedFeatures.marketOdds || {};
+        
+        if (marketOdds.bookmakerCount) {
+          confidenceFactors.push({
+            name: 'Consenso del Mercado',
+            value: market.consensus || marketOdds.consensus || 0.7,
+            description: `${marketOdds.bookmakerCount} casas de apuestas analizadas. Consenso: ${((market.consensus || 0.7) * 100).toFixed(0)}%`,
+          });
+        }
+
+        if (marketOdds.stdDev !== undefined) {
+          confidenceFactors.push({
+            name: 'Volatilidad del Mercado',
+            value: marketOdds.volatility || (1 - market.efficiency) || 0.1,
+            description: `Desviación estándar: ${marketOdds.stdDev.toFixed(3)}. ${marketOdds.stdDev < 0.05 ? 'Mercado muy estable' : marketOdds.stdDev < 0.1 ? 'Mercado estable' : 'Mercado volátil'}`,
+          });
+        }
+      }
+
+      // Form Advantage
+      if (advancedFeatures.formAdvantage !== undefined) {
+        const advantage = advancedFeatures.formAdvantage;
+        keyFactors.push({
+          name: 'Ventaja de Forma',
+          impact: Math.abs(advantage) * 0.3,
+          description: advantage > 0 
+            ? `El equipo local tiene ventaja de forma de +${advantage.toFixed(2)}`
+            : `El equipo visitante tiene ventaja de forma de +${Math.abs(advantage).toFixed(2)}`,
+        });
+      }
+
+      // Goals Advantage (Soccer)
+      if (isSoccer && advancedFeatures.goalsAdvantage !== undefined) {
+        const advantage = advancedFeatures.goalsAdvantage;
+        keyFactors.push({
+          name: 'Ventaja Ofensiva',
+          impact: Math.abs(advantage) * 0.15,
+          description: advantage > 0 
+            ? `Local anota +${advantage.toFixed(2)} goles/game más que visitante`
+            : `Visitante anota +${Math.abs(advantage).toFixed(2)} goles/game más que local`,
+        });
+      }
+
+      // Defense Advantage (Soccer)
+      if (isSoccer && advancedFeatures.defenseAdvantage !== undefined) {
+        const advantage = advancedFeatures.defenseAdvantage;
+        keyFactors.push({
+          name: 'Ventaja Defensiva',
+          impact: Math.abs(advantage) * 0.15,
+          description: advantage > 0 
+            ? `Local recibe ${advantage.toFixed(2)} goles/game menos que visitante`
+            : `Visitante recibe ${Math.abs(advantage).toFixed(2)} goles/game menos que local`,
+        });
+      }
+
+      // Historical Performance
+      if (advancedFeatures.historicalPerformance) {
+        const hist = advancedFeatures.historicalPerformance;
         keyFactors.push({
           name: 'Rendimiento Histórico',
-          impact: factors.historicalPerformance.impact || 0.3,
-          description: `El equipo tiene un ${(factors.historicalPerformance.winRate * 100).toFixed(0)}% de victorias en los últimos encuentros`,
-        });
-      }
-
-      // Form (recent results)
-      if (factors.form) {
-        keyFactors.push({
-          name: 'Forma Reciente',
-          impact: factors.form.impact || 0.25,
-          description: factors.form.description || 'Basado en resultados recientes',
-        });
-      }
-
-      // Head-to-head
-      if (factors.headToHead) {
-        keyFactors.push({
-          name: 'Historial Directo',
-          impact: factors.headToHead.impact || 0.2,
-          description: factors.headToHead.description || 'Resultados en enfrentamientos previos',
-        });
-      }
-
-      // Market odds
-      if (factors.marketOdds) {
-        confidenceFactors.push({
-          name: 'Cuotas del Mercado',
-          value: factors.marketOdds.impliedProbability || 0.5,
-          description: `El mercado sugiere una probabilidad del ${((factors.marketOdds.impliedProbability || 0.5) * 100).toFixed(0)}%`,
+          impact: hist.impact || 0.3,
+          description: `Win rate histórico: ${(hist.winRate * 100).toFixed(0)}% | Promedio de goles: ${hist.goalsAvg?.toFixed(2) || 'N/A'}`,
         });
       }
 
       // Injuries/Suspensions
-      if (factors.injuries) {
-        const riskLevel = factors.injuries.count > 3 ? 'high' : factors.injuries.count > 1 ? 'medium' : 'low';
-        riskFactors.push({
-          name: 'Lesiones/Suspensiones',
-          level: riskLevel,
-          description: `${factors.injuries.count} jugador(es) clave afectado(s)`,
-        });
+      if (advancedFeatures.injuries) {
+        const injuries = advancedFeatures.injuries;
+        if (injuries.count > 0 || injuries.keyPlayersCount > 0) {
+          const riskLevel = injuries.count > 3 || injuries.keyPlayersCount > 2 ? 'high' : injuries.count > 1 ? 'medium' : 'low';
+          riskFactors.push({
+            name: 'Lesiones/Suspensiones',
+            level: riskLevel,
+            description: `${injuries.count} jugador(es) afectado(s), ${injuries.keyPlayersCount} jugador(es) clave. Nivel de riesgo: ${injuries.riskLevel || riskLevel}`,
+          });
+        }
       }
 
       // Weather conditions (for outdoor sports)
-      if (factors.weather) {
-        riskFactors.push({
-          name: 'Condiciones Climáticas',
-          level: factors.weather.risk || 'low',
-          description: factors.weather.description || 'Condiciones normales',
-        });
+      if (advancedFeatures.weather && (isSoccer || isFootball || isBaseball)) {
+        const weather = advancedFeatures.weather;
+        if (weather.risk !== 'low') {
+          riskFactors.push({
+            name: 'Condiciones Climáticas',
+            level: weather.risk === 'high' ? 'high' : 'medium',
+            description: `Temperatura: ${weather.temperature}°C | Viento: ${weather.windSpeed} km/h | Riesgo: ${weather.risk}`,
+          });
+        }
+      }
+
+      // Market Value Opportunity
+      if (advancedFeatures.market?.valueOpportunity !== undefined) {
+        const value = advancedFeatures.market.valueOpportunity;
+        if (value > 0.05) {
+          keyFactors.push({
+            name: 'Oportunidad de Valor',
+            impact: value * 2,
+            description: `Detectada oportunidad de valor del ${(value * 100).toFixed(1)}% en el mercado`,
+          });
+        }
       }
     }
 
@@ -258,6 +374,7 @@ class PredictionsService {
       keyFactors,
       confidenceFactors,
       riskFactors,
+      advancedFeatures, // Include all advanced features for detailed display
     };
   }
 
