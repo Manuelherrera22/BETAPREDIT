@@ -38,35 +38,55 @@ export default function PredictionAnalysisExplained({ prediction, factors }: Pre
   };
 
   // Extract factors from prediction - check multiple possible locations
-  const advancedFeatures = factors?.advancedFeatures || factors || {};
+  // IMPORTANT: factors can be directly the factors object OR inside factorExplanation
+  const rawFactors = factors || {};
+  const advancedFeatures = rawFactors.advancedFeatures || rawFactors || {};
   
   // Market data can be in multiple places
   const marketOddsData = advancedFeatures.marketOdds || {};
+  
+  // Get marketAverage - this is the key data source
+  const marketAverage = rawFactors.marketAverage || factors?.marketAverage || {};
+  
+  // Calculate odds from marketAverage (implied probabilities)
+  const getOddsFromImplied = (implied: number) => implied > 0 ? (1 / implied) : undefined;
+  
   const marketData = {
     ...marketOddsData,
-    // Also check marketAverage for implied probabilities
-    homeImplied: factors?.marketAverage?.home,
-    awayImplied: factors?.marketAverage?.away,
-    drawImplied: factors?.marketAverage?.draw,
-    totalImplied: factors?.marketAverage?.total,
-    // Calculate average odds from implied probabilities
-    averageOdds: factors?.marketAverage?.home ? (1 / factors.marketAverage.home) : undefined,
-    // Bookmaker count
-    bookmakerCount: marketOddsData.bookmakerCount || advancedFeatures.market?.bookmakerCount,
+    // MarketAverage data (PRIMARY SOURCE)
+    homeImplied: marketAverage.home,
+    awayImplied: marketAverage.away,
+    drawImplied: marketAverage.draw,
+    totalImplied: marketAverage.total,
+    // Calculate average odds from implied probabilities for current selection
+    averageOdds: (() => {
+      const selection = prediction.selection?.toLowerCase() || '';
+      if (selection.includes('home') || selection.includes('local') || selection === '1') {
+        return getOddsFromImplied(marketAverage.home);
+      } else if (selection.includes('away') || selection.includes('visitante') || selection === '2') {
+        return getOddsFromImplied(marketAverage.away);
+      } else if (selection.includes('draw') || selection.includes('empate') || selection === 'x' || selection === '3') {
+        return getOddsFromImplied(marketAverage.draw);
+      }
+      return marketOddsData.median || marketOddsData.averageOdds;
+    })(),
+    // Bookmaker count (from marketOdds or calculate from data)
+    bookmakerCount: marketOddsData.bookmakerCount || (marketOddsData.minOdds && marketOddsData.maxOdds ? 'Múltiples' : undefined),
     // Min/Max odds
     minOdds: marketOddsData.minOdds,
     maxOdds: marketOddsData.maxOdds,
+    median: marketOddsData.median,
     // Volatility
     volatility: marketOddsData.volatility || marketOddsData.stdDev,
     // Implied probability for current selection
     impliedProbability: (() => {
       const selection = prediction.selection?.toLowerCase() || '';
-      if (selection.includes('home') || selection.includes('local')) {
-        return factors?.marketAverage?.home;
-      } else if (selection.includes('away') || selection.includes('visitante')) {
-        return factors?.marketAverage?.away;
-      } else if (selection.includes('draw') || selection.includes('empate')) {
-        return factors?.marketAverage?.draw;
+      if (selection.includes('home') || selection.includes('local') || selection === '1') {
+        return marketAverage.home;
+      } else if (selection.includes('away') || selection.includes('visitante') || selection === '2') {
+        return marketAverage.away;
+      } else if (selection.includes('draw') || selection.includes('empate') || selection === 'x' || selection === '3') {
+        return marketAverage.draw;
       }
       return marketOddsData.impliedProbability;
     })(),
@@ -76,10 +96,10 @@ export default function PredictionAnalysisExplained({ prediction, factors }: Pre
   const marketIntelligence = advancedFeatures.marketIntelligence || advancedFeatures.market || {};
   // Also check if consensus/efficiency are in advancedFeatures directly
   const marketIntel = {
-    consensus: marketIntelligence.consensus || advancedFeatures.market_consensus || advancedFeatures.consensus,
-    efficiency: marketIntelligence.efficiency || (1 - (advancedFeatures.market_volatility || 0)),
-    bookmakerCount: marketData.bookmakerCount || marketIntelligence.bookmakerCount,
-    volatility: marketData.volatility || marketIntelligence.volatility || advancedFeatures.market_volatility,
+    consensus: marketIntelligence.consensus || advancedFeatures.market?.consensus || advancedFeatures.market_consensus || advancedFeatures.consensus || 0.7,
+    efficiency: marketIntelligence.efficiency || advancedFeatures.market?.efficiency || (1 - (advancedFeatures.market_volatility || 0)) || 0.9,
+    bookmakerCount: marketData.bookmakerCount || marketIntelligence.bookmakerCount || marketOddsData.bookmakerCount,
+    volatility: marketData.volatility || marketIntelligence.volatility || advancedFeatures.market_volatility || marketOddsData.volatility,
   };
   
   const homeForm = advancedFeatures.homeForm || {};
@@ -142,8 +162,11 @@ export default function PredictionAnalysisExplained({ prediction, factors }: Pre
           <MetricCard
             label="Valor del Mercado"
             value={marketData.averageOdds ? `${marketData.averageOdds.toFixed(2)}` : 
+                   marketData.median ? `${marketData.median.toFixed(2)}` :
                    marketData.impliedProbability ? `${(1 / marketData.impliedProbability).toFixed(2)}` : 'N/A'}
-            description={marketData.averageOdds ? "Cuota promedio del mercado" : "Cuota implícita del mercado"}
+            description={marketData.averageOdds ? "Cuota promedio del mercado" : 
+                        marketData.median ? "Cuota mediana del mercado" :
+                        "Cuota implícita del mercado"}
             color="blue"
           />
         </div>

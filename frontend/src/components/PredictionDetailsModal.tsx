@@ -56,10 +56,12 @@ export default function PredictionDetailsModal({
   };
 
   // Extract factors from the prediction response - check multiple locations
+  // IMPORTANT: The factors are stored directly in prediction.factors in the database
+  // factorExplanation is generated on-the-fly by the backend service
   const factors = predictionWithFactors?.factorExplanation?.advancedFeatures || 
                   predictionWithFactors?.factors?.advancedFeatures ||
+                  predictionWithFactors?.factors || // Direct factors from DB (PRIMARY SOURCE)
                   predictionWithFactors?.factorExplanation ||
-                  predictionWithFactors?.factors || // Direct factors from DB
                   null;
   
   // Debug: Log factors to help diagnose
@@ -67,8 +69,12 @@ export default function PredictionDetailsModal({
     console.log('Prediction with factors:', {
       hasFactorExplanation: !!predictionWithFactors.factorExplanation,
       hasFactors: !!predictionWithFactors.factors,
+      factorsType: typeof predictionWithFactors.factors,
       factorsKeys: predictionWithFactors.factors ? Object.keys(predictionWithFactors.factors) : [],
+      hasAdvancedFeatures: !!(predictionWithFactors.factors as any)?.advancedFeatures,
+      advancedFeaturesKeys: (predictionWithFactors.factors as any)?.advancedFeatures ? Object.keys((predictionWithFactors.factors as any).advancedFeatures) : [],
       extractedFactors: factors ? Object.keys(factors) : [],
+      marketAverage: !!(predictionWithFactors.factors as any)?.marketAverage,
     });
   }
 
