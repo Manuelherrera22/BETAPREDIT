@@ -90,7 +90,6 @@ const app = express();
 const httpServer = createServer(app);
 
 // Request ID middleware (should be first)
-import { requestIdMiddleware } from './utils/request-id';
 app.use(requestIdMiddleware);
 
 const io = new Server(httpServer, {
@@ -139,9 +138,9 @@ const corsOptions = {
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  maxAge: 86400, // 24 hours
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
+        maxAge: 86400, // 24 hours preflight cache
 };
 
 app.use(cors(corsOptions));
