@@ -208,8 +208,45 @@ class PredictionsService {
 
     // Parse advanced features
     const advancedFeatures = factors.advancedFeatures || factors;
+    
+    // Check if we have advanced analysis with key factors (from advanced-prediction-analysis.service)
+    const advancedAnalysis = factors.advancedAnalysis;
+    if (advancedAnalysis) {
+      // Use key factors from advanced analysis (most accurate)
+      const selection = prediction.selection || '';
+      const isHome = selection.toLowerCase().includes('home') || selection.toLowerCase() === '1';
+      const isAway = selection.toLowerCase().includes('away') || selection.toLowerCase() === '2';
+      const isDraw = selection.toLowerCase().includes('draw') || selection.toLowerCase() === 'x' || selection.toLowerCase() === '3';
+      
+      let analysisData = null;
+      if (isHome && advancedAnalysis.home) {
+        analysisData = advancedAnalysis.home;
+      } else if (isAway && advancedAnalysis.away) {
+        analysisData = advancedAnalysis.away;
+      } else if (isDraw && advancedAnalysis.draw) {
+        analysisData = advancedAnalysis.draw;
+      }
+      
+      if (analysisData && analysisData.keyFactors) {
+        // Use key factors from advanced analysis
+        keyFactors.push(...analysisData.keyFactors.map((f: any) => ({
+          name: f.name,
+          impact: f.impact,
+          description: f.description,
+        })));
+        
+        // Use risk factors from advanced analysis
+        if (analysisData.riskFactors) {
+          riskFactors.push(...analysisData.riskFactors.map((f: any) => ({
+            name: f.name,
+            level: f.level,
+            description: f.description,
+          })));
+        }
+      }
+    }
 
-    // Parse common factor types
+    // Parse common factor types (fallback if no advanced analysis)
     if (factors || advancedFeatures) {
       // Team Form - Detailed
       if (advancedFeatures.homeForm || advancedFeatures.awayForm) {
