@@ -54,10 +54,10 @@ export function useMutationWithRetry<TData = unknown, TError = Error, TVariables
       // Exponential backoff: 1s, 2s, 4s...
       return Math.min(retryDelay * Math.pow(2, attemptIndex), 10000); // Max 10s for mutations
     },
-    onError: (error: TError, variables: TVariables, context: TContext | undefined) => {
+    onError: ((error: TError, variables: TVariables, context?: TContext) => {
       // Call original onError if provided
       if (mutationOptions.onError) {
-        mutationOptions.onError(error, variables, context);
+        (mutationOptions.onError as any)(error, variables, context);
       }
 
       // Show error toast if enabled
@@ -65,26 +65,25 @@ export function useMutationWithRetry<TData = unknown, TError = Error, TVariables
         const message = errorToastMessage || getUserFriendlyMessage(error as any);
         const suggestion = getErrorSuggestion(error as any);
         
-        toast.error(
-          <div>
-            <div className="font-semibold">{message}</div>
-            {suggestion && <div className="text-sm opacity-90 mt-1">{suggestion}</div>}
-          </div>,
-          { duration: 5000 }
-        );
+        // Build message string instead of JSX to avoid TypeScript errors
+        const fullMessage = suggestion 
+          ? `${message}\n${suggestion}`
+          : message;
+        
+        toast.error(fullMessage, { duration: 5000 });
       }
-    },
-    onSuccess: (data: TData, variables: TVariables, context: TContext | undefined) => {
+    }) as UseMutationOptions<TData, TError, TVariables, TContext>['onError'],
+    onSuccess: ((data: TData, variables: TVariables, context?: TContext) => {
       // Call original onSuccess if provided
       if (mutationOptions.onSuccess) {
-        mutationOptions.onSuccess(data, variables, context);
+        (mutationOptions.onSuccess as any)(data, variables, context);
       }
 
       // Show success toast if enabled
       if (showSuccessToast && successToastMessage) {
         toast.success(successToastMessage);
       }
-    },
+    }) as UseMutationOptions<TData, TError, TVariables, TContext>['onSuccess'],
   });
 }
 

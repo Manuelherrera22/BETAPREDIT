@@ -5,7 +5,6 @@
 
 import { useQuery, UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
 import { isRetryableError } from '../utils/errorMessages';
-import toast from 'react-hot-toast';
 
 interface UseQueryWithRetryOptions<TData, TError> extends Omit<UseQueryOptions<TData, TError>, 'retry'> {
   showErrorToast?: boolean;
@@ -49,19 +48,9 @@ export function useQueryWithRetry<TData = unknown, TError = Error>(
       // Exponential backoff: 1s, 2s, 4s, 8s...
       return Math.min(retryDelay * Math.pow(2, attemptIndex), 30000); // Max 30s
     },
-    onError: (error: TError) => {
-      // Call original onError if provided
-      if (queryOptions.onError) {
-        queryOptions.onError(error);
-      }
-
-      // Show error toast if enabled
-      if (showErrorToast) {
-        const { getUserFriendlyMessage } = require('../utils/errorMessages');
-        const message = errorToastMessage || getUserFriendlyMessage(error as any);
-        toast.error(message);
-      }
-    },
+    // Note: onError is deprecated in React Query v5, errors should be handled in components
+    // Using throwOnError: false to handle errors manually
+    throwOnError: false,
   });
 }
 

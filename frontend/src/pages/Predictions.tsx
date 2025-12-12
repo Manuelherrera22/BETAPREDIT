@@ -7,7 +7,7 @@
  * Confidence levels indicate the model's certainty, not a promise of outcome.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { predictionsService } from '../services/predictionsService';
 import { eventsService } from '../services/eventsService';
@@ -20,6 +20,7 @@ import PredictionCard from '../components/PredictionCard';
 import PredictionComparisonChart from '../components/PredictionComparisonChart';
 import PredictionStatsDashboard from '../components/PredictionStatsDashboard';
 import PredictionDetailsModal from '../components/PredictionDetailsModal';
+import { VirtualizedList } from '../components/VirtualizedList';
 import Icon from '../components/icons/IconSystem';
 
 interface EventPrediction {
@@ -251,13 +252,13 @@ export default function Predictions() {
 
   // Sort events - Memoizado
   const sortedEvents = useMemo(() => {
-    const sorted = [...filteredEvents].sort((a, b) => {
+    const sorted = [...filteredEvents].sort((a: EventPrediction, b: EventPrediction) => {
       if (sortBy === 'time') {
         return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
       }
       
-      const aBest = Math.max(...a.predictions.map(p => sortBy === 'confidence' ? p.confidence : p.value));
-      const bBest = Math.max(...b.predictions.map(p => sortBy === 'confidence' ? p.confidence : p.value));
+      const aBest = Math.max(...a.predictions.map((p: { confidence: number; value: number }) => sortBy === 'confidence' ? p.confidence : p.value));
+      const bBest = Math.max(...b.predictions.map((p: { confidence: number; value: number }) => sortBy === 'confidence' ? p.confidence : p.value));
       return bBest - aBest;
     });
     return sorted;
@@ -265,17 +266,17 @@ export default function Predictions() {
 
   // Flatten predictions for list view - Memoizado
   const allPredictions = useMemo(() => {
-    const flattened = sortedEvents.flatMap(event =>
+    const flattened = sortedEvents.flatMap((event: EventPrediction) =>
       event.predictions
-        .filter((pred) => pred.confidence >= minConfidence && pred.value >= minValue)
-        .map(pred => ({ ...pred, event }))
+        .filter((pred: { confidence: number; value: number }) => pred.confidence >= minConfidence && pred.value >= minValue)
+        .map((pred: { selection: string; predictedProbability: number; marketOdds: number; value: number; confidence: number; recommendation: string }) => ({ ...pred, event }))
     );
 
     // Sort flattened predictions
     if (sortBy === 'value') {
-      flattened.sort((a, b) => b.value - a.value);
+      flattened.sort((a: { value: number }, b: { value: number }) => b.value - a.value);
     } else if (sortBy === 'confidence') {
-      flattened.sort((a, b) => b.confidence - a.confidence);
+      flattened.sort((a: { confidence: number }, b: { confidence: number }) => b.confidence - a.confidence);
     }
     
     return flattened;
@@ -298,14 +299,14 @@ export default function Predictions() {
   });
 
   // Calculate statistics - Memoizado
-  const totalPredictions = useMemo(() => filteredEvents.reduce((sum, e) => sum + e.predictions.length, 0), [filteredEvents]);
+  const totalPredictions = useMemo(() => filteredEvents.reduce((sum: number, e: EventPrediction) => sum + e.predictions.length, 0), [filteredEvents]);
   const avgConfidence = useMemo(() => filteredEvents.length > 0
-    ? filteredEvents.reduce((sum, e) => 
-        sum + e.predictions.reduce((pSum, p) => pSum + p.confidence, 0) / e.predictions.length, 0
+    ? filteredEvents.reduce((sum: number, e: EventPrediction) => 
+        sum + e.predictions.reduce((pSum: number, p: { confidence: number }) => pSum + p.confidence, 0) / e.predictions.length, 0
       ) / filteredEvents.length
     : 0, [filteredEvents]);
-  const highValueCount = useMemo(() => allPredictions.filter(p => p.value > 10).length, [allPredictions]);
-  const strongBuyCount = useMemo(() => allPredictions.filter(p => p.recommendation === 'STRONG_BUY').length, [allPredictions]);
+  const highValueCount = useMemo(() => allPredictions.filter((p: { value: number }) => p.value > 10).length, [allPredictions]);
+  const strongBuyCount = useMemo(() => allPredictions.filter((p: { recommendation: string }) => p.recommendation === 'STRONG_BUY').length, [allPredictions]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
@@ -505,7 +506,7 @@ export default function Predictions() {
             {viewMode === 'grid' ? (
               // Grid View
               <div className="space-y-8">
-                {sortedEvents.map((event) => (
+                {sortedEvents.map((event: EventPrediction) => (
                   <div
                     key={event.eventId}
                     className="bg-slate-800/70 backdrop-blur-xl rounded-3xl border-2 border-slate-700/50 overflow-hidden shadow-2xl hover:shadow-primary-500/20 hover:border-slate-600 transition-all duration-300"
@@ -596,7 +597,7 @@ export default function Predictions() {
                       </div>
 
                       {event.predictions.filter(
-                        (pred) => pred.confidence >= minConfidence && pred.value >= minValue
+                        (pred: { confidence: number; value: number }) => pred.confidence >= minConfidence && pred.value >= minValue
                       ).length === 0 && (
                         <div className="text-center py-12 text-gray-500">
                           <p className="text-lg">No hay predicciones que cumplan los filtros para este evento</p>
@@ -613,7 +614,7 @@ export default function Predictions() {
                   items={allPredictions}
                   itemHeight={200}
                   containerHeight={600}
-                  renderItem={(pred: any, idx: number) => (
+                  renderItem={(pred: { selection: string; predictedProbability: number; marketOdds: number; value: number; confidence: number; recommendation: string; event: EventPrediction }, idx: number) => (
                   <div
                     key={idx}
                     className="bg-slate-800/70 backdrop-blur-xl rounded-xl sm:rounded-2xl border-2 border-slate-700/50 p-4 sm:p-6 hover:border-slate-600 transition-all duration-200 hover:shadow-xl"
@@ -676,7 +677,7 @@ export default function Predictions() {
                 />
               ) : (
                 <div className="space-y-3 sm:space-y-4">
-                  {allPredictions.map((pred, idx) => (
+                  {allPredictions.map((pred: { selection: string; predictedProbability: number; marketOdds: number; value: number; confidence: number; recommendation: string; event: EventPrediction }, idx: number) => (
                     <div
                       key={idx}
                       className="bg-slate-800/70 backdrop-blur-xl rounded-xl sm:rounded-2xl border-2 border-slate-700/50 p-4 sm:p-6 hover:border-slate-600 transition-all duration-200 hover:shadow-xl"

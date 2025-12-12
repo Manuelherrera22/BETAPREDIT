@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { externalBetsService, type ExternalBet } from '../services/externalBetsService'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import RegisterBetForm from '../components/RegisterBetForm'
@@ -10,7 +10,7 @@ import ImportBetsModal from '../components/ImportBetsModal'
 import { exportToCSV } from '../utils/csvExport'
 import EmptyState from '../components/EmptyState'
 import SkeletonLoader from '../components/SkeletonLoader'
-import { VirtualizedList } from '../components/VirtualizedList'
+// import { VirtualizedList } from '../components/VirtualizedList' // Not used yet
 
 export default function MyBets() {
   const queryClient = useQueryClient()
@@ -187,7 +187,7 @@ export default function MyBets() {
       console.error('Error exportando apuestas:', error)
       toast.error('Error al exportar apuestas')
     }
-  }, [filteredBets])
+  }
 
   if (isLoading && !bets) {
     return (

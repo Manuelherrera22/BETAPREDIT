@@ -3,7 +3,6 @@
  * Displays user-friendly error messages with suggestions and retry options
  */
 
-import { ReactNode } from 'react';
 import { getUserFriendlyMessage, getErrorSuggestion, isRetryableError } from '../utils/errorMessages';
 import Icon from './icons/IconSystem';
 

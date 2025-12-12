@@ -47,6 +47,7 @@ import {
   Pause,
   X as XIcon,
   HelpCircle,
+  RotateCw,
 } from 'lucide-react'
 
 export type IconName =
@@ -100,6 +101,7 @@ export type IconName =
   | 'x-icon'
   | 'help-circle'
   | 'target'
+  | 'refresh-cw'
 
 interface IconProps {
   name: IconName
@@ -159,6 +161,7 @@ const iconMap: Record<IconName, React.ComponentType<any>> = {
   'x-icon': XIcon,
   'help-circle': HelpCircle,
   target: Target,
+  'refresh-cw': RotateCw,
 }
 
 export default function Icon({ name, className = '', size = 20, strokeWidth = 2 }: IconProps) {
