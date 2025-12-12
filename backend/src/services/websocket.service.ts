@@ -1,9 +1,11 @@
 /**
  * WebSocket Service
- * Handles real-time updates via Socket.IO
+ * Handles real-time updates via Socket.IO (development)
+ * Also emits to Supabase Realtime for production
  */
 import { Server } from 'socket.io';
 import { logger } from '../utils/logger';
+import { getSupabaseAdmin, isSupabaseConfigured } from '../config/supabase';
 
 class WebSocketService {
   private io: Server | null = null;
@@ -14,6 +16,28 @@ class WebSocketService {
   initialize(ioInstance: Server) {
     this.io = ioInstance;
     logger.info('WebSocket service initialized');
+  }
+
+  /**
+   * Helper to emit to Supabase Realtime (via database updates)
+   * In production, updates to database tables automatically trigger Realtime
+   */
+  private async emitToSupabaseRealtime(table: string, event: string, data: any) {
+    if (!isSupabaseConfigured()) {
+      return;
+    }
+
+    try {
+      const supabase = getSupabaseAdmin();
+      
+      // For Realtime, we don't emit directly - instead, we update the database
+      // and Supabase Realtime automatically broadcasts the changes
+      // This is handled by the services that update the database
+      
+      logger.debug(`Supabase Realtime will broadcast ${event} for table ${table}`);
+    } catch (error: any) {
+      logger.warn('Error emitting to Supabase Realtime:', error.message);
+    }
   }
 
   /**
@@ -38,22 +62,24 @@ class WebSocketService {
    * Emit value bet alert
    */
   emitValueBetAlert(userId: string, alert: any) {
-    if (!this.io) {
-      logger.warn('WebSocket service not initialized');
-      return;
+    // Emit via Socket.IO (development)
+    if (this.io) {
+      // Emit to specific user
+      this.io.to(`value-bets:${userId}`).emit('value-bet:alert', {
+        ...alert,
+        timestamp: new Date().toISOString(),
+      });
+
+      // Also emit to general channel
+      this.io.to('value-bets:all').emit('value-bet:alert', {
+        ...alert,
+        timestamp: new Date().toISOString(),
+      });
     }
 
-    // Emit to specific user
-    this.io.to(`value-bets:${userId}`).emit('value-bet:alert', {
-      ...alert,
-      timestamp: new Date().toISOString(),
-    });
-
-    // Also emit to general channel
-    this.io.to('value-bets:all').emit('value-bet:alert', {
-      ...alert,
-      timestamp: new Date().toISOString(),
-    });
+    // For production, the database insert will trigger Realtime automatically
+    // This is handled by value-bet-alerts.service when it creates the alert
+    this.emitToSupabaseRealtime('ValueBetAlert', 'value-bet:alert', alert);
 
     logger.debug(`Value bet alert emitted for user ${userId}`);
   }
@@ -62,15 +88,17 @@ class WebSocketService {
    * Emit notification
    */
   emitNotification(userId: string, notification: any) {
-    if (!this.io) {
-      logger.warn('WebSocket service not initialized');
-      return;
+    // Emit via Socket.IO (development)
+    if (this.io) {
+      this.io.to(`notifications:${userId}`).emit('notification:new', {
+        ...notification,
+        timestamp: new Date().toISOString(),
+      });
     }
 
-    this.io.to(`notifications:${userId}`).emit('notification:new', {
-      ...notification,
-      timestamp: new Date().toISOString(),
-    });
+    // For production, the database insert will trigger Realtime automatically
+    // This is handled by notifications.service when it creates the notification
+    this.emitToSupabaseRealtime('Notification', 'notification:new', notification);
 
     logger.debug(`Notification emitted for user ${userId}`);
   }
@@ -79,15 +107,17 @@ class WebSocketService {
    * Emit live event update
    */
   emitLiveEventUpdate(event: any) {
-    if (!this.io) {
-      logger.warn('WebSocket service not initialized');
-      return;
+    // Emit via Socket.IO (development)
+    if (this.io) {
+      this.io.to('events:live').emit('event:update', {
+        ...event,
+        timestamp: new Date().toISOString(),
+      });
     }
 
-    this.io.to('events:live').emit('event:update', {
-      ...event,
-      timestamp: new Date().toISOString(),
-    });
+    // For production, the database update will trigger Realtime automatically
+    // This is handled by the event sync service when it updates the Event table
+    this.emitToSupabaseRealtime('Event', 'event:update', event);
 
     logger.debug(`Live event update emitted`);
   }

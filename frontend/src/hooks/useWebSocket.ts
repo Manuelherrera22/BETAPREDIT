@@ -1,11 +1,14 @@
 /**
  * WebSocket Hook
- * Manages Socket.IO connection for real-time updates
+ * Manages Socket.IO connection for real-time updates (development)
+ * Uses Supabase Realtime in production
  * Uses singleton pattern to prevent multiple connections
  */
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from '../store/authStore';
+import { isSupabaseConfigured } from '../config/supabase';
+import { useRealtime } from './useRealtime';
 
 // Extract base URL without /api suffix
 const getSocketUrl = () => {
@@ -29,6 +32,13 @@ interface UseWebSocketOptions {
 
 export function useWebSocket(options: UseWebSocketOptions = {}) {
   const { autoConnect = true, channels = [] } = options;
+  
+  // Use Supabase Realtime in production
+  if (isSupabaseConfigured() && import.meta.env.PROD) {
+    return useRealtime(options);
+  }
+
+  // Fallback to Socket.IO in development
   const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState<any>(null);
   const token = useAuthStore((state) => state.token);
