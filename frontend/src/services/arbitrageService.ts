@@ -153,7 +153,7 @@ class ArbitrageService {
 
   /**
    * Get all active arbitrage opportunities
-   * Works with backend API or calculates directly from The Odds API
+   * Uses Supabase Edge Functions in production, backend API in development
    */
   async getOpportunities(options?: {
     minProfitMargin?: number;
@@ -161,6 +161,51 @@ class ArbitrageService {
     limit?: number;
   }): Promise<ArbitrageOpportunity[]> {
     const { minProfitMargin = 0.01, sport = 'soccer_epl', limit = 50 } = options || {};
+
+    // Use Supabase Edge Function in production
+    if (import.meta.env.PROD) {
+      try {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        if (!supabaseUrl) {
+          throw new Error('Supabase not configured');
+        }
+
+        const { supabase } = await import('../config/supabase');
+        if (!supabase) {
+          throw new Error('Supabase client not configured');
+        }
+
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError || !session?.access_token) {
+          throw new Error('No authentication token available. Please log in.');
+        }
+
+        const token = session.access_token;
+        const params = new URLSearchParams();
+        if (minProfitMargin) params.set('minProfitMargin', minProfitMargin.toString());
+        if (sport) params.set('sport', sport);
+        if (limit) params.set('limit', limit.toString());
+
+        const response = await fetch(`${supabaseUrl}/functions/v1/arbitrage/opportunities?${params}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error?.message || 'Failed to fetch arbitrage opportunities');
+        }
+
+        const result = await response.json();
+        return Array.isArray(result?.data) ? result.data : [];
+      } catch (error: any) {
+        console.error('Error fetching arbitrage opportunities from Edge Function:', error);
+        // Fallback to direct calculation
+      }
+    }
 
     // Try backend first, fallback to direct calculation
     try {
@@ -296,6 +341,7 @@ class ArbitrageService {
 
   /**
    * Detect arbitrage for a specific event
+   * Uses Supabase Edge Functions in production, backend API in development
    */
   async detectForEvent(
     eventId: string,
@@ -304,6 +350,51 @@ class ArbitrageService {
       minProfitMargin?: number;
     }
   ): Promise<ArbitrageOpportunity[]> {
+    // Use Supabase Edge Function in production
+    if (import.meta.env.PROD) {
+      try {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        if (!supabaseUrl) {
+          throw new Error('Supabase not configured');
+        }
+
+        const { supabase } = await import('../config/supabase');
+        if (!supabase) {
+          throw new Error('Supabase client not configured');
+        }
+
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError || !session?.access_token) {
+          throw new Error('No authentication token available. Please log in.');
+        }
+
+        const token = session.access_token;
+        const params = new URLSearchParams();
+        if (options?.marketType) params.set('marketType', options.marketType);
+        if (options?.minProfitMargin) params.set('minProfitMargin', options.minProfitMargin.toString());
+
+        const response = await fetch(`${supabaseUrl}/functions/v1/arbitrage/event/${eventId}?${params}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error?.message || 'Failed to detect arbitrage for event');
+        }
+
+        const result = await response.json();
+        return Array.isArray(result?.data) ? result.data : [];
+      } catch (error: any) {
+        console.error('Error detecting arbitrage from Edge Function:', error);
+        // Fallback to backend
+      }
+    }
+
+    // Fallback to backend API
     const params = new URLSearchParams();
     if (options?.marketType) {
       params.append('marketType', options.marketType);
@@ -318,12 +409,54 @@ class ArbitrageService {
 
   /**
    * Calculate stakes for an arbitrage opportunity
-   * Can work with backend API or calculate directly
+   * Uses Supabase Edge Functions in production, backend API in development
    */
   async calculateStakes(
     opportunity: ArbitrageOpportunity,
     totalBankroll: number
   ): Promise<CalculateStakesResponse> {
+    // Use Supabase Edge Function in production
+    if (import.meta.env.PROD) {
+      try {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        if (!supabaseUrl) {
+          throw new Error('Supabase not configured');
+        }
+
+        const { supabase } = await import('../config/supabase');
+        if (!supabase) {
+          throw new Error('Supabase client not configured');
+        }
+
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError || !session?.access_token) {
+          throw new Error('No authentication token available. Please log in.');
+        }
+
+        const token = session.access_token;
+
+        const response = await fetch(`${supabaseUrl}/functions/v1/arbitrage/calculate-stakes`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ opportunity, totalBankroll }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error?.message || 'Failed to calculate stakes');
+        }
+
+        const result = await response.json();
+        return result.data;
+      } catch (error: any) {
+        console.error('Error calculating stakes from Edge Function:', error);
+        // Fallback to direct calculation
+      }
+    }
+
     // Try backend first
     try {
       const response = await api.post('/arbitrage/calculate-stakes', {
