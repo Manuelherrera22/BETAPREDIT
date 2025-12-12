@@ -338,8 +338,13 @@ serve(async (req) => {
       // Sort by profit margin
       opportunities.sort((a, b) => b.profitMargin - a.profitMargin);
 
+      // Limit results
+      const limitedOpportunities = opportunities.slice(0, limit);
+
+      console.log(`Found ${limitedOpportunities.length} arbitrage opportunities from ${events?.length || 0} events`);
+
       return new Response(
-        JSON.stringify({ success: true, data: opportunities, count: opportunities.length }),
+        JSON.stringify({ success: true, data: limitedOpportunities, count: limitedOpportunities.length }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
