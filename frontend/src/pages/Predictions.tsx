@@ -341,8 +341,7 @@ export default function Predictions() {
         
         // Si no hay league en metadata, intentar inferirla del nombre del evento o equipos
         if (!eventLeague || eventLeague === eventAny.sport?.name) {
-          // Buscar indicadores de liga en el nombre del evento
-          const eventName = (event.eventName || '').toLowerCase();
+          // Buscar indicadores de liga en los nombres de los equipos
           const homeTeam = (event.homeTeam || '').toLowerCase();
           const awayTeam = (event.awayTeam || '').toLowerCase();
           
