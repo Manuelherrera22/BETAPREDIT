@@ -27,11 +27,11 @@ Plataforma moderna de análisis predictivo para apuestas deportivas con tecnolog
 - **Multi-jurisdicción**: Soporte para diferentes marcos regulatorios
 
 ### Integración de Datos
-- **APIs de datos deportivos en tiempo real**: Sportradar para cuotas y eventos
-- **Datos granulares a nivel de jugador**: ShotTracker y KINEXON (UWB, tracking por pulgada)
-- **Sistemas de integridad**: Universal Fraud Detection System (UFDS) de Sportradar
-- **Algoritmos predictivos**: ZCode System, Trademate Sports, OddsJam, BetBurger
-- **Proveedores B2B**: Altenar, BtoBet, Evolution Gaming, Microgaming
+- **APIs de datos deportivos en tiempo real**: Integración con múltiples proveedores de datos
+- **Datos granulares a nivel de jugador**: Tracking avanzado y análisis detallado
+- **Sistemas de integridad**: Detección de anomalías y patrones sospechosos
+- **Algoritmos predictivos**: Modelos propietarios de análisis estadístico
+- **Proveedores B2B**: Integraciones con plataformas de terceros
 
 ## 🏗️ Arquitectura
 
@@ -169,8 +169,8 @@ Una vez iniciado el backend, la documentación Swagger está disponible en:
 - [x] Sistema de predicciones ML
 - [x] Detección de value bets
 - [x] Sistema de referidos
-- [x] Integración con The Odds API
-- [x] Integración con API-Football
+- [x] Integración con proveedores de datos deportivos
+- [x] Integración con servicios de estadísticas
 - [x] Sistema de estadísticas y ROI tracking
 - [x] CI/CD pipeline completo
 - [x] Documentación Swagger
@@ -190,22 +190,19 @@ Una vez iniciado el backend, la documentación Swagger está disponible en:
 ## 🔌 Integraciones
 
 ### Proveedores de Datos
-- **Sportradar**: Cuotas en tiempo real, UFDS (integridad)
-- **ShotTracker/KINEXON**: Datos granulares a nivel de jugador (3+ TB por partido)
+- Integración con múltiples proveedores de datos deportivos en tiempo real
+- Datos granulares a nivel de jugador para análisis avanzado
+- Sistemas de integridad y detección de anomalías
 
 ### Algoritmos Predictivos
-- **ZCode System**: Análisis estadístico avanzado
-- **Trademate Sports**: Plataforma de algoritmos
-- **OddsJam**: Análisis de valor
-- **BetBurger**: Detección de arbitraje
+- Modelos propietarios de análisis estadístico
+- Plataformas de algoritmos avanzados
+- Análisis de valor y detección de oportunidades
 
 ### Proveedores B2B
-- **Altenar**: Infraestructura compartida, soporte legal
-- **BtoBet**: Soluciones de software iGaming
-- **Evolution Gaming**: Casino en vivo
-- **Microgaming**: Tragaperras online
-
-Ver [INTEGRATIONS.md](./INTEGRATIONS.md) para detalles completos.
+- Integraciones con plataformas de terceros
+- Soluciones de software especializadas
+- Infraestructura escalable y segura
 
 ## 📚 Documentación
 

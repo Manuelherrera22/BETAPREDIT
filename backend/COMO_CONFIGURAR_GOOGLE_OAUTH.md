@@ -1,32 +1,28 @@
-# 🔐 Cómo Configurar Google OAuth para BETAPREDIT
+# 🔐 Cómo Configurar OAuth para BETAPREDIT
 
 ## 📋 Requisitos Previos
 
-1. Una cuenta de Google (Gmail)
-2. Acceso a Google Cloud Console
+1. Una cuenta de proveedor OAuth
+2. Acceso al panel de configuración del proveedor
 
 ---
 
 ## 🚀 Pasos para Configurar
 
-### 1. Crear Proyecto en Google Cloud Console
+### 1. Crear Proyecto en el Proveedor
 
-1. Ve a: https://console.cloud.google.com/
-2. Haz clic en el selector de proyectos (arriba a la izquierda)
-3. Haz clic en "NUEVO PROYECTO"
-4. Ingresa un nombre: `BETAPREDIT` (o el que prefieras)
-5. Haz clic en "CREAR"
-6. Espera a que se cree el proyecto
+1. Accede al panel de configuración del proveedor OAuth
+2. Crea un nuevo proyecto
+3. Ingresa un nombre para el proyecto
+4. Completa la configuración inicial
 
 ---
 
-### 2. Habilitar Google+ API
+### 2. Habilitar API de Autenticación
 
-1. En el menú lateral, ve a **APIs & Services** → **Library**
-2. Busca "Google+ API" o "People API"
-3. Haz clic en "ENABLE"
-
-**Nota:** Google+ API está deprecada, pero aún funciona. Alternativamente puedes usar "People API".
+1. En el panel, ve a la sección de APIs y Servicios
+2. Busca la API de autenticación correspondiente
+3. Habilita la API necesaria
 
 ---
 
