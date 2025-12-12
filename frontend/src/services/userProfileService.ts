@@ -73,13 +73,18 @@ export const userProfileService = {
         throw new Error('No authentication token available. Please log in.');
       }
 
-      const response = await fetch(`${supabaseUrl}/user-profile`, {
+      const url = `${supabaseUrl}/user-profile`;
+      const headers: HeadersInit = {
+        'Authorization': `Bearer ${token}`,
+        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+        'Content-Type': 'application/json',
+      };
+
+      console.log('[userProfileService] Fetching profile from:', url);
+      
+      const response = await fetch(url, {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
-          'Content-Type': 'application/json',
-        },
+        headers,
       });
 
       if (!response.ok) {
@@ -87,8 +92,10 @@ export const userProfileService = {
         try {
           const error = await response.json();
           errorMessage = error.error?.message || error.message || errorMessage;
+          console.error('[userProfileService] Error response:', error);
         } catch {
           errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+          console.error('[userProfileService] Error status:', response.status, response.statusText);
         }
         throw new Error(errorMessage);
       }
@@ -120,13 +127,18 @@ export const userProfileService = {
         throw new Error('No authentication token available. Please log in.');
       }
 
-      const response = await fetch(`${supabaseUrl}/user-profile`, {
+      const url = `${supabaseUrl}/user-profile`;
+      const headers: HeadersInit = {
+        'Authorization': `Bearer ${token}`,
+        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+        'Content-Type': 'application/json',
+      };
+
+      console.log('[userProfileService] Updating profile via:', url);
+      
+      const response = await fetch(url, {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(profileData),
       });
 
