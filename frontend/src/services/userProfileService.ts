@@ -64,12 +64,10 @@ export const userProfileService = {
    */
   getProfile: async (): Promise<UserProfile> => {
     // Use Supabase Edge Function in production
-    if (isSupabaseConfigured() && import.meta.env.PROD) {
-      const supabaseUrl = getSupabaseFunctionsUrl();
-      if (!supabaseUrl) {
-        throw new Error('Supabase not configured');
-      }
-
+    const isProduction = import.meta.env.PROD || window.location.hostname !== 'localhost';
+    const supabaseUrl = getSupabaseFunctionsUrl();
+    
+    if (isSupabaseConfigured() && supabaseUrl && isProduction) {
       const token = await getSupabaseAuthToken();
       if (!token) {
         throw new Error('No authentication token available. Please log in.');
@@ -85,11 +83,20 @@ export const userProfileService = {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || 'Failed to fetch profile');
+        let errorMessage = 'Failed to fetch profile';
+        try {
+          const error = await response.json();
+          errorMessage = error.error?.message || error.message || errorMessage;
+        } catch {
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error?.message || 'Failed to fetch profile');
+      }
       return result.data as UserProfile;
     }
 
@@ -104,12 +111,10 @@ export const userProfileService = {
    */
   updateProfile: async (profileData: UpdateProfileData): Promise<UserProfile> => {
     // Use Supabase Edge Function in production
-    if (isSupabaseConfigured() && import.meta.env.PROD) {
-      const supabaseUrl = getSupabaseFunctionsUrl();
-      if (!supabaseUrl) {
-        throw new Error('Supabase not configured');
-      }
-
+    const isProduction = import.meta.env.PROD || window.location.hostname !== 'localhost';
+    const supabaseUrl = getSupabaseFunctionsUrl();
+    
+    if (isSupabaseConfigured() && supabaseUrl && isProduction) {
       const token = await getSupabaseAuthToken();
       if (!token) {
         throw new Error('No authentication token available. Please log in.');
@@ -126,11 +131,20 @@ export const userProfileService = {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || 'Failed to update profile');
+        let errorMessage = 'Failed to update profile';
+        try {
+          const error = await response.json();
+          errorMessage = error.error?.message || error.message || errorMessage;
+        } catch {
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error?.message || 'Failed to update profile');
+      }
       return result.data as UserProfile;
     }
 

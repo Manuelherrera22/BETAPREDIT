@@ -63,9 +63,18 @@ serve(async (req) => {
         .single();
 
       if (error) {
+        // If user not found, return 404, otherwise return 500
+        const status = error.code === 'PGRST116' ? 404 : 500;
         return new Response(
-          JSON.stringify({ success: false, error: { message: error.message } }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ 
+            success: false, 
+            error: { 
+              message: error.code === 'PGRST116' 
+                ? 'User profile not found' 
+                : error.message 
+            } 
+          }),
+          { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
