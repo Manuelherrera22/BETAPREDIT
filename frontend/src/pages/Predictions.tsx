@@ -134,11 +134,28 @@ export default function Predictions() {
 
   // Get upcoming events with predictions
   const { data: eventsWithPredictions, isLoading } = useQuery({
-    queryKey: ['eventsWithPredictions', selectedSport],
+    queryKey: ['eventsWithPredictions', selectedSport, selectedLeague],
     queryFn: async () => {
       try {
+        // Si hay un filtro de league, obtener todos los eventos del sport primero
+        // y luego filtrar por league en el cliente (ya que el backend puede no soportar filtro de league)
+        const sportFilter = selectedSport !== 'all' ? selectedSport : undefined;
+        
+        // Mapear nombres de sport comunes
+        let sportKey = sportFilter;
+        if (sportFilter) {
+          const sportMap: Record<string, string> = {
+            'football': 'soccer',
+            'soccer': 'soccer',
+            'futbol': 'soccer',
+            'basketball': 'basketball',
+            'baseball': 'baseball',
+          };
+          sportKey = sportMap[sportFilter.toLowerCase()] || sportFilter;
+        }
+        
         const events = await eventsService.getUpcomingEvents(
-          selectedSport !== 'all' ? selectedSport : undefined,
+          sportKey,
           undefined,
           true
         );
@@ -148,7 +165,7 @@ export default function Predictions() {
           return [];
         }
         
-        console.log(`Found ${events.length} events for sport: ${selectedSport}`);
+        console.log(`Found ${events.length} events for sport: ${selectedSport} (key: ${sportKey})`);
         
         const eventsWithPreds: EventPrediction[] = [];
         // Increased limits to show more predictions - mercado completo
@@ -158,7 +175,14 @@ export default function Predictions() {
           try {
             const predictions = await predictionsService.getEventPredictions(event.id);
             
-            console.log(`Event ${event.id}: Found ${predictions.length} predictions`);
+            // Log para debug cuando hay filtro de league
+            if (selectedLeague) {
+              const eventAny = event as any;
+              const eventLeague = eventAny.metadata?.league || eventAny.league || 'none';
+              console.log(`Event ${event.id} (${event.homeTeam} vs ${event.awayTeam}): ${predictions.length} predictions, league="${eventLeague}", sport="${event.sport?.name}"`);
+            } else {
+              console.log(`Event ${event.id}: Found ${predictions.length} predictions`);
+            }
             
             if (predictions && predictions.length > 0) {
               let eventDetails;
@@ -232,7 +256,8 @@ export default function Predictions() {
                 };
               });
               
-              eventsWithPreds.push({
+              // Incluir metadata del evento para filtrado de league
+              const eventWithMetadata = {
                 eventId: event.id,
                 eventName: `${event.homeTeam} vs ${event.awayTeam}`,
                 homeTeam: event.homeTeam,
@@ -240,7 +265,13 @@ export default function Predictions() {
                 startTime: event.startTime,
                 sport: event.sport?.name || 'Unknown',
                 predictions: predictionsWithOdds,
-              });
+                // Incluir metadata para filtrado
+                metadata: (event as any).metadata,
+                league: (event as any).metadata?.league || (event as any).league,
+                event: event, // Incluir el evento completo para acceso a metadata
+              };
+              
+              eventsWithPreds.push(eventWithMetadata as EventPrediction);
             }
           } catch (err: any) {
             const errorMessage = err.message || err.toString() || 'Unknown error';
@@ -262,66 +293,116 @@ export default function Predictions() {
     enabled: true,
   });
 
-  // Filter and sort predictions - Memoizado con filtro de league
+  // Filter and sort predictions - Memoizado con filtro de league mejorado
   const filteredEvents = useMemo(() => {
     if (!eventsWithPredictions) return [];
-    return eventsWithPredictions.filter((event) => {
-      // Filtrar por sport si está seleccionado
-      if (selectedSport !== 'all' && event.sport !== selectedSport) {
-        return false;
+    
+    console.log(`Filtering ${eventsWithPredictions.length} events with sport="${selectedSport}", league="${selectedLeague}"`);
+    
+    const filtered = eventsWithPredictions.filter((event) => {
+      // Filtrar por sport si está seleccionado - comparación flexible
+      if (selectedSport !== 'all') {
+        const eventSport = (event.sport || '').toLowerCase().trim();
+        const selectedSportLower = selectedSport.toLowerCase().trim();
+        
+        // Mapeo de nombres comunes de deportes (más completo)
+        const sportMappings: Record<string, string[]> = {
+          'football': ['football', 'soccer', 'futbol', 'fútbol'],
+          'soccer': ['football', 'soccer', 'futbol', 'fútbol'],
+          'futbol': ['football', 'soccer', 'futbol', 'fútbol'],
+          'basketball': ['basketball', 'baloncesto'],
+          'baseball': ['baseball', 'beisbol', 'béisbol'],
+        };
+        
+        // Verificar coincidencia directa o mediante mapeo
+        const sportMatches = eventSport === selectedSportLower || 
+                            eventSport.includes(selectedSportLower) ||
+                            selectedSportLower.includes(eventSport) ||
+                            sportMappings[selectedSportLower]?.includes(eventSport) ||
+                            sportMappings[eventSport]?.includes(selectedSportLower);
+        
+        if (!sportMatches) {
+          console.log(`Event ${event.eventId} filtered out: sport "${eventSport}" !== "${selectedSportLower}"`);
+          return false;
+        }
       }
       
-      // Filtrar por league si está seleccionado (usando metadata del evento)
+      // Filtrar por league si está seleccionado - búsqueda más flexible (igual que en heatmap)
       if (selectedLeague) {
-        // Intentar obtener la liga del evento desde diferentes fuentes
         const eventAny = event as any;
+        
+        // Intentar obtener la liga del evento desde diferentes fuentes (igual que heatmap)
         const eventLeague = eventAny.metadata?.league || 
                            eventAny.league || 
                            eventAny.event?.metadata?.league ||
                            eventAny.event?.league ||
-                           eventAny.eventName?.match(/(EPL|La Liga|Serie A|Bundesliga|Ligue 1|Premier League|Premier|Championship)/i)?.[0];
+                           eventAny.sport?.name || // Fallback al nombre del sport
+                           'Unknown';
         
-        // Normalizar nombres de ligas para comparación
+        // También buscar en el nombre del evento y equipos
+        const eventName = (event.eventName || '').toLowerCase();
+        const eventHomeTeam = (event.homeTeam || '').toLowerCase();
+        const eventAwayTeam = (event.awayTeam || '').toLowerCase();
+        const fullEventText = `${eventName} ${eventHomeTeam} ${eventAwayTeam}`.toLowerCase();
+        
+        // Normalizar nombres de ligas para comparación (más completo)
         const normalizeLeague = (name: string) => {
           if (!name) return '';
           return name.toLowerCase()
             .replace(/[^a-z0-9]/g, '')
-            .replace(/premierleague|premier/g, 'epl')
-            .replace(/laliga|spain/g, 'laliga')
-            .replace(/seriea|italy/g, 'seriea');
+            .replace(/premierleague|premier|englishpremierleague|englishpremier/g, 'epl')
+            .replace(/laliga|spain|spanishlaliga|spanish/g, 'laliga')
+            .replace(/seriea|italy|italianseriea|italian/g, 'seriea')
+            .replace(/bundesliga|germany|germanbundesliga|german/g, 'bundesliga')
+            .replace(/ligue1|france|frenchligue1|french/g, 'ligue1');
         };
         
         const normalizedSelected = normalizeLeague(selectedLeague);
         const normalizedEvent = normalizeLeague(eventLeague || '');
         
-        // Comparar nombres normalizados
-        if (normalizedEvent && normalizedSelected && 
-            !normalizedEvent.includes(normalizedSelected) && 
-            !normalizedSelected.includes(normalizedEvent)) {
-          return false;
-        }
+        // Buscar en el texto completo del evento
+        const fullTextNormalized = normalizeLeague(fullEventText);
         
-        // Si no se encontró league en el evento pero hay un filtro, intentar buscar en el nombre del evento
-        if (!eventLeague && normalizedSelected) {
-          const eventNameLower = (event.eventName || '').toLowerCase();
-          if (!eventNameLower.includes(normalizedSelected.replace(/epl|laliga|seriea/g, ''))) {
-            // Permitir pasar si el nombre del evento contiene palabras clave comunes
-            const commonKeywords = ['vs', 'match', 'game'];
-            const hasCommonKeywords = commonKeywords.some(kw => eventNameLower.includes(kw));
-            if (!hasCommonKeywords) {
-              return false;
-            }
-          }
+        // Comparar nombres normalizados - más permisivo
+        const leagueMatches = 
+          // Coincidencia exacta normalizada
+          (normalizedEvent && normalizedSelected && 
+           (normalizedEvent === normalizedSelected ||
+            normalizedEvent.includes(normalizedSelected) || 
+            normalizedSelected.includes(normalizedEvent))) ||
+          // Buscar en el texto completo del evento
+          (fullTextNormalized && normalizedSelected &&
+           (fullTextNormalized.includes(normalizedSelected) ||
+            normalizedSelected.includes(fullTextNormalized))) ||
+          // Coincidencia parcial sin normalizar (para casos edge)
+          (eventLeague && selectedLeague &&
+           (eventLeague.toLowerCase().includes(selectedLeague.toLowerCase()) ||
+            selectedLeague.toLowerCase().includes(eventLeague.toLowerCase())));
+        
+        if (!leagueMatches) {
+          console.log(`Event ${event.eventId} filtered out: league "${eventLeague}" !== "${selectedLeague}" (normalized: "${normalizedEvent}" vs "${normalizedSelected}")`);
+          return false;
+        } else {
+          console.log(`Event ${event.eventId} MATCHES league filter: "${eventLeague}" matches "${selectedLeague}"`);
         }
       }
       
-      // Filtrar por confianza y valor
-      return event.predictions.some(
+      // Filtrar por confianza y valor - PERO solo si hay predicciones que cumplan
+      const hasValidPredictions = event.predictions.some(
         (pred) =>
           pred.confidence >= minConfidence &&
           pred.value >= minValue
       );
+      
+      if (!hasValidPredictions) {
+        console.log(`Event ${event.eventId} filtered out: no predictions match confidence>=${minConfidence} and value>=${minValue}`);
+      }
+      
+      return hasValidPredictions;
     });
+    
+    console.log(`Filtered to ${filtered.length} events (from ${eventsWithPredictions.length})`);
+    return filtered;
   }, [eventsWithPredictions, minConfidence, minValue, selectedSport, selectedLeague]);
 
   // Sort events - Memoizado
