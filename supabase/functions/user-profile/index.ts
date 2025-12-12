@@ -73,6 +73,7 @@ serve(async (req) => {
       // If user doesn't exist in User table, create it from auth user
       if ((error && error.code === 'PGRST116') || !profile) {
         // User not found in User table, create it
+        const now = new Date().toISOString();
         const userData: any = {
           id: userId,
           email: user.email,
@@ -87,6 +88,18 @@ serve(async (req) => {
           preferredCurrency: 'USD', // Default currency
           subscriptionTier: 'FREE', // Default tier
           timezone: 'UTC', // Default timezone
+          createdAt: now, // Explicit creation time
+          updatedAt: now, // Explicit update time (required by @updatedAt)
+          // Statistics defaults
+          totalBets: 0,
+          totalWins: 0,
+          totalLosses: 0,
+          totalStaked: 0,
+          totalWon: 0,
+          roi: 0,
+          winRate: 0,
+          referralCount: 0,
+          activeReferrals: 0,
         };
 
         // Add avatar if available
@@ -181,6 +194,7 @@ serve(async (req) => {
 
       if (!existingUser) {
         // User doesn't exist, create it first
+        const now = new Date().toISOString();
         const userData: any = {
           id: userId,
           email: user.email,
@@ -195,7 +209,19 @@ serve(async (req) => {
           preferredCurrency: 'USD',
           subscriptionTier: 'FREE',
           timezone: 'UTC',
-          ...updateData, // Merge with update data
+          createdAt: now,
+          updatedAt: now,
+          // Statistics defaults
+          totalBets: 0,
+          totalWins: 0,
+          totalLosses: 0,
+          totalStaked: 0,
+          totalWon: 0,
+          roi: 0,
+          winRate: 0,
+          referralCount: 0,
+          activeReferrals: 0,
+          ...updateData, // Merge with update data (will override defaults if provided)
         };
 
         if (user.user_metadata?.avatar_url || user.user_metadata?.picture) {
