@@ -171,8 +171,8 @@ export default function Profile() {
                   {updateProfileMutation.isPending ? 'Guardando...' : 'Guardar Cambios'}
                 </button>
               </div>
-          </div>
-        )}
+            </div>
+          )}
 
           {activeTab === 'settings' && (
             <div className="bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl rounded-xl p-4 sm:p-5 md:p-6 lg:p-8 border-2 border-slate-700/50">
@@ -222,6 +222,7 @@ export default function Profile() {
                       <p className="text-xs text-gray-400">Vista completa con todas las métricas</p>
                     </div>
                   </button>
+                  </div>
                 </div>
                 <p className="text-xs text-gray-500 mt-2">
                   {formData.preferredMode === 'casual'
@@ -333,9 +334,10 @@ export default function Profile() {
             </div>
           )}
 
-        {activeTab === 'subscription' && (
-          <SubscriptionTab />
-        )}
+          {activeTab === 'subscription' && (
+            <SubscriptionTab />
+          )}
+        </div>
       </div>
     </div>
   );
