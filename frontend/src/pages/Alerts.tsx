@@ -314,58 +314,60 @@ export default function Alerts() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-6 sm:mb-8 gap-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white">Alertas y Notificaciones</h1>
-            {unreadCount > 0 && (
-              <span className="px-3 py-1 bg-accent-500 text-white rounded-full text-sm font-black animate-pulse">
-                {unreadCount} nueva{unreadCount !== 1 ? 's' : ''}
-              </span>
-            )}
-            {highPriorityCount > 0 && (
-              <span className="px-3 py-1 bg-red-500 text-white rounded-full text-sm font-black animate-pulse">
-                {highPriorityCount} alta prioridad
-              </span>
-            )}
-          </div>
-            <p className="text-sm sm:text-base text-gray-400">Mantente informado de value bets y cambios importantes</p>
-          </div>
-          {/* WebSocket Status */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-          {isConnected ? (
-            <div className="flex items-center gap-2 text-sm">
-              <span className="relative">
-                <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                <span className="absolute top-0 left-0 w-2 h-2 bg-green-400 rounded-full animate-ping opacity-75"></span>
-              </span>
-              <span className="text-green-400">Tiempo real</span>
+        <div className="mb-4 sm:mb-6 md:mb-8">
+          <div className="flex flex-col gap-3 sm:gap-4 mb-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white">Alertas y Notificaciones</h1>
+                {unreadCount > 0 && (
+                  <span className="px-2 sm:px-3 py-1 bg-accent-500 text-white rounded-full text-xs sm:text-sm font-black animate-pulse">
+                    {unreadCount} nueva{unreadCount !== 1 ? 's' : ''}
+                  </span>
+                )}
+                {highPriorityCount > 0 && (
+                  <span className="px-2 sm:px-3 py-1 bg-red-500 text-white rounded-full text-xs sm:text-sm font-black animate-pulse">
+                    {highPriorityCount} alta prioridad
+                  </span>
+                )}
+              </div>
+              <p className="text-xs sm:text-sm md:text-base text-gray-400">Mantente informado de value bets y cambios importantes</p>
             </div>
-          ) : (
-            <div className="flex items-center gap-2 text-sm">
-              <span className="w-2 h-2 bg-gray-500 rounded-full"></span>
-              <span className="text-gray-500">Polling</span>
-            </div>
-          )}
-        </div>
+          </div>
+          {/* WebSocket Status and Actions */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            {isConnected ? (
+              <div className="flex items-center gap-2 text-xs sm:text-sm">
+                <span className="relative">
+                  <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                  <span className="absolute top-0 left-0 w-2 h-2 bg-green-400 rounded-full animate-ping opacity-75"></span>
+                </span>
+                <span className="text-green-400">Tiempo real</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-xs sm:text-sm">
+                <span className="w-2 h-2 bg-gray-500 rounded-full"></span>
+                <span className="text-gray-500">Polling</span>
+              </div>
+            )}
             {unreadCount > 0 && (
               <button
                 onClick={markAllAsRead}
                 className="px-3 sm:px-4 py-2 bg-primary-500/20 border border-primary-500/40 text-primary-300 rounded-lg hover:bg-primary-500/30 transition-colors text-xs sm:text-sm font-semibold w-full sm:w-auto"
               >
-            Marcar todas como leídas
-          </button>
-        )}
-      </div>
+                Marcar todas como leídas
+              </button>
+            )}
+          </div>
+        </div>
 
         {/* Filters */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
         <div>
           <label className="block text-sm font-semibold text-gray-400 mb-2">Tipo de Alerta</label>
           <select
             value={filters.type}
             onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-            className="w-full px-4 py-3 bg-dark-800 border border-primary-500/30 rounded-lg text-white focus:outline-none focus:border-primary-400"
+            className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-dark-800 border border-primary-500/30 rounded-lg text-white text-sm sm:text-base focus:outline-none focus:border-primary-400"
           >
             <option value="all">Todas ({alerts.length})</option>
             <option value="value_bet">Value Bets ({alerts.filter(a => a.type === 'value_bet').length})</option>
@@ -379,7 +381,7 @@ export default function Alerts() {
           <select
             value={filters.read}
             onChange={(e) => setFilters({ ...filters, read: e.target.value })}
-            className="w-full px-4 py-3 bg-dark-800 border border-primary-500/30 rounded-lg text-white focus:outline-none focus:border-primary-400"
+            className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-dark-800 border border-primary-500/30 rounded-lg text-white text-sm sm:text-base focus:outline-none focus:border-primary-400"
           >
             <option value="all">Todas</option>
             <option value="unread">No leídas ({unreadCount})</option>
@@ -391,7 +393,7 @@ export default function Alerts() {
           <select
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
-            className="w-full px-4 py-3 bg-dark-800 border border-primary-500/30 rounded-lg text-white focus:outline-none focus:border-primary-400"
+            className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-dark-800 border border-primary-500/30 rounded-lg text-white text-sm sm:text-base focus:outline-none focus:border-primary-400"
           >
             <option value="all">Todas</option>
             <option value="high">Alta ({alerts.filter(a => a.priority === 'high').length})</option>
@@ -405,7 +407,7 @@ export default function Alerts() {
             {unreadCount > 0 && (
               <button
                 onClick={markAllAsRead}
-                className="flex-1 px-4 py-3 bg-primary-500/20 border border-primary-500/40 text-primary-300 rounded-lg hover:bg-primary-500/30 transition-colors text-sm font-semibold"
+                className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-primary-500/20 border border-primary-500/40 text-primary-300 rounded-lg hover:bg-primary-500/30 transition-colors text-xs sm:text-sm font-semibold"
               >
                 Marcar todas leídas
               </button>
@@ -427,17 +429,17 @@ export default function Alerts() {
                 }`}
               >
                 <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
-                {getAlertIcon(alert.type)}
-                <div className="flex-1">
+                <div className="flex-shrink-0">{getAlertIcon(alert.type)}</div>
+                <div className="flex-1 min-w-0">
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <h3 className="text-base sm:text-lg font-black text-white break-words">{alert.title}</h3>
+                        <h3 className="text-sm sm:text-base md:text-lg font-black text-white break-words">{alert.title}</h3>
                         {!alert.read && (
                           <span className="w-2 h-2 bg-accent-400 rounded-full animate-pulse"></span>
                         )}
                       </div>
-                      <p className="text-gray-300 text-sm mb-2">{alert.message}</p>
+                      <p className="text-gray-300 text-xs sm:text-sm mb-2 break-words">{alert.message}</p>
                       {alert.value !== undefined && (
                         <div className="mt-2 flex items-center gap-2">
                           <span className="px-3 py-1 bg-gold-500/20 text-gold-400 rounded-lg text-sm font-black">
@@ -457,9 +459,9 @@ export default function Alerts() {
                       )}
                     </div>
                   </div>
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4 pt-4 border-t border-primary-500/10">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-primary-500/10">
                     <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-gray-500 whitespace-nowrap">
                         {formatDistanceToNow(new Date(alert.timestamp), { addSuffix: true, locale: es })}
                       </span>
                       {alert.priority && (
@@ -574,6 +576,7 @@ export default function Alerts() {
           }}
         />
       )}
+      </div>
     </div>
   );
 }

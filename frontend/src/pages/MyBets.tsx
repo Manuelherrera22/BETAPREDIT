@@ -578,6 +578,7 @@ export default function MyBets() {
           }
         }}
       />
+      </div>
     </div>
   )
 }

@@ -266,7 +266,7 @@ export default function ValueBetCalculator() {
             <div className="bg-gradient-to-br from-emerald-500/20 to-green-500/20 rounded-xl p-4 border border-emerald-500/40">
               <div className="text-sm font-bold text-emerald-300 mb-3">📊 Simulador de Escenarios</div>
               
-              <div className="grid grid-cols-2 gap-3 mb-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                 <div className="bg-dark-800/50 rounded-lg p-3 border border-emerald-500/20">
                   <div className="text-xs text-gray-400 mb-1">Si GANAS ({(simulationResults.winScenario.probability * 100).toFixed(1)}%)</div>
                   <div className="text-lg font-black text-emerald-400">

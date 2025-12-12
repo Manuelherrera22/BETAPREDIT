@@ -221,44 +221,46 @@ export default function Statistics() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
-        <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div className="mb-4 sm:mb-6 md:mb-8 flex flex-col gap-4">
           <div className="flex-1 min-w-0">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-2">Mis Estadísticas</h1>
-            <p className="text-sm sm:text-base text-gray-400">Análisis detallado de tu rendimiento</p>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white mb-2">Mis Estadísticas</h1>
+            <p className="text-xs sm:text-sm md:text-base text-gray-400">Análisis detallado de tu rendimiento</p>
           </div>
-          <div className="flex flex-wrap gap-2">
-          {(['week', 'month', 'year'] as const).map(range => (
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex flex-wrap gap-2">
+              {(['week', 'month', 'year'] as const).map(range => (
+                <button
+                  key={range}
+                  onClick={() => setTimeRange(range)}
+                  className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
+                    timeRange === range
+                      ? 'bg-primary-500 text-white'
+                      : 'bg-slate-800 text-gray-400 hover:bg-slate-700'
+                  }`}
+                >
+                  {range === 'week' ? 'Semana' : range === 'month' ? 'Mes' : 'Año'}
+                </button>
+              ))}
+            </div>
             <button
-              key={range}
-              onClick={() => setTimeRange(range)}
-              className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
-                timeRange === range
-                  ? 'bg-primary-500 text-white'
-                  : 'bg-slate-800 text-gray-400 hover:bg-slate-700'
-              }`}
+              onClick={handleExportStatistics}
+              className="px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all bg-accent-500 text-white hover:bg-accent-400 flex items-center justify-center gap-2 w-full sm:w-auto"
             >
-              {range === 'week' ? 'Semana' : range === 'month' ? 'Mes' : 'Año'}
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Exportar CSV
             </button>
-          ))}
-          <button
-            onClick={handleExportStatistics}
-            className="px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all bg-accent-500 text-white hover:bg-accent-400 flex items-center justify-center gap-2 w-full sm:w-auto"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            Exportar CSV
-          </button>
+          </div>
         </div>
-      </div>
 
-      {/* ROI Tracking Dashboard */}
-      <div className="mb-8">
-        <ROITrackingDashboard />
-      </div>
+        {/* ROI Tracking Dashboard */}
+        <div className="mb-6 sm:mb-8">
+          <ROITrackingDashboard />
+        </div>
 
         {/* Key Stats Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-6 sm:mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 lg:gap-6 mb-4 sm:mb-6 md:mb-8">
         <StatsCard
           title="Win Rate Actual"
           value={`${currentStats.winRate.toFixed(1)}%`}
@@ -295,24 +297,28 @@ export default function Statistics() {
       </div>
 
         {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
-        <div className="bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl rounded-xl p-4 sm:p-6 border-2 border-slate-700/50 hover:border-primary-400/40 transition-all">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
-            <h3 className="text-base sm:text-lg md:text-xl font-black text-white">ROI {timeRange === 'week' ? 'Semanal' : timeRange === 'month' ? 'Mensual' : 'Anual'}</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6 mb-4 sm:mb-6 md:mb-8">
+        <div className="bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6 border-2 border-slate-700/50 hover:border-primary-400/40 transition-all">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3 sm:mb-4">
+            <h3 className="text-sm sm:text-base md:text-lg lg:text-xl font-black text-white">ROI {timeRange === 'week' ? 'Semanal' : timeRange === 'month' ? 'Mensual' : 'Anual'}</h3>
             <span className="text-xs text-gray-400">
               {statistics ? 'Actualizado en tiempo real' : 'Datos de ejemplo'}
             </span>
           </div>
-          <SimpleChart data={monthlyData} color="accent" animated={true} />
+          <div className="h-48 sm:h-56 md:h-64">
+            <SimpleChart data={monthlyData} color="accent" animated={true} />
+          </div>
         </div>
-        <div className="bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl rounded-xl p-4 sm:p-6 border-2 border-slate-700/50 hover:border-primary-400/40 transition-all">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
-            <h3 className="text-base sm:text-lg md:text-xl font-black text-white">Win Rate {timeRange === 'week' ? 'Semanal' : 'Mensual'}</h3>
+        <div className="bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6 border-2 border-slate-700/50 hover:border-primary-400/40 transition-all">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3 sm:mb-4">
+            <h3 className="text-sm sm:text-base md:text-lg lg:text-xl font-black text-white">Win Rate {timeRange === 'week' ? 'Semanal' : 'Mensual'}</h3>
             <span className="text-xs text-gray-400">
               {statistics ? 'Datos reales' : 'Datos de ejemplo'}
             </span>
           </div>
-          <SimpleChart data={winRateData} color="primary" animated={true} />
+          <div className="h-48 sm:h-56 md:h-64">
+            <SimpleChart data={winRateData} color="primary" animated={true} />
+          </div>
         </div>
       </div>
 
@@ -322,9 +328,9 @@ export default function Statistics() {
         </div>
 
         {/* Detailed Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          <div className="bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl rounded-xl p-4 sm:p-6 border-2 border-slate-700/50">
-          <h3 className="text-lg font-semibold text-white mb-4">Distribución por Deporte</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
+          <div className="bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6 border-2 border-slate-700/50">
+          <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">Distribución por Deporte</h3>
           <div className="space-y-3">
             {sportPercentages.length > 0 ? (
               sportPercentages.slice(0, 3).map(({ sport, percentage }) => (
@@ -347,8 +353,8 @@ export default function Statistics() {
           </div>
         </div>
 
-          <div className="bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl rounded-xl p-4 sm:p-6 border-2 border-slate-700/50">
-            <h3 className="text-base sm:text-lg font-semibold text-white mb-4">Rendimiento por Plataforma</h3>
+          <div className="bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6 border-2 border-slate-700/50">
+            <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">Rendimiento por Plataforma</h3>
           <div className="space-y-3">
             {statsByPlatform && typeof statsByPlatform === 'object' && Object.entries(statsByPlatform).length > 0 ? (
               Object.entries(statsByPlatform).slice(0, 3).map(([platform, data]: [string, any]) => (
@@ -365,8 +371,8 @@ export default function Statistics() {
           </div>
         </div>
 
-          <div className="bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl rounded-xl p-4 sm:p-6 border-2 border-slate-700/50">
-            <h3 className="text-base sm:text-lg font-semibold text-white mb-4">Resumen del {timeRange === 'week' ? 'Período' : timeRange === 'month' ? 'Mes' : 'Año'}</h3>
+          <div className="bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl rounded-xl p-3 sm:p-4 md:p-6 border-2 border-slate-700/50">
+            <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">Resumen del {timeRange === 'week' ? 'Período' : timeRange === 'month' ? 'Mes' : 'Año'}</h3>
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-400">Apuestas Totales</span>
@@ -390,8 +396,8 @@ export default function Statistics() {
         </div>
       </div>
 
-      {/* Advanced Analytics Section */}
-      <div className="mt-8 space-y-6">
+        {/* Advanced Analytics Section */}
+        <div className="mt-6 sm:mt-8 space-y-4 sm:space-y-6">
         {/* Trend Analysis */}
         <TrendAnalysis
           data={safeStatsByPeriod.length > 0 ? safeStatsByPeriod.map((stat, index) => ({
@@ -471,6 +477,7 @@ export default function Statistics() {
             })}
           />
         )}
+        </div>
       </div>
     </div>
   );

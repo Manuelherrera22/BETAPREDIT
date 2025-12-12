@@ -175,27 +175,28 @@ export default function OddsComparison() {
   })() : [];
 
   return (
-    <div className="px-4 py-6">
-      <div className="mb-8">
-        <h1 className="text-4xl font-black text-white mb-2">Comparador de Cuotas</h1>
-        <p className="text-gray-400">
-          Compara cuotas de múltiples plataformas y encuentra el mejor valor
-        </p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-2">Comparador de Cuotas</h1>
+          <p className="text-sm sm:text-base text-gray-400">
+            Compara cuotas de múltiples plataformas y encuentra el mejor valor
+          </p>
+        </div>
 
-      {/* Sport Selector */}
-      <div className="mb-6">
-        <label className="block text-sm font-semibold text-gray-400 mb-2">
-          Seleccionar Deporte
-        </label>
-        <select
-          value={selectedSport}
-          onChange={(e) => {
-            setSelectedSport(e.target.value);
-            setSelectedEvent('');
-          }}
-          className="w-full md:w-auto px-4 py-3 bg-dark-800 border border-primary-500/30 rounded-lg text-white focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-500/20"
-        >
+        {/* Sport Selector */}
+        <div className="mb-4 sm:mb-6">
+          <label className="block text-sm font-semibold text-gray-400 mb-2">
+            Seleccionar Deporte
+          </label>
+          <select
+            value={selectedSport}
+            onChange={(e) => {
+              setSelectedSport(e.target.value);
+              setSelectedEvent('');
+            }}
+            className="w-full sm:w-auto px-3 sm:px-4 py-2 sm:py-3 bg-slate-800 border border-primary-500/30 rounded-lg text-white text-sm sm:text-base focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-500/20"
+          >
           {sports.map((sport) => (
             <option key={sport.key} value={sport.key}>
               {sport.title}
@@ -204,30 +205,30 @@ export default function OddsComparison() {
         </select>
       </div>
 
-      {/* Search and Event Selector */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        {/* Search and Event Selector */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         <div>
           <label className="block text-sm font-semibold text-gray-400 mb-2">
             Buscar Evento
           </label>
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Buscar por equipo, liga..."
-            className="w-full px-4 py-3 bg-dark-800 border border-primary-500/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-500/20"
-          />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar por equipo, liga..."
+              className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-800 border border-primary-500/30 rounded-lg text-white text-sm sm:text-base placeholder-gray-500 focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-500/20"
+            />
         </div>
         <div>
           <label className="block text-sm font-semibold text-gray-400 mb-2">
             Seleccionar Evento
           </label>
-          <select
-            value={selectedEvent}
-            onChange={(e) => setSelectedEvent(e.target.value)}
-            disabled={loading || filteredEvents.length === 0}
-            className="w-full px-4 py-3 bg-dark-800 border border-primary-500/30 rounded-lg text-white focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
+            <select
+              value={selectedEvent}
+              onChange={(e) => setSelectedEvent(e.target.value)}
+              disabled={loading || filteredEvents.length === 0}
+              className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-800 border border-primary-500/30 rounded-lg text-white text-sm sm:text-base focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
             {loading ? (
               <option>Cargando eventos...</option>
             ) : filteredEvents.length === 0 ? (
@@ -243,17 +244,17 @@ export default function OddsComparison() {
         </div>
       </div>
 
-      {/* Loading State */}
-      {loadingComparisons && (
-        <div className="mb-4 flex items-center gap-2 text-sm text-gray-400">
-          <div className="w-4 h-4 border-2 border-primary-400 border-t-transparent rounded-full animate-spin"></div>
-          <span>Cargando comparación de cuotas...</span>
-        </div>
-      )}
+        {/* Loading State */}
+        {loadingComparisons && (
+          <div className="mb-4 flex items-center gap-2 text-xs sm:text-sm text-gray-400">
+            <div className="w-4 h-4 border-2 border-primary-400 border-t-transparent rounded-full animate-spin"></div>
+            <span>Cargando comparación de cuotas...</span>
+          </div>
+        )}
 
-      {/* WebSocket Status */}
-      {!loadingComparisons && currentEvent && (
-        <div className="mb-4 flex items-center gap-4 text-sm">
+        {/* WebSocket Status */}
+        {!loadingComparisons && currentEvent && (
+          <div className="mb-4 flex items-center gap-2 sm:gap-4 text-xs sm:text-sm">
           {isConnected ? (
             <div className="flex items-center gap-2">
               <span className="relative">
@@ -271,33 +272,34 @@ export default function OddsComparison() {
         </div>
       )}
 
-      {/* Comparison Table */}
-      {currentEvent && oddsData.length > 0 ? (
-        <OddsComparisonTable
-          event={{
-            id: currentEvent.id,
-            homeTeam: currentEvent.home_team,
-            awayTeam: currentEvent.away_team,
-            sport: currentEvent.sport_title,
-          }}
-          odds={oddsData}
-        />
-      ) : currentEvent && !loadingComparisons ? (
-        <div className="bg-dark-800 rounded-xl p-8 text-center border border-primary-500/20">
-          <p className="text-gray-400">No hay cuotas disponibles para este evento</p>
-        </div>
-      ) : null}
+          {/* Comparison Table */}
+          {currentEvent && oddsData.length > 0 ? (
+            <OddsComparisonTable
+              event={{
+                id: currentEvent.id,
+                homeTeam: currentEvent.home_team,
+                awayTeam: currentEvent.away_team,
+                sport: currentEvent.sport_title,
+              }}
+              odds={oddsData}
+            />
+          ) : currentEvent && !loadingComparisons ? (
+            <div className="bg-slate-800 rounded-xl p-6 sm:p-8 text-center border border-primary-500/20">
+              <p className="text-sm sm:text-base text-gray-400">No hay cuotas disponibles para este evento</p>
+            </div>
+          ) : null}
 
-      {/* Info Section */}
-      <div className="mt-6 bg-primary-500/10 rounded-xl p-4 border border-primary-500/20">
-        <h3 className="text-sm font-semibold text-primary-300 mb-2">💡 Consejos</h3>
-        <ul className="text-xs text-gray-400 space-y-1">
-          <li>• Las cuotas marcadas con ⭐ son las mejores disponibles</li>
-          <li>• El valor positivo indica un value bet potencial</li>
-          <li>• Compara siempre antes de apostar para maximizar ganancias</li>
-          <li>• Las cuotas se actualizan automáticamente cada 30 segundos</li>
-          <li>• Datos en tiempo real de múltiples casas de apuestas</li>
-        </ul>
+        {/* Info Section */}
+        <div className="mt-4 sm:mt-6 bg-primary-500/10 rounded-xl p-3 sm:p-4 border border-primary-500/20">
+          <h3 className="text-xs sm:text-sm font-semibold text-primary-300 mb-2">💡 Consejos</h3>
+          <ul className="text-xs text-gray-400 space-y-1">
+            <li>• Las cuotas marcadas con ⭐ son las mejores disponibles</li>
+            <li>• El valor positivo indica un value bet potencial</li>
+            <li>• Compara siempre antes de apostar para maximizar ganancias</li>
+            <li>• Las cuotas se actualizan automáticamente cada 30 segundos</li>
+            <li>• Datos en tiempo real de múltiples casas de apuestas</li>
+          </ul>
+        </div>
       </div>
     </div>
   );

@@ -73,9 +73,11 @@ export default function BankrollAnalysis() {
 
   if (statsLoading || periodLoading) {
     return (
-      <div className="px-4 py-6">
-        <div className="flex justify-center items-center h-64">
-          <div className="text-white">Cargando análisis de bankroll...</div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
+          <div className="flex justify-center items-center h-64">
+            <div className="text-white text-sm sm:text-base">Cargando análisis de bankroll...</div>
+          </div>
         </div>
       </div>
     );
@@ -140,39 +142,39 @@ export default function BankrollAnalysis() {
         />
       </div>
 
-      {/* Time Range Selector */}
-      <div className="mb-6 flex gap-2">
-        <button
-          onClick={() => setTimeRange('week')}
-          className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-            timeRange === 'week'
-              ? 'bg-primary-500 text-white'
-              : 'bg-dark-800 text-gray-400 hover:text-white'
-          }`}
-        >
-          Semana
-        </button>
-        <button
-          onClick={() => setTimeRange('month')}
-          className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-            timeRange === 'month'
-              ? 'bg-primary-500 text-white'
-              : 'bg-dark-800 text-gray-400 hover:text-white'
-          }`}
-        >
-          Mes
-        </button>
-        <button
-          onClick={() => setTimeRange('year')}
-          className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-            timeRange === 'year'
-              ? 'bg-primary-500 text-white'
-              : 'bg-dark-800 text-gray-400 hover:text-white'
-          }`}
-        >
-          Año
-        </button>
-      </div>
+        {/* Time Range Selector */}
+        <div className="mb-6 flex flex-wrap gap-2">
+          <button
+            onClick={() => setTimeRange('week')}
+            className={`px-3 sm:px-4 py-2 rounded-lg text-sm sm:text-base font-semibold transition-colors ${
+              timeRange === 'week'
+                ? 'bg-primary-500 text-white'
+                : 'bg-slate-800 text-gray-400 hover:text-white'
+            }`}
+          >
+            Semana
+          </button>
+          <button
+            onClick={() => setTimeRange('month')}
+            className={`px-3 sm:px-4 py-2 rounded-lg text-sm sm:text-base font-semibold transition-colors ${
+              timeRange === 'month'
+                ? 'bg-primary-500 text-white'
+                : 'bg-slate-800 text-gray-400 hover:text-white'
+            }`}
+          >
+            Mes
+          </button>
+          <button
+            onClick={() => setTimeRange('year')}
+            className={`px-3 sm:px-4 py-2 rounded-lg text-sm sm:text-base font-semibold transition-colors ${
+              timeRange === 'year'
+                ? 'bg-primary-500 text-white'
+                : 'bg-slate-800 text-gray-400 hover:text-white'
+            }`}
+          >
+            Año
+          </button>
+        </div>
 
       {/* Charts - Mejorado */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
@@ -210,49 +212,49 @@ export default function BankrollAnalysis() {
         </div>
       </div>
 
-      {/* Bankroll Optimizer - NUEVO */}
-      <div className="mb-8">
-        <div className="mb-6">
-          <h2 className="text-2xl font-black text-white mb-2">Optimizador de Bankroll</h2>
-          <p className="text-gray-400">Calcula el stake óptimo usando Kelly Criterion y simula escenarios</p>
+        {/* Bankroll Optimizer - NUEVO */}
+        <div className="mb-6 sm:mb-8">
+          <div className="mb-4 sm:mb-6">
+            <h2 className="text-xl sm:text-2xl font-black text-white mb-2">Optimizador de Bankroll</h2>
+            <p className="text-sm sm:text-base text-gray-400">Calcula el stake óptimo usando Kelly Criterion y simula escenarios</p>
+          </div>
+          <ValueBetCalculator />
         </div>
-        <ValueBetCalculator />
-      </div>
 
-      {/* Bankroll Management - Mejorado */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        {/* Bankroll Management - Mejorado */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         <div className="bg-slate-800/70 backdrop-blur-xl rounded-2xl p-5 sm:p-6 border-2 border-slate-700/50 shadow-xl">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-8 h-8 rounded-lg bg-gold-500/20 flex items-center justify-center border border-gold-500/40">
               <Icon name="activity" size={16} className="text-gold-300" />
             </div>
-            <h3 className="text-lg font-black text-white">Distribución de Stakes</h3>
+            <h3 className="text-base sm:text-lg font-black text-white">Distribución de Stakes</h3>
           </div>
           <div className="space-y-3">
             <div>
-              <div className="flex justify-between text-sm mb-1">
+              <div className="flex justify-between text-xs sm:text-sm mb-1">
                 <span className="text-gray-400">Value Bets Altos (+10%)</span>
                 <span className="text-white font-semibold">35%</span>
               </div>
-              <div className="w-full bg-dark-800 rounded-full h-2">
+              <div className="w-full bg-slate-700 rounded-full h-2">
                 <div className="bg-gold-500 h-2 rounded-full" style={{ width: '35%' }}></div>
               </div>
             </div>
             <div>
-              <div className="flex justify-between text-sm mb-1">
+              <div className="flex justify-between text-xs sm:text-sm mb-1">
                 <span className="text-gray-400">Value Bets Medios (5-10%)</span>
                 <span className="text-white font-semibold">45%</span>
               </div>
-              <div className="w-full bg-dark-800 rounded-full h-2">
+              <div className="w-full bg-slate-700 rounded-full h-2">
                 <div className="bg-accent-500 h-2 rounded-full" style={{ width: '45%' }}></div>
               </div>
             </div>
             <div>
-              <div className="flex justify-between text-sm mb-1">
+              <div className="flex justify-between text-xs sm:text-sm mb-1">
                 <span className="text-gray-400">Value Bets Bajos (1-5%)</span>
                 <span className="text-white font-semibold">20%</span>
               </div>
-              <div className="w-full bg-dark-800 rounded-full h-2">
+              <div className="w-full bg-slate-700 rounded-full h-2">
                 <div className="bg-primary-500 h-2 rounded-full" style={{ width: '20%' }}></div>
               </div>
             </div>
@@ -264,44 +266,44 @@ export default function BankrollAnalysis() {
             <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center border border-emerald-500/40">
               <Icon name="zap" size={16} className="text-emerald-300" />
             </div>
-            <h3 className="text-lg font-black text-white">Recomendaciones Inteligentes</h3>
+            <h3 className="text-base sm:text-lg font-black text-white">Recomendaciones Inteligentes</h3>
           </div>
           <div className="space-y-3">
-            <div className="bg-primary-500/10 rounded-lg p-4 border border-primary-500/20">
-              <div className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-primary-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-primary-500/10 rounded-lg p-3 sm:p-4 border border-primary-500/20">
+              <div className="flex items-start gap-2 sm:gap-3">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-primary-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                 </svg>
                 <div>
-                  <h4 className="text-white font-semibold mb-1">Stake Óptimo Recomendado</h4>
-                  <p className="text-gray-400 text-sm">
+                  <h4 className="text-sm sm:text-base text-white font-semibold mb-1">Stake Óptimo Recomendado</h4>
+                  <p className="text-xs sm:text-sm text-gray-400">
                     Basado en tu ROI del {monthlyAverage.toFixed(1)}%, considera usar Kelly Criterion con Fraction 0.5 (50%) para value bets de +10%.
                   </p>
                 </div>
               </div>
             </div>
-            <div className="bg-accent-500/10 rounded-lg p-4 border border-accent-500/20">
-              <div className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-accent-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-accent-500/10 rounded-lg p-3 sm:p-4 border border-accent-500/20">
+              <div className="flex items-start gap-2 sm:gap-3">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-accent-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                 </svg>
                 <div>
-                  <h4 className="text-white font-semibold mb-1">Rendimiento Excelente</h4>
-                  <p className="text-gray-400 text-sm">
+                  <h4 className="text-sm sm:text-base text-white font-semibold mb-1">Rendimiento Excelente</h4>
+                  <p className="text-xs sm:text-sm text-gray-400">
                     Tu ROI mensual promedio del {monthlyAverage.toFixed(1)}% está por encima del promedio del mercado (+5-8%).
                   </p>
                 </div>
               </div>
             </div>
             {averageStake > 0 && currentBankroll > 0 && (
-              <div className="bg-emerald-500/10 rounded-lg p-4 border border-emerald-500/20">
-                <div className="flex items-start gap-3">
-                  <svg className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-emerald-500/10 rounded-lg p-3 sm:p-4 border border-emerald-500/20">
+                <div className="flex items-start gap-2 sm:gap-3">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <div>
-                    <h4 className="text-white font-semibold mb-1">Análisis de Stakes</h4>
-                    <p className="text-gray-400 text-sm">
+                    <h4 className="text-sm sm:text-base text-white font-semibold mb-1">Análisis de Stakes</h4>
+                    <p className="text-xs sm:text-sm text-gray-400">
                       Tu stake promedio es {(averageStake / currentBankroll * 100).toFixed(1)}% del bankroll. 
                       {averageStake / currentBankroll > 0.05 
                         ? ' Considera reducir para mayor seguridad (máx 5%).'
