@@ -51,8 +51,9 @@ export default function Predictions() {
   
   const [selectedSport, setSelectedSport] = useState<string>(urlSport);
   const [selectedLeague, setSelectedLeague] = useState<string | null>(urlLeague);
-  const [minConfidence, setMinConfidence] = useState<number>(0.0);
-  const [minValue, setMinValue] = useState<number>(-0.1);
+  // Si hay filtro de league desde el heatmap, usar filtros más permisivos inicialmente
+  const [minConfidence, setMinConfidence] = useState<number>(urlLeague ? 0.0 : 0.0);
+  const [minValue, setMinValue] = useState<number>(urlLeague ? -0.2 : -0.1);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'confidence' | 'value' | 'time'>('value');
   const [selectedPrediction, setSelectedPrediction] = useState<{
@@ -332,12 +333,32 @@ export default function Predictions() {
         const eventAny = event as any;
         
         // Intentar obtener la liga del evento desde diferentes fuentes (igual que heatmap)
-        const eventLeague = eventAny.metadata?.league || 
-                           eventAny.league || 
-                           eventAny.event?.metadata?.league ||
-                           eventAny.event?.league ||
-                           eventAny.sport?.name || // Fallback al nombre del sport
-                           'Unknown';
+        // IMPORTANTE: Usar la misma lógica que el heatmap
+        let eventLeague = eventAny.metadata?.league || 
+                         eventAny.league || 
+                         eventAny.event?.metadata?.league ||
+                         eventAny.event?.league;
+        
+        // Si no hay league en metadata, intentar inferirla del nombre del evento o equipos
+        if (!eventLeague || eventLeague === eventAny.sport?.name) {
+          // Buscar indicadores de liga en el nombre del evento
+          const eventName = (event.eventName || '').toLowerCase();
+          const homeTeam = (event.homeTeam || '').toLowerCase();
+          const awayTeam = (event.awayTeam || '').toLowerCase();
+          
+          // Detectar EPL por equipos conocidos o nombres
+          if (selectedLeague.toUpperCase() === 'EPL' || selectedLeague.toLowerCase().includes('epl')) {
+            const eplTeams = ['manchester', 'liverpool', 'chelsea', 'arsenal', 'tottenham', 'city', 'united'];
+            if (eplTeams.some(team => homeTeam.includes(team) || awayTeam.includes(team))) {
+              eventLeague = 'EPL';
+            }
+          }
+          
+          // Si aún no hay league, usar el sport como fallback (igual que heatmap)
+          if (!eventLeague) {
+            eventLeague = eventAny.sport?.name || 'Unknown';
+          }
+        }
         
         // También buscar en el nombre del evento y equipos
         const eventName = (event.eventName || '').toLowerCase();
@@ -348,13 +369,20 @@ export default function Predictions() {
         // Normalizar nombres de ligas para comparación (más completo)
         const normalizeLeague = (name: string) => {
           if (!name) return '';
-          return name.toLowerCase()
+          const normalized = name.toLowerCase()
             .replace(/[^a-z0-9]/g, '')
-            .replace(/premierleague|premier|englishpremierleague|englishpremier/g, 'epl')
+            .replace(/premierleague|premier|englishpremierleague|englishpremier|english/g, 'epl')
             .replace(/laliga|spain|spanishlaliga|spanish/g, 'laliga')
             .replace(/seriea|italy|italianseriea|italian/g, 'seriea')
             .replace(/bundesliga|germany|germanbundesliga|german/g, 'bundesliga')
             .replace(/ligue1|france|frenchligue1|french/g, 'ligue1');
+          
+          // Si el nombre original es exactamente "EPL", mantenerlo
+          if (name.toUpperCase() === 'EPL' || name.toLowerCase() === 'epl') {
+            return 'epl';
+          }
+          
+          return normalized;
         };
         
         const normalizedSelected = normalizeLeague(selectedLeague);
@@ -365,6 +393,11 @@ export default function Predictions() {
         
         // Comparar nombres normalizados - más permisivo
         const leagueMatches = 
+          // Coincidencia exacta (sin normalizar primero)
+          (eventLeague && selectedLeague && 
+           (eventLeague.toLowerCase() === selectedLeague.toLowerCase() ||
+            eventLeague.toLowerCase().includes(selectedLeague.toLowerCase()) ||
+            selectedLeague.toLowerCase().includes(eventLeague.toLowerCase()))) ||
           // Coincidencia exacta normalizada
           (normalizedEvent && normalizedSelected && 
            (normalizedEvent === normalizedSelected ||
@@ -374,28 +407,49 @@ export default function Predictions() {
           (fullTextNormalized && normalizedSelected &&
            (fullTextNormalized.includes(normalizedSelected) ||
             normalizedSelected.includes(fullTextNormalized))) ||
-          // Coincidencia parcial sin normalizar (para casos edge)
-          (eventLeague && selectedLeague &&
-           (eventLeague.toLowerCase().includes(selectedLeague.toLowerCase()) ||
-            selectedLeague.toLowerCase().includes(eventLeague.toLowerCase())));
+          // Casos especiales: EPL puede estar en diferentes formatos
+          (selectedLeague.toUpperCase() === 'EPL' && 
+           (normalizedEvent === 'epl' || 
+            eventLeague?.toUpperCase().includes('PREMIER') ||
+            eventLeague?.toUpperCase().includes('EPL')));
         
         if (!leagueMatches) {
           console.log(`Event ${event.eventId} filtered out: league "${eventLeague}" !== "${selectedLeague}" (normalized: "${normalizedEvent}" vs "${normalizedSelected}")`);
+          console.log(`  - Event sport: "${event.sport}", eventName: "${event.eventName}"`);
+          console.log(`  - Event metadata:`, eventAny.metadata);
           return false;
         } else {
-          console.log(`Event ${event.eventId} MATCHES league filter: "${eventLeague}" matches "${selectedLeague}"`);
+          console.log(`✓ Event ${event.eventId} MATCHES league filter: "${eventLeague}" matches "${selectedLeague}"`);
+          console.log(`  - Has ${event.predictions.length} predictions`);
         }
       }
       
       // Filtrar por confianza y valor - PERO solo si hay predicciones que cumplan
-      const hasValidPredictions = event.predictions.some(
+      // Si hay filtro de league, ser más permisivo con los filtros de confianza/valor
+      const effectiveMinConfidence = selectedLeague ? Math.max(0, minConfidence - 0.1) : minConfidence;
+      const effectiveMinValue = selectedLeague ? Math.max(-0.2, minValue - 0.05) : minValue;
+      
+      const validPredictions = event.predictions.filter(
         (pred) =>
-          pred.confidence >= minConfidence &&
-          pred.value >= minValue
+          pred.confidence >= effectiveMinConfidence &&
+          pred.value >= effectiveMinValue
       );
       
+      const hasValidPredictions = validPredictions.length > 0;
+      
       if (!hasValidPredictions) {
-        console.log(`Event ${event.eventId} filtered out: no predictions match confidence>=${minConfidence} and value>=${minValue}`);
+        console.log(`Event ${event.eventId} filtered out: no predictions match confidence>=${effectiveMinConfidence} and value>=${effectiveMinValue}`);
+        console.log(`  - Total predictions: ${event.predictions.length}`);
+        if (event.predictions.length > 0) {
+          const minConf = Math.min(...event.predictions.map(p => p.confidence));
+          const maxConf = Math.max(...event.predictions.map(p => p.confidence));
+          const minVal = Math.min(...event.predictions.map(p => p.value));
+          const maxVal = Math.max(...event.predictions.map(p => p.value));
+          console.log(`  - Confidence range: ${minConf.toFixed(2)} - ${maxConf.toFixed(2)}`);
+          console.log(`  - Value range: ${minVal.toFixed(2)} - ${maxVal.toFixed(2)}`);
+        }
+      } else {
+        console.log(`✓ Event ${event.eventId} has ${validPredictions.length} valid predictions (from ${event.predictions.length} total)`);
       }
       
       return hasValidPredictions;
