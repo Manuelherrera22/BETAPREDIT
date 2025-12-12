@@ -247,17 +247,18 @@ export default function MyBets() {
   }
 
   return (
-    <div className="px-4 py-6">
-      <div className="mb-8 flex justify-between items-start">
-        <div>
-          <h1 className="text-4xl font-black text-white mb-2">Mis Apuestas</h1>
-          <p className="text-gray-400">Registra y gestiona tus apuestas externas</p>
-        </div>
-        <div className="flex gap-3">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
+        <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-2">Mis Apuestas</h1>
+            <p className="text-sm sm:text-base text-gray-400">Registra y gestiona tus apuestas externas</p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
           {filteredBets && filteredBets.length > 0 && (
             <button
               onClick={handleExportBets}
-              className="px-6 py-3 bg-gradient-to-r from-accent-500 to-accent-600 text-white rounded-lg font-semibold hover:from-accent-400 hover:to-accent-500 transition-all flex items-center gap-2 shadow-lg shadow-accent-500/20"
+              className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-accent-500 to-accent-600 text-white rounded-lg text-sm sm:text-base font-semibold hover:from-accent-400 hover:to-accent-500 transition-all flex items-center justify-center gap-2 shadow-lg shadow-accent-500/20 w-full sm:w-auto"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -267,7 +268,7 @@ export default function MyBets() {
           )}
           <button
             onClick={() => setIsRegisterFormOpen(true)}
-            className="px-6 py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-lg font-semibold hover:from-primary-400 hover:to-primary-500 transition-all flex items-center gap-2 shadow-lg shadow-primary-500/20"
+            className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-lg text-sm sm:text-base font-semibold hover:from-primary-400 hover:to-primary-500 transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary-500/20 w-full sm:w-auto"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -277,9 +278,9 @@ export default function MyBets() {
         </div>
       </div>
 
-      {/* Filtros */}
-      <div className="mb-6 bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-6 border border-primary-500/20">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* Filtros */}
+        <div className="mb-6 bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl rounded-xl p-4 sm:p-6 border-2 border-slate-700/50">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Búsqueda */}
           <div className="md:col-span-2">
             <label className="block text-sm font-semibold text-gray-400 mb-2">
@@ -392,8 +393,8 @@ export default function MyBets() {
             const isResolving = resolvingBetId === bet.id
             
             return (
-              <div key={bet.id} className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-6 border border-primary-500/20">
-                <div className="flex justify-between items-start mb-4">
+              <div key={bet.id} className="bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl rounded-xl p-4 sm:p-6 border-2 border-slate-700/50">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       {bet.valueBetAlert && (
@@ -405,7 +406,7 @@ export default function MyBets() {
                         {getStatusLabel(bet.status)}
                       </span>
                     </div>
-                    <h3 className="text-xl font-black text-white mb-1">
+                    <h3 className="text-lg sm:text-xl font-black text-white mb-1 line-clamp-2">
                       {bet.event 
                         ? `${bet.event.homeTeam} vs ${bet.event.awayTeam}`
                         : bet.selection}
@@ -419,7 +420,7 @@ export default function MyBets() {
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-primary-500/20">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-4 border-t border-primary-500/20">
                   <div>
                     <p className="text-sm text-gray-400 mb-1">Stake</p>
                     <p className="text-white font-bold">€{bet.stake.toFixed(2)}</p>
@@ -459,7 +460,7 @@ export default function MyBets() {
                           handleResolveBet(bet.id, 'WON', actualWin)
                         }}
                         disabled={isResolving}
-                        className="px-4 py-2 bg-green-500/20 border border-green-500/40 text-green-300 rounded-lg font-semibold hover:bg-green-500/30 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-green-500/20 border border-green-500/40 text-green-300 rounded-lg text-xs sm:text-sm font-semibold hover:bg-green-500/30 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
                         {isResolving && resolvingBetId === bet.id ? (
                           <>
@@ -481,7 +482,7 @@ export default function MyBets() {
                       <button
                         onClick={() => handleResolveBet(bet.id, 'LOST')}
                         disabled={isResolving}
-                        className="px-4 py-2 bg-red-500/20 border border-red-500/40 text-red-300 rounded-lg font-semibold hover:bg-red-500/30 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-red-500/20 border border-red-500/40 text-red-300 rounded-lg text-xs sm:text-sm font-semibold hover:bg-red-500/30 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
                         {isResolving && resolvingBetId === bet.id ? (
                           <>

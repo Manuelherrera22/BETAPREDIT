@@ -312,11 +312,12 @@ export default function Alerts() {
   const highPriorityCount = alerts.filter(a => !a.read && a.priority === 'high').length;
 
   return (
-    <div className="px-4 py-6">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-4xl font-black text-white">Alertas y Notificaciones</h1>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-6 sm:mb-8 gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white">Alertas y Notificaciones</h1>
             {unreadCount > 0 && (
               <span className="px-3 py-1 bg-accent-500 text-white rounded-full text-sm font-black animate-pulse">
                 {unreadCount} nueva{unreadCount !== 1 ? 's' : ''}
@@ -328,10 +329,10 @@ export default function Alerts() {
               </span>
             )}
           </div>
-          <p className="text-gray-400">Mantente informado de value bets y cambios importantes</p>
-        </div>
-        {/* WebSocket Status */}
-        <div className="flex items-center gap-2">
+            <p className="text-sm sm:text-base text-gray-400">Mantente informado de value bets y cambios importantes</p>
+          </div>
+          {/* WebSocket Status */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
           {isConnected ? (
             <div className="flex items-center gap-2 text-sm">
               <span className="relative">
@@ -347,18 +348,18 @@ export default function Alerts() {
             </div>
           )}
         </div>
-        {unreadCount > 0 && (
-          <button
-            onClick={markAllAsRead}
-            className="px-4 py-2 bg-primary-500/20 border border-primary-500/40 text-primary-300 rounded-lg hover:bg-primary-500/30 transition-colors text-sm font-semibold"
-          >
+            {unreadCount > 0 && (
+              <button
+                onClick={markAllAsRead}
+                className="px-3 sm:px-4 py-2 bg-primary-500/20 border border-primary-500/40 text-primary-300 rounded-lg hover:bg-primary-500/30 transition-colors text-xs sm:text-sm font-semibold w-full sm:w-auto"
+              >
             Marcar todas como leídas
           </button>
         )}
       </div>
 
-      {/* Filters */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        {/* Filters */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div>
           <label className="block text-sm font-semibold text-gray-400 mb-2">Tipo de Alerta</label>
           <select
@@ -413,25 +414,25 @@ export default function Alerts() {
         </div>
       </div>
 
-      {/* Alerts List */}
-      <div className="space-y-4">
-        {filteredAlerts.length > 0 ? (
-          filteredAlerts.map((alert) => (
-            <div
-              key={alert.id}
-              className={`rounded-xl p-6 border-2 transition-all hover:shadow-lg ${
-                alert.read
-                  ? 'bg-dark-900/50 border-primary-500/20'
-                  : `${getAlertColor(alert.type)} border-opacity-60 shadow-lg`
-              }`}
-            >
-              <div className="flex items-start gap-4">
+        {/* Alerts List */}
+        <div className="space-y-3 sm:space-y-4">
+          {filteredAlerts.length > 0 ? (
+            filteredAlerts.map((alert) => (
+              <div
+                key={alert.id}
+                className={`rounded-xl p-4 sm:p-6 border-2 transition-all hover:shadow-lg ${
+                  alert.read
+                    ? 'bg-slate-800/50 border-slate-700/50'
+                    : `${getAlertColor(alert.type)} border-opacity-60 shadow-lg`
+                }`}
+              >
+                <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
                 {getAlertIcon(alert.type)}
                 <div className="flex-1">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-lg font-black text-white">{alert.title}</h3>
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <h3 className="text-base sm:text-lg font-black text-white break-words">{alert.title}</h3>
                         {!alert.read && (
                           <span className="w-2 h-2 bg-accent-400 rounded-full animate-pulse"></span>
                         )}
@@ -456,8 +457,8 @@ export default function Alerts() {
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-primary-500/10">
-                    <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4 pt-4 border-t border-primary-500/10">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                       <span className="text-xs text-gray-500">
                         {formatDistanceToNow(new Date(alert.timestamp), { addSuffix: true, locale: es })}
                       </span>
@@ -493,14 +494,14 @@ export default function Alerts() {
                         </span>
                       )}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                       {alert.type === 'value_bet' && alert.valueBetAlertData && (
                         <button
                           onClick={() => {
                             setSelectedValueBetAlert(alert.valueBetAlertData!);
                             setIsRegisterBetOpen(true);
                           }}
-                          className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-lg font-bold text-sm transition-all hover:scale-105 shadow-lg shadow-emerald-500/30 flex items-center gap-2"
+                          className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-lg font-bold text-xs sm:text-sm transition-all hover:scale-105 shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -511,14 +512,14 @@ export default function Alerts() {
                       {!alert.read && (
                         <button
                           onClick={() => markAsRead(alert.id)}
-                          className="px-3 py-1.5 text-xs bg-primary-500/20 text-primary-300 rounded-lg hover:bg-primary-500/30 transition-colors font-semibold"
+                          className="flex-1 sm:flex-none px-3 py-1.5 text-xs bg-primary-500/20 text-primary-300 rounded-lg hover:bg-primary-500/30 transition-colors font-semibold"
                         >
                           ✓ Leída
                         </button>
                       )}
                       <button
                         onClick={() => deleteAlert(alert.id)}
-                        className="px-3 py-1.5 text-xs bg-red-500/20 text-red-300 rounded-lg hover:bg-red-500/30 transition-colors font-semibold"
+                        className="flex-1 sm:flex-none px-3 py-1.5 text-xs bg-red-500/20 text-red-300 rounded-lg hover:bg-red-500/30 transition-colors font-semibold"
                       >
                         🗑️
                       </button>
@@ -545,9 +546,9 @@ export default function Alerts() {
             actionOnClick={() => setFilters({ type: 'all', read: 'all' })}
           />
         )}
-      </div>
+        </div>
 
-      {/* Register Bet Form Modal */}
+        {/* Register Bet Form Modal */}
       {selectedValueBetAlert && (
         <RegisterBetForm
           isOpen={isRegisterBetOpen}

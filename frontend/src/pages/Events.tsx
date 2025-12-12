@@ -162,14 +162,15 @@ export default function Events() {
   }
 
   return (
-    <div className="px-4 py-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
-        <div>
-          <h1 className="text-4xl font-black text-white mb-2">Eventos Deportivos</h1>
-          <p className="text-gray-400">Explora eventos en vivo y próximos partidos</p>
-        </div>
-        <div className="flex items-center gap-3">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-6 sm:mb-8 gap-4">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-2">Eventos Deportivos</h1>
+            <p className="text-sm sm:text-base text-gray-400">Explora eventos en vivo y próximos partidos</p>
+          </div>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
           {/* WebSocket Status */}
           {viewMode === 'live' && (
             <div className="flex items-center gap-2 text-sm">
@@ -192,15 +193,15 @@ export default function Events() {
           <button
             onClick={handleRefresh}
             disabled={isLoading}
-            className="px-4 py-2 bg-primary-500/20 border border-primary-500/40 text-primary-300 rounded-lg hover:bg-primary-500/30 transition-colors text-sm font-semibold disabled:opacity-50"
+            className="px-3 sm:px-4 py-2 bg-primary-500/20 border border-primary-500/40 text-primary-300 rounded-lg hover:bg-primary-500/30 transition-colors text-xs sm:text-sm font-semibold disabled:opacity-50 w-full sm:w-auto"
           >
             {isLoading ? 'Actualizando...' : '🔄 Actualizar'}
           </button>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        {/* Filters */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         {/* View Mode */}
         <div>
           <label className="block text-sm font-semibold text-gray-400 mb-2">Vista</label>
@@ -257,9 +258,9 @@ export default function Events() {
         </div>
       </div>
 
-      {/* Error State */}
-      {error && (
-        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-6 text-center mb-6">
+        {/* Error State */}
+        {error && (
+          <div className="bg-red-500/10 border-2 border-red-500/20 rounded-xl p-4 sm:p-6 text-center mb-6">
           <p className="text-red-400 mb-2">Error al cargar eventos</p>
           <p className="text-sm text-gray-400 mb-4">Por favor, intenta recargar la página</p>
           <button
@@ -271,14 +272,14 @@ export default function Events() {
         </div>
       )}
 
-      {/* Events Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Events Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {events && events.length > 0 ? (
           events.map((event) => (
             <Link
               key={event.id}
               to={`/events/${event.id}`}
-              className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-6 border border-primary-500/20 hover:border-primary-500/40 transition-all hover:shadow-lg hover:shadow-primary-500/10"
+              className="bg-gradient-to-br from-slate-800/90 via-slate-800/80 to-slate-900/90 backdrop-blur-xl rounded-xl p-4 sm:p-6 border-2 border-slate-700/50 hover:border-primary-500/40 transition-all hover:shadow-lg hover:shadow-primary-500/10"
             >
               <div className="mb-4">
                 <div className="flex items-center justify-between mb-3">
@@ -297,7 +298,7 @@ export default function Events() {
                     {event.status === 'LIVE' ? '🔴 EN VIVO' : event.status}
                   </span>
                 </div>
-                <h3 className="text-xl font-black text-white mb-2">
+                <h3 className="text-lg sm:text-xl font-black text-white mb-2 line-clamp-2">
                   {event.homeTeam} vs {event.awayTeam}
                 </h3>
                 {event.status === 'LIVE' && (event.homeScore !== undefined || event.awayScore !== undefined) && (
@@ -329,7 +330,7 @@ export default function Events() {
             </Link>
           ))
         ) : (
-          <div className="col-span-full bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-12 border border-primary-500/20 text-center">
+          <div className="col-span-full bg-gradient-to-br from-slate-800/90 to-slate-900/90 rounded-xl p-8 sm:p-12 border-2 border-slate-700/50 text-center">
             <div className="mb-4">
               <svg className="w-16 h-16 mx-auto text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -343,11 +344,11 @@ export default function Events() {
                 ? 'No hay eventos en vivo en este momento. Intenta cambiar a "Próximos" para ver eventos programados.'
                 : 'Los eventos se actualizan automáticamente. Si no ves eventos, intenta sincronizar desde The Odds API.'}
             </p>
-            <div className="flex gap-3 justify-center">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button
                 onClick={handleSyncEvents}
                 disabled={isSyncing || !!(lastSyncTime && Date.now() - lastSyncTime < 10 * 60 * 1000)}
-                className={`px-4 py-2 border rounded-lg transition-colors text-sm font-semibold ${
+                className={`w-full sm:w-auto px-4 py-2 border rounded-lg transition-colors text-sm font-semibold ${
                   isSyncing || !!(lastSyncTime && Date.now() - lastSyncTime < 10 * 60 * 1000)
                     ? 'bg-gray-500/20 border-gray-500/40 text-gray-400 cursor-not-allowed'
                     : 'bg-green-500/20 border-green-500/40 text-green-300 hover:bg-green-500/30'
@@ -357,7 +358,7 @@ export default function Events() {
               </button>
               <button
                 onClick={handleRefresh}
-                className="px-4 py-2 bg-primary-500/20 border border-primary-500/40 text-primary-300 rounded-lg hover:bg-primary-500/30 transition-colors text-sm font-semibold"
+                className="w-full sm:w-auto px-4 py-2 bg-primary-500/20 border border-primary-500/40 text-primary-300 rounded-lg hover:bg-primary-500/30 transition-colors text-sm font-semibold"
               >
                 🔄 Recargar Eventos
               </button>

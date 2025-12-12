@@ -311,18 +311,18 @@ export default function Arbitrage() {
                 } transition-all duration-300 hover:scale-[1.01]`}
                 style={{ animationDelay: `${idx * 50}ms` }}
               >
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                   {/* Event Info */}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="px-3 py-1 bg-primary-500/20 text-primary-300 rounded-lg text-sm font-semibold">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                      <span className="px-2 sm:px-3 py-1 bg-primary-500/20 text-primary-300 rounded-lg text-xs sm:text-sm font-semibold">
                         {opportunity.event.sport.name}
                       </span>
                       <span className="text-xs text-gray-400">
                         {formatDate(opportunity.event.startTime)}
                       </span>
                     </div>
-                    <h3 className="text-xl font-black text-white mb-2">
+                    <h3 className="text-lg sm:text-xl font-black text-white mb-2 line-clamp-2">
                       {opportunity.event.homeTeam} vs {opportunity.event.awayTeam}
                     </h3>
                     <div className="text-sm text-gray-400 mb-3">
@@ -350,8 +350,8 @@ export default function Arbitrage() {
                   </div>
 
                   {/* Profit Info - Mejorado */}
-                  <div className="flex flex-col items-end gap-3 min-w-[200px]">
-                    <div className={`text-right p-4 rounded-xl border-2 ${
+                  <div className="flex flex-col sm:flex-row lg:flex-col items-start sm:items-center lg:items-end gap-3 w-full lg:w-auto lg:min-w-[200px]">
+                    <div className={`text-left sm:text-center lg:text-right p-3 sm:p-4 rounded-xl border-2 w-full lg:w-auto ${
                       opportunity.profitMargin >= 0.03 
                         ? 'bg-gradient-to-br from-emerald-500/30 to-green-600/30 border-emerald-500/50' 
                         : opportunity.profitMargin >= 0.02
@@ -359,7 +359,7 @@ export default function Arbitrage() {
                         : 'bg-gradient-to-br from-primary-500/20 to-primary-600/20 border-primary-500/40'
                     }`}>
                       <div className="text-xs text-gray-300 mb-1">ROI Garantizado</div>
-                      <div className={`text-4xl font-black ${
+                      <div className={`text-2xl sm:text-3xl lg:text-4xl font-black ${
                         opportunity.profitMargin >= 0.03 ? 'text-emerald-300' :
                         opportunity.profitMargin >= 0.02 ? 'text-green-300' : 'text-primary-300'
                       }`}>
@@ -376,7 +376,7 @@ export default function Arbitrage() {
                     </div>
                     <button
                       onClick={() => handleCalculateStakes(opportunity)}
-                      className="w-full px-6 py-3 bg-gradient-to-r from-accent-500 to-accent-600 hover:from-accent-600 hover:to-accent-700 text-white rounded-lg font-black transition-all shadow-lg shadow-accent-500/30 hover:scale-105"
+                      className="w-full sm:w-auto lg:w-full px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-accent-500 to-accent-600 hover:from-accent-600 hover:to-accent-700 text-white rounded-lg text-sm sm:text-base font-black transition-all shadow-lg shadow-accent-500/30 hover:scale-105"
                     >
                       💰 Calcular Stakes
                     </button>

@@ -821,7 +821,7 @@ export default function Predictions() {
                           <span className="font-bold text-green-400">Tiempo Real</span>
                         </div>
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4">
                         {event.predictions
                           .filter((pred) => pred.confidence >= minConfidence && pred.value >= minValue)
                           .sort((a, b) => b.value - a.value) // Sort by value (best first)
@@ -852,8 +852,8 @@ export default function Predictions() {
                       {event.predictions.filter(
                         (pred: { confidence: number; value: number }) => pred.confidence >= minConfidence && pred.value >= minValue
                       ).length === 0 && (
-                        <div className="text-center py-12 text-gray-500">
-                          <p className="text-lg">No hay predicciones que cumplan los filtros para este evento</p>
+                        <div className="text-center py-8 sm:py-12 text-gray-500">
+                          <p className="text-sm sm:text-base md:text-lg">No hay predicciones que cumplan los filtros para este evento</p>
                         </div>
                       )}
                     </div>
