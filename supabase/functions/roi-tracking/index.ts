@@ -97,14 +97,10 @@ serve(async (req) => {
       }
 
       // Build query for resolved bets
+      // Note: ValueBetAlert has externalBetId pointing to ExternalBet.id
       let query = supabase
         .from('ExternalBet')
-        .select(`
-          *,
-          valueBetAlert:ValueBetAlert!ExternalBet_valueBetAlertId_fkey (
-            id
-          )
-        `)
+        .select('*')
         .eq('userId', userId)
         .in('status', ['WON', 'LOST', 'VOID']);
 
@@ -117,14 +113,34 @@ serve(async (req) => {
       if (queryError) {
         console.error('Error fetching bets:', queryError);
         return new Response(
-          JSON.stringify({ success: false, error: { message: 'Failed to fetch bets' } }),
+          JSON.stringify({ success: false, error: { message: `Failed to fetch bets: ${queryError.message}` } }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
+      // Get all bet IDs to check for value bet alerts
+      const betIds = (allBets || []).map((bet: any) => bet.id);
+      
+      // Fetch value bet alerts for these bets
+      let valueBetAlertsMap: { [key: string]: any } = {};
+      if (betIds.length > 0) {
+        const { data: valueBetAlerts, error: alertsError } = await supabase
+          .from('ValueBetAlert')
+          .select('id, externalBetId, valuePercentage')
+          .in('externalBetId', betIds);
+        
+        if (!alertsError && valueBetAlerts) {
+          valueBetAlerts.forEach((alert: any) => {
+            if (alert.externalBetId) {
+              valueBetAlertsMap[alert.externalBetId] = alert;
+            }
+          });
+        }
+      }
+
       // Separate value bets from normal bets
-      const valueBets = (allBets || []).filter((bet: any) => bet.valueBetAlert !== null);
-      const normalBets = (allBets || []).filter((bet: any) => bet.valueBetAlert === null);
+      const valueBets = (allBets || []).filter((bet: any) => valueBetAlertsMap[bet.id] !== undefined);
+      const normalBets = (allBets || []).filter((bet: any) => valueBetAlertsMap[bet.id] === undefined);
 
       // Calculate stats
       const totalStats = calculateStats(allBets || []);
@@ -262,6 +278,38 @@ serve(async (req) => {
     if (req.method === 'GET' && action === 'top-value-bets') {
       const limit = parseInt(url.searchParams.get('limit') || '10');
 
+      // First get all value bet IDs for this user
+      const { data: valueBetAlerts, error: alertsError } = await supabase
+        .from('ValueBetAlert')
+        .select('externalBetId, valuePercentage')
+        .eq('userId', userId)
+        .not('externalBetId', 'is', null);
+      
+      if (alertsError) {
+        console.error('Error fetching value bet alerts:', alertsError);
+        return new Response(
+          JSON.stringify({ success: false, error: { message: 'Failed to fetch value bet alerts' } }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const valueBetIds = (valueBetAlerts || []).map((alert: any) => alert.externalBetId).filter(Boolean);
+      
+      if (valueBetIds.length === 0) {
+        return new Response(
+          JSON.stringify({ success: true, data: [] }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Create map of value percentages
+      const valuePercentageMap: { [key: string]: number } = {};
+      (valueBetAlerts || []).forEach((alert: any) => {
+        if (alert.externalBetId) {
+          valuePercentageMap[alert.externalBetId] = alert.valuePercentage || 0;
+        }
+      });
+
       const { data: bets, error: betsError } = await supabase
         .from('ExternalBet')
         .select(`
@@ -279,15 +327,11 @@ serve(async (req) => {
           odds,
           stake,
           status,
-          actualWin,
-          valueBetAlert:ValueBetAlert!ExternalBet_valueBetAlertId_fkey (
-            id,
-            valuePercentage
-          )
+          actualWin
         `)
         .eq('userId', userId)
         .in('status', ['WON', 'LOST', 'VOID'])
-        .not('valueBetAlertId', 'is', null)
+        .in('id', valueBetIds)
         .order('registeredAt', { ascending: false })
         .limit(limit * 2); // Get more to calculate ROI and sort
 
@@ -311,6 +355,7 @@ serve(async (req) => {
           ...bet,
           roi,
           profit,
+          valuePercentage: valuePercentageMap[bet.id] || 0,
         };
       });
 
@@ -328,7 +373,7 @@ serve(async (req) => {
           roi: bet.roi,
           profit: bet.profit,
           status: bet.status,
-          valuePercentage: bet.valueBetAlert?.valuePercentage || 0,
+          valuePercentage: bet.valuePercentage || 0,
         }));
 
       return new Response(
