@@ -103,7 +103,11 @@ class AutoPredictionsService {
         include: {
           sport: true,
           markets: {
-            where: { isActive: true, type: 'MATCH_WINNER' },
+            where: { 
+              isActive: true,
+              // Include multiple market types for richer predictions
+              type: { in: ['MATCH_WINNER', 'OVER_UNDER', 'BOTH_TEAMS_SCORE', 'DOUBLE_CHANCE', 'CORRECT_SCORE'] }
+            },
             include: { odds: { where: { isActive: true } } },
           },
         },
@@ -207,7 +211,11 @@ class AutoPredictionsService {
         include: {
           sport: true,
           markets: {
-            where: { isActive: true, type: 'MATCH_WINNER' },
+            where: { 
+              isActive: true,
+              // Include multiple market types for richer predictions
+              type: { in: ['MATCH_WINNER', 'OVER_UNDER', 'BOTH_TEAMS_SCORE', 'DOUBLE_CHANCE', 'CORRECT_SCORE'] }
+            },
             include: { odds: { where: { isActive: true } } },
           },
         },
@@ -291,19 +299,62 @@ class AutoPredictionsService {
    */
   private async generatePredictionsForEventFromDB(event: any) {
     try {
-      // Find or create market
-      let market = event.markets?.find((m: any) => m.type === 'MATCH_WINNER');
-      
-      if (!market) {
-        market = await prisma.market.create({
-          data: {
-            eventId: event.id,
-            sportId: event.sportId,
-            type: 'MATCH_WINNER',
-            name: 'Match Winner',
-            isActive: true,
-          },
-        });
+      let totalGenerated = 0;
+      let totalUpdated = 0;
+
+      // Generate predictions for ALL available markets, not just MATCH_WINNER
+      const marketsToProcess = event.markets && event.markets.length > 0 
+        ? event.markets 
+        : [await this.ensureMarketExists(event, 'MATCH_WINNER', 'Match Winner')];
+
+      // Process each market type
+      for (const market of marketsToProcess) {
+        try {
+          const result = await this.generatePredictionsForMarket(event, market);
+          totalGenerated += result.generated;
+          totalUpdated += result.updated;
+        } catch (error: any) {
+          logger.warn(`Error generating predictions for market ${market.type} in event ${event.id}:`, error.message);
+        }
+      }
+
+      return { generated: totalGenerated, updated: totalUpdated };
+    } catch (error: any) {
+      logger.error(`Error in generatePredictionsForEventFromDB for event ${event.id}:`, error);
+      return { generated: 0, updated: 0 };
+    }
+  }
+
+  /**
+   * Ensure a market exists, create if it doesn't
+   */
+  private async ensureMarketExists(event: any, marketType: string, marketName: string) {
+    let market = event.markets?.find((m: any) => m.type === marketType);
+    
+    if (!market) {
+      market = await prisma.market.create({
+        data: {
+          eventId: event.id,
+          sportId: event.sportId,
+          type: marketType,
+          name: marketName,
+          isActive: true,
+        },
+        include: { odds: { where: { isActive: true } } },
+      });
+    }
+    
+    return market;
+  }
+
+  /**
+   * Generate predictions for a specific market
+   */
+  private async generatePredictionsForMarket(event: any, market: any) {
+    try {
+      // Find or create market if needed
+      if (!market.id) {
+        market = await this.ensureMarketExists(event, market.type, market.name || market.type);
       }
 
       // Extract odds from database
@@ -1059,7 +1110,11 @@ class AutoPredictionsService {
             include: {
               sport: true,
               markets: {
-                where: { isActive: true, type: 'MATCH_WINNER' },
+                where: { 
+              isActive: true,
+              // Include multiple market types for richer predictions
+              type: { in: ['MATCH_WINNER', 'OVER_UNDER', 'BOTH_TEAMS_SCORE', 'DOUBLE_CHANCE', 'CORRECT_SCORE'] }
+            },
                 include: { odds: { where: { isActive: true } } },
               },
               Prediction: {

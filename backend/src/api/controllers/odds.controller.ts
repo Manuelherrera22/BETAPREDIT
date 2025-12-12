@@ -42,7 +42,17 @@ class OddsController {
   async getOddsHistory(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { eventId } = req.params;
-      const { startDate, endDate, limit, marketId, selection } = req.query;
+      const { startDate, endDate, limit, marketId, selection, hours } = req.query;
+      
+      // Si se proporciona 'hours', calcular startDate automáticamente
+      let calculatedStartDate = startDate;
+      if (hours && !startDate) {
+        const hoursNum = parseInt(hours as string, 10);
+        if (!isNaN(hoursNum) && hoursNum > 0) {
+          const now = new Date();
+          calculatedStartDate = new Date(now.getTime() - hoursNum * 60 * 60 * 1000).toISOString();
+        }
+      }
       
       let history;
       if (marketId && selection) {
@@ -52,24 +62,24 @@ class OddsController {
             eventId,
             marketId: marketId as string,
             selection: selection as string,
-            ...(startDate || endDate ? {
+            ...(calculatedStartDate || endDate ? {
               timestamp: {
-                ...(startDate ? { gte: new Date(startDate as string) } : {}),
+                ...(calculatedStartDate ? { gte: new Date(calculatedStartDate) } : {}),
                 ...(endDate ? { lte: new Date(endDate as string) } : {}),
               },
             } : {}),
           },
           orderBy: {
-            timestamp: 'desc',
+            timestamp: 'asc', // Cambiado a 'asc' para mostrar evolución cronológica
           },
-          take: limit ? parseInt(limit as string) : 100,
+          take: limit ? parseInt(limit as string) : 1000, // Aumentado límite para gráficos
         });
       } else {
         // Get all history for event
         history = await oddsService.getOddsHistory(eventId, {
-          startDate: startDate as string,
+          startDate: calculatedStartDate as string,
           endDate: endDate as string,
-          limit: limit ? parseInt(limit as string) : 100,
+          limit: limit ? parseInt(limit as string) : 1000,
         });
       }
       

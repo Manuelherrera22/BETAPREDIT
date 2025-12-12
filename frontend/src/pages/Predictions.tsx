@@ -20,6 +20,7 @@ import PredictionCard from '../components/PredictionCard';
 import PredictionComparisonChart from '../components/PredictionComparisonChart';
 import PredictionStatsDashboard from '../components/PredictionStatsDashboard';
 import PredictionDetailsModal from '../components/PredictionDetailsModal';
+import PredictionConfidenceHeatmap from '../components/PredictionConfidenceHeatmap';
 import { VirtualizedList } from '../components/VirtualizedList';
 import Icon from '../components/icons/IconSystem';
 
@@ -128,7 +129,8 @@ export default function Predictions() {
         console.log(`Found ${events.length} events for sport: ${selectedSport}`);
         
         const eventsWithPreds: EventPrediction[] = [];
-        const eventLimit = selectedSport === 'all' ? 100 : 50;
+        // Increased limits to show more predictions - mercado completo
+        const eventLimit = selectedSport === 'all' ? 200 : 100;
         
         for (const event of events.slice(0, eventLimit)) {
           try {
@@ -233,8 +235,8 @@ export default function Predictions() {
         return [];
       }
     },
-    refetchInterval: 30000,
-    staleTime: 15000,
+    refetchInterval: 15000, // Update every 15 seconds for real-time feel
+    staleTime: 5000, // Consider stale after 5 seconds
     enabled: true,
   });
 
@@ -310,13 +312,14 @@ export default function Predictions() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Animated Background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+      {/* Animated Background - Mejorado */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-500/10 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-accent-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
       </div>
 
-      <div className="relative max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
+      <div className="relative max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8 z-10">
         {/* Header Section - Better organized */}
         <div className="mb-6 sm:mb-8">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
@@ -379,10 +382,35 @@ export default function Predictions() {
           />
         </div>
 
-        {/* Filters Section - Better organized */}
-        <div className="bg-slate-800/70 backdrop-blur-xl rounded-xl border border-slate-700/50 p-4 sm:p-6 mb-6 sm:mb-8 shadow-lg">
-          <h3 className="text-lg font-bold text-white mb-4">Filtros y Opciones</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        {/* Prediction Confidence Heatmap - Mejorado con mejor integración */}
+        <div className="mb-6 sm:mb-8">
+          <div className="bg-gradient-to-br from-slate-800/90 via-slate-800/80 to-slate-900/90 backdrop-blur-xl rounded-2xl border-2 border-slate-700/50 shadow-2xl overflow-hidden">
+            <div className="bg-gradient-to-r from-primary-500/10 via-accent-500/10 to-primary-500/10 px-6 py-4 border-b border-slate-700/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500/30 to-accent-500/30 flex items-center justify-center border border-primary-500/40 shadow-lg">
+                  <Icon name="chart" size={20} className="text-primary-300" strokeWidth={2} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-white">Mapa de Confianza de Predicciones</h2>
+                  <p className="text-xs text-gray-400">Visualiza dónde el modelo tiene mayor confianza por deporte y liga</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-6">
+              <PredictionConfidenceHeatmap />
+            </div>
+          </div>
+        </div>
+
+        {/* Filters Section - Mejorado */}
+        <div className="bg-slate-800/70 backdrop-blur-xl rounded-2xl border-2 border-slate-700/50 p-5 sm:p-6 mb-6 sm:mb-8 shadow-xl">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-8 h-8 rounded-lg bg-primary-500/20 flex items-center justify-center border border-primary-500/30">
+              <Icon name="filter" size={16} className="text-primary-300" />
+            </div>
+            <h3 className="text-lg sm:text-xl font-black text-white">Filtros y Opciones</h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-5">
             {/* Sport Filter */}
             <div>
               <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">Deporte</label>
@@ -509,10 +537,12 @@ export default function Predictions() {
                 {sortedEvents.map((event: EventPrediction) => (
                   <div
                     key={event.eventId}
-                    className="bg-slate-800/70 backdrop-blur-xl rounded-3xl border-2 border-slate-700/50 overflow-hidden shadow-2xl hover:shadow-primary-500/20 hover:border-slate-600 transition-all duration-300"
+                    className="bg-gradient-to-br from-slate-800/90 via-slate-800/80 to-slate-900/90 backdrop-blur-xl rounded-3xl border-2 border-slate-700/50 overflow-hidden shadow-2xl hover:shadow-primary-500/20 hover:border-primary-500/30 transition-all duration-300 hover:scale-[1.01] group"
                   >
-                    {/* Event Header */}
-                    <div className="bg-gradient-to-r from-slate-800 via-slate-900 to-slate-800 px-4 sm:px-6 md:px-8 py-4 sm:py-5 md:py-6 border-b-2 border-slate-700">
+                    {/* Event Header - Mejorado */}
+                    <div className="bg-gradient-to-r from-slate-800/90 via-slate-900/90 to-slate-800/90 px-4 sm:px-6 md:px-8 py-4 sm:py-5 md:py-6 border-b-2 border-slate-700/50 backdrop-blur-sm relative overflow-hidden">
+                      {/* Subtle shimmer effect */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4">
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
@@ -568,11 +598,36 @@ export default function Predictions() {
                       </div>
                     </div>
 
-                    {/* Predictions Grid */}
+                    {/* Predictions Grid - Mercado Completo Mejorado */}
                     <div className="p-4 sm:p-6 md:p-8">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                      <div className="mb-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500/20 to-accent-500/20 flex items-center justify-center border border-primary-500/30">
+                              <Icon name="chart" size={16} className="text-primary-300" />
+                            </div>
+                            <h4 className="text-lg sm:text-xl font-black text-white">
+                              Mercado de Predicciones
+                            </h4>
+                          </div>
+                          <p className="text-sm text-gray-400 ml-0 sm:ml-11">
+                            <span className="font-semibold text-white">
+                              {event.predictions.filter((pred) => pred.confidence >= minConfidence && pred.value >= minValue).length}
+                            </span> predicciones disponibles • 
+                            <span className="font-semibold text-emerald-400">
+                              {' '}{event.predictions.filter((pred) => pred.recommendation === 'STRONG_BUY').length}
+                            </span> oportunidades destacadas
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs bg-gradient-to-r from-green-500/10 to-emerald-500/10 px-4 py-2 rounded-full border border-green-500/30 shadow-lg">
+                          <div className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
+                          <span className="font-bold text-green-400">Tiempo Real</span>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
                         {event.predictions
                           .filter((pred) => pred.confidence >= minConfidence && pred.value >= minValue)
+                          .sort((a, b) => b.value - a.value) // Sort by value (best first)
                           .map((prediction, idx) => (
                             <PredictionCard
                               key={idx}
@@ -608,8 +663,8 @@ export default function Predictions() {
                 ))}
               </div>
             ) : (
-              // List View - Virtualizado para listas grandes
-              allPredictions.length > 50 ? (
+              // List View - Virtualizado para listas grandes (aumentado el límite)
+              allPredictions.length > 100 ? (
                 <VirtualizedList
                   items={allPredictions}
                   itemHeight={200}
@@ -743,31 +798,52 @@ export default function Predictions() {
 
             {/* Empty State */}
             {allPredictions.length === 0 && (
-              <div className="bg-slate-800/70 backdrop-blur-xl rounded-3xl p-20 border-2 border-slate-700/50 text-center shadow-2xl">
+              <div className="bg-slate-800/70 backdrop-blur-xl rounded-3xl p-12 sm:p-20 border-2 border-slate-700/50 text-center shadow-2xl">
                 <div className="mb-8">
-                  <svg className="w-32 h-32 mx-auto text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                    />
-                  </svg>
+                  <div className="relative inline-block">
+                    <svg className="w-24 h-24 sm:w-32 sm:h-32 mx-auto text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                      />
+                    </svg>
+                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full animate-ping"></div>
+                  </div>
                 </div>
-                <h3 className="text-3xl font-black text-white mb-4">No hay predicciones disponibles</h3>
-                <p className="text-gray-400 mb-8 max-w-md mx-auto text-lg">
-                  Ajusta los filtros o intenta con otro deporte. Las predicciones se generan automáticamente para eventos próximos con odds disponibles.
+                <h3 className="text-2xl sm:text-3xl font-black text-white mb-3 sm:mb-4">Mercado de Predicciones Vacío</h3>
+                <p className="text-gray-400 mb-6 sm:mb-8 max-w-md mx-auto text-base sm:text-lg">
+                  No hay predicciones que cumplan los filtros actuales. El sistema genera predicciones automáticamente para múltiples mercados (1X2, Over/Under, Both Teams to Score, etc.) cuando hay eventos próximos con odds disponibles.
                 </p>
-                <button
-                  onClick={() => generatePredictionsMutation.mutate()}
-                  disabled={generatePredictionsMutation.isPending}
-                  className="px-8 py-4 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-2xl font-black text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 shadow-2xl shadow-primary-500/50 hover:scale-105 mx-auto"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  Generar Predicciones
-                </button>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+                  <button
+                    onClick={() => {
+                      setMinConfidence(0);
+                      setMinValue(-0.1);
+                    }}
+                    className="px-6 py-3 bg-slate-700/50 hover:bg-slate-700 text-white rounded-xl font-semibold text-sm transition-all border border-slate-600"
+                  >
+                    Restablecer Filtros
+                  </button>
+                  <button
+                    onClick={() => generatePredictionsMutation.mutate()}
+                    disabled={generatePredictionsMutation.isPending}
+                    className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-xl sm:rounded-2xl font-black text-sm sm:text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 shadow-2xl shadow-primary-500/50 hover:scale-105"
+                  >
+                    {generatePredictionsMutation.isPending ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Generando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Icon name="zap" size={20} />
+                        <span>Generar Predicciones</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             )}
           </>

@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import StatsCard from '../components/StatsCard';
 import SimpleChart from '../components/SimpleChart';
 import { userStatisticsService, type UserStatistics } from '../services/userStatisticsService';
+import ValueBetCalculator from '../components/ValueBetCalculator';
 
 export default function BankrollAnalysis() {
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('month');
@@ -80,14 +81,31 @@ export default function BankrollAnalysis() {
   }
 
   return (
-    <div className="px-4 py-6">
-      <div className="mb-8">
-        <h1 className="text-4xl font-black text-white mb-2">Análisis de Bankroll</h1>
-        <p className="text-gray-400">Evolución y gestión de tu capital</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      {/* Animated Background */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
       </div>
 
-      {/* Key Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div className="relative max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8 z-10">
+        {/* Header - Mejorado */}
+        <div className="mb-6 sm:mb-8">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500/30 via-blue-500/30 to-accent-500/30 flex items-center justify-center shadow-md border border-primary-500/40">
+              <Icon name="wallet" size={20} className="text-primary-300" strokeWidth={2} />
+            </div>
+            <div>
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white bg-gradient-to-r from-white via-primary-200 to-white bg-clip-text text-transparent">
+                Análisis de Bankroll
+              </h1>
+              <p className="text-sm sm:text-base text-gray-400 mt-1">Evolución y gestión inteligente de tu capital</p>
+            </div>
+          </div>
+        </div>
+
+      {/* Key Stats - Mejorado */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-6 sm:mb-8">
         <StatsCard
           title="Bankroll Actual"
           value={`€${currentBankroll.toLocaleString()}`}
@@ -155,10 +173,15 @@ export default function BankrollAnalysis() {
         </button>
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-6 border border-primary-500/20">
-          <h3 className="text-xl font-black text-white mb-4">Evolución del Bankroll</h3>
+      {/* Charts - Mejorado */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
+        <div className="bg-slate-800/70 backdrop-blur-xl rounded-2xl p-5 sm:p-6 border-2 border-slate-700/50 shadow-xl">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-8 h-8 rounded-lg bg-primary-500/20 flex items-center justify-center border border-primary-500/40">
+              <Icon name="trending-up" size={16} className="text-primary-300" />
+            </div>
+            <h3 className="text-lg sm:text-xl font-black text-white">Evolución del Bankroll</h3>
+          </div>
           {bankrollHistory.length > 0 ? (
             <SimpleChart data={bankrollHistory} color="primary" height={250} />
           ) : (
@@ -167,10 +190,15 @@ export default function BankrollAnalysis() {
             </div>
           )}
         </div>
-        <div className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-6 border border-primary-500/20">
-          <h3 className="text-xl font-black text-white mb-4">
-            ROI {timeRange === 'week' ? 'Semanal' : timeRange === 'month' ? 'Mensual' : 'Anual'}
-          </h3>
+        <div className="bg-slate-800/70 backdrop-blur-xl rounded-2xl p-5 sm:p-6 border-2 border-slate-700/50 shadow-xl">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-8 h-8 rounded-lg bg-accent-500/20 flex items-center justify-center border border-accent-500/40">
+              <Icon name="chart" size={16} className="text-accent-300" />
+            </div>
+            <h3 className="text-lg sm:text-xl font-black text-white">
+              ROI {timeRange === 'week' ? 'Semanal' : timeRange === 'month' ? 'Mensual' : 'Anual'}
+            </h3>
+          </div>
           {monthlyROI.length > 0 ? (
             <SimpleChart data={monthlyROI} color="accent" height={250} />
           ) : (
@@ -181,10 +209,24 @@ export default function BankrollAnalysis() {
         </div>
       </div>
 
-      {/* Bankroll Management */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-6 border border-primary-500/20">
-          <h3 className="text-lg font-semibold text-white mb-4">Distribución de Stakes</h3>
+      {/* Bankroll Optimizer - NUEVO */}
+      <div className="mb-8">
+        <div className="mb-6">
+          <h2 className="text-2xl font-black text-white mb-2">Optimizador de Bankroll</h2>
+          <p className="text-gray-400">Calcula el stake óptimo usando Kelly Criterion y simula escenarios</p>
+        </div>
+        <ValueBetCalculator />
+      </div>
+
+      {/* Bankroll Management - Mejorado */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        <div className="bg-slate-800/70 backdrop-blur-xl rounded-2xl p-5 sm:p-6 border-2 border-slate-700/50 shadow-xl">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-8 h-8 rounded-lg bg-gold-500/20 flex items-center justify-center border border-gold-500/40">
+              <Icon name="activity" size={16} className="text-gold-300" />
+            </div>
+            <h3 className="text-lg font-black text-white">Distribución de Stakes</h3>
+          </div>
           <div className="space-y-3">
             <div>
               <div className="flex justify-between text-sm mb-1">
@@ -216,8 +258,13 @@ export default function BankrollAnalysis() {
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-dark-900 to-dark-950 rounded-xl p-6 border border-primary-500/20">
-          <h3 className="text-lg font-semibold text-white mb-4">Recomendaciones</h3>
+        <div className="bg-slate-800/70 backdrop-blur-xl rounded-2xl p-5 sm:p-6 border-2 border-slate-700/50 shadow-xl">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center border border-emerald-500/40">
+              <Icon name="zap" size={16} className="text-emerald-300" />
+            </div>
+            <h3 className="text-lg font-black text-white">Recomendaciones Inteligentes</h3>
+          </div>
           <div className="space-y-3">
             <div className="bg-primary-500/10 rounded-lg p-4 border border-primary-500/20">
               <div className="flex items-start gap-3">
@@ -225,9 +272,9 @@ export default function BankrollAnalysis() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                 </svg>
                 <div>
-                  <h4 className="text-white font-semibold mb-1">Stake Óptimo</h4>
+                  <h4 className="text-white font-semibold mb-1">Stake Óptimo Recomendado</h4>
                   <p className="text-gray-400 text-sm">
-                    Basado en tu ROI, considera aumentar el stake en value bets de +10% a 4-5% del bankroll.
+                    Basado en tu ROI del {monthlyAverage.toFixed(1)}%, considera usar Kelly Criterion con Fraction 0.5 (50%) para value bets de +10%.
                   </p>
                 </div>
               </div>
@@ -240,13 +287,32 @@ export default function BankrollAnalysis() {
                 <div>
                   <h4 className="text-white font-semibold mb-1">Rendimiento Excelente</h4>
                   <p className="text-gray-400 text-sm">
-                    Tu ROI mensual promedio del {monthlyAverage.toFixed(1)}% está por encima del promedio del mercado.
+                    Tu ROI mensual promedio del {monthlyAverage.toFixed(1)}% está por encima del promedio del mercado (+5-8%).
                   </p>
                 </div>
               </div>
             </div>
+            {averageStake > 0 && currentBankroll > 0 && (
+              <div className="bg-emerald-500/10 rounded-lg p-4 border border-emerald-500/20">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <h4 className="text-white font-semibold mb-1">Análisis de Stakes</h4>
+                    <p className="text-gray-400 text-sm">
+                      Tu stake promedio es {(averageStake / currentBankroll * 100).toFixed(1)}% del bankroll. 
+                      {averageStake / currentBankroll > 0.05 
+                        ? ' Considera reducir para mayor seguridad (máx 5%).'
+                        : ' Está dentro del rango recomendado (1-5%).'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

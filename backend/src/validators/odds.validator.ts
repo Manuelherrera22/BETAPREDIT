@@ -44,6 +44,7 @@ export const getOddsHistorySchema = z.object({
     limit: z.string().regex(/^\d+$/, 'Límite debe ser un número').transform((val) => parseInt(val, 10)).optional(),
     marketId: z.string().uuid('Market ID inválido').optional(),
     selection: z.string().min(1, 'Selección requerida').optional(),
+    hours: z.string().regex(/^\d+$/, 'Hours debe ser un número').transform((val) => parseInt(val, 10)).optional(),
   }),
 });
 

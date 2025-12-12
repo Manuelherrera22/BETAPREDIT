@@ -336,20 +336,20 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 mb-4 sm:mb-6 md:mb-8">
           {/* Left Column - Main Content (8 columns) */}
           <div className="lg:col-span-8 space-y-4 sm:space-y-6">
-            {/* Quick Access Tools Grid */}
-            <div className="bg-slate-800/50 rounded-xl p-5 sm:p-6 border border-slate-700/40 shadow-lg">
+            {/* Quick Access Tools Grid - Mejorado */}
+            <div className="bg-slate-800/70 backdrop-blur-xl rounded-2xl p-5 sm:p-6 border-2 border-slate-700/50 shadow-xl">
               <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500/20 to-accent-500/20 flex items-center justify-center border border-primary-500/30">
-                    <Icon name="zap" size={14} className="text-primary-300" strokeWidth={2} />
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500/30 to-accent-500/30 flex items-center justify-center border border-primary-500/40 shadow-lg">
+                    <Icon name="zap" size={18} className="text-primary-300" strokeWidth={2} />
                   </div>
                   <div>
-                    <h2 className="text-lg sm:text-xl font-bold text-white">Herramientas Rápidas</h2>
-                    <p className="text-[10px] text-gray-400 mt-0.5">Acceso rápido</p>
+                    <h2 className="text-lg sm:text-xl font-black text-white">Herramientas Rápidas</h2>
+                    <p className="text-xs text-gray-400 mt-0.5">Acceso rápido a todas las funciones</p>
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
                 {quickTools.map((tool) => (
                   <Link
                     key={tool.to}
@@ -372,16 +372,16 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Value Bet Calculator */}
-            <div className="bg-slate-800/50 rounded-xl p-5 sm:p-6 border border-slate-700/40 shadow-lg">
+            {/* Value Bet Calculator - Mejorado */}
+            <div className="bg-slate-800/70 backdrop-blur-xl rounded-2xl p-5 sm:p-6 border-2 border-slate-700/50 shadow-xl">
               <ValueBetCalculator />
             </div>
           </div>
 
-          {/* Right Column - Social Proof (4 columns) */}
+          {/* Right Column - Social Proof (4 columns) - Mejorado */}
           <div className="lg:col-span-4">
             {!shouldShow && (
-              <div className="bg-slate-800/50 rounded-xl p-4 sm:p-5 border border-slate-700/40 shadow-lg backdrop-blur-sm sticky top-20">
+              <div className="bg-gradient-to-br from-slate-800/90 via-slate-800/80 to-slate-900/90 rounded-2xl p-5 sm:p-6 border-2 border-slate-700/50 shadow-xl backdrop-blur-xl sticky top-20">
                 <SocialProof />
               </div>
             )}
@@ -390,8 +390,8 @@ export default function Home() {
 
         {/* Events Section - Live & Upcoming */}
         <div className="space-y-6 mb-4 sm:mb-6 md:mb-8">
-          {/* Live Events Section - Priority */}
-          <div className="bg-slate-900/40 rounded-2xl p-5 sm:p-6 border-2 border-red-500/20 shadow-2xl backdrop-blur-md">
+          {/* Live Events Section - Priority Mejorado */}
+          <div className="bg-gradient-to-br from-slate-800/90 via-slate-800/80 to-slate-900/90 rounded-2xl p-5 sm:p-6 border-2 border-red-500/30 shadow-2xl backdrop-blur-xl">
             <div className="flex items-center justify-between mb-4 sm:mb-5">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-red-500/20 to-red-600/20 flex items-center justify-center shadow-md border border-red-500/30">
@@ -474,9 +474,9 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Preview Events - Starting Soon */}
+          {/* Preview Events - Starting Soon Mejorado */}
           {previewEvents.length > 0 && (
-            <div className="bg-slate-800/50 rounded-2xl p-5 sm:p-6 border border-amber-500/20 shadow-lg backdrop-blur-sm">
+            <div className="bg-gradient-to-br from-slate-800/90 via-slate-800/80 to-slate-900/90 rounded-2xl p-5 sm:p-6 border-2 border-amber-500/30 shadow-xl backdrop-blur-xl">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500/20 to-yellow-500/20 flex items-center justify-center border border-amber-500/30">
@@ -531,8 +531,8 @@ export default function Home() {
             </div>
           )}
 
-          {/* Upcoming Events Section */}
-          <div className="bg-slate-800/50 rounded-2xl p-5 sm:p-6 border border-slate-700/40 shadow-lg backdrop-blur-sm">
+          {/* Upcoming Events Section - Mejorado */}
+          <div className="bg-gradient-to-br from-slate-800/90 via-slate-800/80 to-slate-900/90 rounded-2xl p-5 sm:p-6 border-2 border-slate-700/50 shadow-xl backdrop-blur-xl">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500/20 to-accent-500/20 flex items-center justify-center border border-primary-500/30">
