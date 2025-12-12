@@ -77,68 +77,84 @@
 
 ---
 
-## ❌ Pendiente de Migrar a Supabase Edge Functions
+## ✅ TODOS LOS SERVICIOS PRINCIPALES MIGRADOS
 
-### 🟡 IMPORTANTE - Servicios que AÚN usan Backend Local
+### ✅ Servicios Migrados y Desplegados
 
-1. **Value Bet Analytics** ✅
+6. **Value Bet Analytics** ✅
    - **Edge Function:** `supabase/functions/value-bet-analytics/index.ts`
    - **Frontend Service:** `valueBetAnalyticsService.ts` → Usa Edge Function en producción
    - **Estado:** ✅ Migrado y desplegado
    - **URL:** `https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/value-bet-analytics`
 
-6. **Predictions** ✅
-   - **Edge Functions:** 
-     - `supabase/functions/get-predictions/index.ts` (GET event predictions)
-     - `supabase/functions/generate-predictions/index.ts` (POST generate)
-     - `supabase/functions/predictions/index.ts` (otros endpoints)
-   - **Frontend Service:** `predictionsService.ts` → Usa Edge Functions en producción
+7. **User Preferences** ✅
+   - **Edge Function:** `supabase/functions/user-preferences/index.ts`
+   - **Frontend Service:** `userPreferencesService.ts` → Usa Edge Function en producción
    - **Estado:** ✅ Migrado y desplegado
-   - **URLs:** 
-     - `https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/get-predictions`
-     - `https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/generate-predictions`
-     - `https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/predictions`
+   - **URL:** `https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/user-preferences`
 
-8. **Payments** ❌
-   - **Backend Route:** `/api/payments/*`
-   - **Frontend Service:** `paymentsService.ts` → Usa `api.get/post`
-   - **Estado:** ❌ Usa backend local
-   - **Acción:** Crear Edge Function `payments` (Stripe)
+8. **Referrals** ✅
+   - **Edge Function:** `supabase/functions/referrals/index.ts`
+   - **Frontend Service:** `referralService.ts` → Usa Edge Function en producción
+   - **Estado:** ✅ Migrado y desplegado
+   - **URL:** `https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/referrals`
 
-9. **Referrals** ❌
-   - **Backend Route:** `/api/referrals/*`
-   - **Frontend Service:** `referralService.ts` → Usa `api.get/post`
-   - **Estado:** ❌ Usa backend local
-   - **Acción:** Crear Edge Function `referrals`
+9. **Platform Metrics** ✅
+   - **Edge Function:** `supabase/functions/platform-metrics/index.ts`
+   - **Frontend Service:** `platformMetricsService.ts` → Usa Edge Function en producción
+   - **Estado:** ✅ Migrado y desplegado (público)
+   - **URL:** `https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/platform-metrics`
 
-10. **User Preferences** ❌
-    - **Backend Route:** `/api/user-preferences/*`
-    - **Frontend Service:** `userPreferencesService.ts` → Usa `api.get/post/put`
-    - **Estado:** ❌ Usa backend local
-    - **Acción:** Crear Edge Function `user-preferences`
+10. **Predictions** ✅
+    - **Edge Functions:** 
+      - `supabase/functions/get-predictions/index.ts` (GET event predictions)
+      - `supabase/functions/generate-predictions/index.ts` (POST generate)
+      - `supabase/functions/predictions/index.ts` (otros endpoints)
+    - **Frontend Service:** `predictionsService.ts` → Usa Edge Functions en producción
+    - **Estado:** ✅ Migrado y desplegado
+    - **URLs:** 
+      - `https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/get-predictions`
+      - `https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/generate-predictions`
+      - `https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/predictions`
 
-11. **Platform Metrics** ❌
-    - **Backend Route:** `/api/platform-metrics/*`
-    - **Frontend Service:** `platformMetricsService.ts` → Usa `api.get`
-    - **Estado:** ❌ Usa backend local
-    - **Acción:** Crear Edge Function `platform-metrics`
+11. **User Profile** ✅
+    - **Edge Function:** `supabase/functions/user-profile/index.ts`
+    - **Frontend Service:** `userProfileService.ts` → Usa Edge Function en producción
+    - **Estado:** ✅ Migrado y desplegado
+    - **URL:** `https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/user-profile`
 
-12. **2FA** ❌
+12. **WebSocket → Supabase Realtime** ✅
+    - **Hook:** `frontend/src/hooks/useRealtime.ts`
+    - **Frontend:** `useWebSocket.ts` usa Realtime en producción
+    - **Estado:** ✅ Migrado
+    - **Nota:** Requiere configuración manual en Supabase Dashboard
+
+---
+
+## ⚠️ Pendiente de Migrar (Prioridad Normal)
+
+### 🟢 NORMAL - Servicios que Funcionan con Backend Local
+
+13. **Payments** ⚠️
+    - **Backend Route:** `/api/payments/*`
+    - **Frontend Service:** `paymentsService.ts` → Usa `api.get/post`
+    - **Estado:** ⚠️ Usa backend local (funcional)
+    - **Prioridad:** Normal
+    - **Acción:** Crear Edge Function `payments` (Stripe) - Opcional
+
+14. **2FA** ⚠️
     - **Backend Route:** `/api/2fa/*`
     - **Frontend Service:** `2faService.ts` → Usa `api.get/post`
-    - **Estado:** ❌ Usa backend local
-    - **Acción:** Crear Edge Function `2fa`
+    - **Estado:** ⚠️ Usa backend local (funcional)
+    - **Prioridad:** Normal
+    - **Acción:** Crear Edge Function `2fa` - Opcional
 
-13. **Odds Comparison** ❌
+15. **Odds Comparison** ⚠️
     - **Backend Route:** `/api/odds/*`
-    - **Frontend Service:** `theOddsApiService.ts` → Usa Edge Function para The Odds API, pero comparación usa backend
-    - **Estado:** ⚠️ Parcialmente migrado
-    - **Acción:** Migrar comparación de cuotas a Edge Function
-
-14. **WebSocket** ❌
-    - **Backend:** Socket.IO en backend local
-    - **Estado:** ❌ No funciona en producción sin backend
-    - **Acción:** Migrar a Supabase Realtime
+    - **Frontend Service:** `theOddsApiService.ts` → Usa Edge Function para The Odds API
+    - **Estado:** ⚠️ Parcialmente migrado (funcional)
+    - **Prioridad:** Normal
+    - **Acción:** Migrar comparación de cuotas a Edge Function - Opcional
 
 ---
 
