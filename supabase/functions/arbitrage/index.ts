@@ -207,7 +207,18 @@ serve(async (req) => {
         .limit(limit)
         .order('startTime', { ascending: true });
 
-      if (eventsError || !events) {
+      if (eventsError) {
+        console.error('Error fetching events:', eventsError);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: { message: `Failed to fetch events: ${eventsError.message}` } 
+          }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (!events || events.length === 0) {
         return new Response(
           JSON.stringify({ success: true, data: [], count: 0 }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -237,7 +248,12 @@ serve(async (req) => {
           .eq('isActive', true)
           .limit(1);
 
-        if (marketsError || !markets || markets.length === 0) continue;
+        if (marketsError) {
+          console.error(`Error fetching markets for event ${event.id}:`, marketsError);
+          continue;
+        }
+        
+        if (!markets || markets.length === 0) continue;
         
         const market = markets[0];
         if (!market || !market.odds || (market.odds as any[]).length === 0) continue;

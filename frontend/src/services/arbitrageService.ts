@@ -198,14 +198,29 @@ class ArbitrageService {
         });
 
         if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error?.message || 'Failed to fetch arbitrage opportunities');
+          let errorMessage = 'Failed to fetch arbitrage opportunities';
+          try {
+            const error = await response.json();
+            errorMessage = error.error?.message || error.message || errorMessage;
+            console.error('[arbitrageService] Error response:', error);
+          } catch {
+            errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+            console.error('[arbitrageService] Error status:', response.status, response.statusText);
+          }
+          throw new Error(errorMessage);
         }
 
         const result = await response.json();
+        if (!result.success) {
+          throw new Error(result.error?.message || 'Failed to fetch arbitrage opportunities');
+        }
         return Array.isArray(result?.data) ? result.data : [];
       } catch (error: any) {
-        console.error('Error fetching arbitrage opportunities from Edge Function:', error);
+        console.error('[arbitrageService] Error fetching from Edge Function:', error);
+        console.error('[arbitrageService] Error details:', {
+          message: error.message,
+          stack: error.stack,
+        });
         // Fallback to direct calculation
       }
     }
