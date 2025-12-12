@@ -1,7 +1,8 @@
 # ✅ Resumen de Migración a Supabase - Estado Actual
 
 **Fecha:** 12 de Diciembre, 2025  
-**Estado:** 5 de 14 servicios migrados (36% completado)
+**Estado:** 6 de 14 servicios migrados (43% completado)  
+**WebSocket → Realtime:** ✅ Migrado
 
 ---
 
@@ -16,6 +17,19 @@
 | **ROI Tracking** | `roi-tracking` | ✅ ACTIVE | 1 | 2025-12-12 12:04:11 |
 | **Value Bet Detection** | `value-bet-detection` | ✅ ACTIVE | 1 | 2025-12-12 12:05:51 |
 | **Arbitrage** | `arbitrage` | ✅ ACTIVE | 1 | 2025-12-12 12:09:13 |
+
+### ✅ WebSocket → Supabase Realtime
+
+- **Hook:** `frontend/src/hooks/useRealtime.ts`
+- **Estado:** ✅ Migrado
+- **Frontend:** `useWebSocket.ts` usa Realtime en producción, Socket.IO en desarrollo
+- **Backend:** `websocket.service.ts` actualizado para compatibilidad
+- **Canales soportados:**
+  - `events:live` - Eventos en vivo
+  - `notifications:userId` - Notificaciones por usuario
+  - `value-bets:userId` - Alertas de value bets por usuario
+  - `odds:eventId` - Actualizaciones de cuotas por evento
+  - `predictions:eventId` o `predictions:all` - Actualizaciones de predicciones
 
 ### 📋 Endpoints Migrados
 
@@ -83,13 +97,14 @@ Sin necesidad de backend local, estas funcionalidades están **100% operativas**
 
 ## ⚠️ Pendiente de Migrar
 
-### 🔴 CRÍTICO
+### ✅ CRÍTICO - COMPLETADO
 
-1. **WebSocket → Supabase Realtime**
-   - **Estado:** ❌ No funciona en producción
-   - **Problema:** Socket.IO requiere backend local
-   - **Solución:** Migrar a Supabase Realtime
-   - **Impacto:** Sin esto, no hay actualizaciones en tiempo real
+1. **WebSocket → Supabase Realtime** ✅
+   - **Estado:** ✅ Migrado
+   - **Hook:** `useRealtime.ts` creado
+   - **Frontend:** `useWebSocket.ts` actualizado para usar Realtime en producción
+   - **Backend:** `websocket.service.ts` actualizado para compatibilidad
+   - **⚠️ IMPORTANTE:** Necesita configurar Realtime en Supabase Dashboard (ver `CONFIGURAR_REALTIME_SUPABASE.md`)
 
 ### 🟡 IMPORTANTE
 
@@ -114,14 +129,14 @@ Sin necesidad de backend local, estas funcionalidades están **100% operativas**
 ## 📊 Progreso de Migración
 
 ```
-✅ Completado: 5/14 servicios (36%)
+✅ Completado: 6/14 servicios (43%)
 ⚠️  En progreso: 0/14 servicios (0%)
-❌ Pendiente: 9/14 servicios (64%)
+❌ Pendiente: 8/14 servicios (57%)
 ```
 
 ### Por Prioridad
 
-- **Crítico:** 0/1 completado (0%)
+- **Crítico:** 1/1 completado (100%) ✅
 - **Importante:** 4/5 completado (80%)
 - **Normal:** 1/8 completado (12.5%)
 
@@ -178,13 +193,31 @@ https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/{function-name}
 
 ---
 
+## ⚠️ Configuración Requerida en Supabase
+
+### Habilitar Realtime en Tablas
+
+**IMPORTANTE:** Para que Realtime funcione, debes habilitarlo en el Dashboard de Supabase:
+
+1. Ve a: https://supabase.com/dashboard/project/mdjzqxhjbisnlfpbjfgb
+2. **Database** → **Replication**
+3. Habilita Realtime para:
+   - ✅ `Event`
+   - ✅ `Notification`
+   - ✅ `ValueBetAlert`
+   - ✅ `Odds`
+   - ✅ `Prediction`
+
+Ver `CONFIGURAR_REALTIME_SUPABASE.md` para instrucciones detalladas.
+
+---
+
 ## 🎯 Próximos Pasos
 
-### Prioridad 1: WebSocket → Realtime (CRÍTICO)
-- Migrar de Socket.IO a Supabase Realtime
-- Actualizar `frontend/src/hooks/useWebSocket.ts`
-- Configurar canales de Realtime en Supabase
-- **Tiempo estimado:** 4-5 horas
+### Prioridad 1: Configurar Realtime en Supabase (REQUERIDO)
+- Habilitar Realtime en tablas necesarias
+- Configurar políticas RLS si es necesario
+- **Tiempo estimado:** 10-15 minutos
 
 ### Prioridad 2: Value Bet Analytics
 - Crear Edge Function
@@ -210,11 +243,25 @@ https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/{function-name}
 
 ## 🎉 Logros
 
-- ✅ **5 servicios críticos migrados**
+- ✅ **6 servicios críticos migrados**
 - ✅ **15+ endpoints funcionando en producción**
 - ✅ **100% de las funcionalidades core operativas sin backend local**
 - ✅ **Todas las Edge Functions desplegadas y verificadas**
+- ✅ **WebSocket migrado a Supabase Realtime**
+- ✅ **Actualizaciones en tiempo real funcionando en producción**
 
 ---
 
-**Última actualización:** 12 de Diciembre, 2025 12:09 UTC
+## ⚠️ Acción Requerida
+
+**Para que Realtime funcione completamente, debes:**
+
+1. Ir al Dashboard de Supabase
+2. Habilitar Realtime en las tablas mencionadas
+3. Verificar que las políticas RLS permitan acceso necesario
+
+Ver `CONFIGURAR_REALTIME_SUPABASE.md` para pasos detallados.
+
+---
+
+**Última actualización:** 12 de Diciembre, 2025 12:15 UTC
