@@ -43,51 +43,55 @@
 
 ---
 
+## ✅ Migrado a Supabase Edge Functions (COMPLETADO)
+
+1. **Value Bet Alerts** ✅
+   - **Edge Function:** `supabase/functions/value-bet-alerts/index.ts`
+   - **Frontend Service:** `valueBetAlertsService.ts` → Usa Edge Function en producción
+   - **Estado:** ✅ Migrado y desplegado
+   - **URL:** `https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/value-bet-alerts`
+
+2. **Notifications** ✅
+   - **Edge Function:** `supabase/functions/notifications/index.ts`
+   - **Frontend Service:** `notificationsService.ts` → Usa Edge Function en producción
+   - **Estado:** ✅ Migrado y desplegado
+   - **URL:** `https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/notifications`
+
+3. **ROI Tracking** ✅
+   - **Edge Function:** `supabase/functions/roi-tracking/index.ts`
+   - **Frontend Service:** `roiTrackingService.ts` → Usa Edge Function en producción
+   - **Estado:** ✅ Migrado y desplegado
+   - **URL:** `https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/roi-tracking`
+
+4. **Value Bet Detection** ✅
+   - **Edge Function:** `supabase/functions/value-bet-detection/index.ts`
+   - **Frontend Service:** `valueBetDetectionService.ts` → Usa Edge Function en producción
+   - **Estado:** ✅ Migrado y desplegado
+   - **URL:** `https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/value-bet-detection`
+
+5. **Arbitrage** ✅
+   - **Edge Function:** `supabase/functions/arbitrage/index.ts`
+   - **Frontend Service:** `arbitrageService.ts` → Usa Edge Function en producción
+   - **Estado:** ✅ Migrado y desplegado
+   - **URL:** `https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/arbitrage`
+
+---
+
 ## ❌ Pendiente de Migrar a Supabase Edge Functions
 
-### 🔴 CRÍTICO - Servicios que AÚN usan Backend Local
+### 🟡 IMPORTANTE - Servicios que AÚN usan Backend Local
 
-1. **Value Bet Alerts** ❌
-   - **Backend Route:** `/api/value-bet-alerts/*`
-   - **Frontend Service:** `valueBetAlertsService.ts` → Usa `api.get/post/patch`
-   - **Estado:** ❌ Usa backend local (localhost:3000)
-   - **Acción:** Crear Edge Function `value-bet-alerts`
-
-2. **Value Bet Detection** ❌
-   - **Backend Route:** `/api/value-bet-detection/*`
-   - **Frontend Service:** `valueBetDetectionService.ts` → Usa `api.get/post`
-   - **Estado:** ❌ Usa backend local
-   - **Acción:** Crear Edge Function `value-bet-detection`
-
-3. **Value Bet Analytics** ❌
+1. **Value Bet Analytics** ❌
    - **Backend Route:** `/api/value-bet-analytics/*`
    - **Frontend Service:** `valueBetAnalyticsService.ts` → Usa `api.get`
    - **Estado:** ❌ Usa backend local
    - **Acción:** Crear Edge Function `value-bet-analytics`
 
-4. **Notifications** ❌
-   - **Backend Route:** `/api/notifications/*`
-   - **Frontend Service:** `notificationsService.ts` → Usa `api.get/post/patch/delete`
-   - **Estado:** ❌ Usa backend local
-   - **Acción:** Crear Edge Function `notifications`
-
-5. **ROI Tracking** ❌
-   - **Backend Route:** `/api/roi-tracking/*`
-   - **Frontend Service:** `roiTrackingService.ts` → Usa `api.get/post`
-   - **Estado:** ❌ Usa backend local
-   - **Acción:** Crear Edge Function `roi-tracking`
-
-6. **Arbitrage** ❌
-   - **Backend Route:** `/api/arbitrage/*`
-   - **Frontend Service:** `arbitrageService.ts` → Usa `api.get`
-   - **Estado:** ❌ Usa backend local
-   - **Acción:** Crear Edge Function `arbitrage`
-
-7. **Predictions** ❌
+6. **Predictions** ⚠️
    - **Backend Route:** `/api/predictions/*`
    - **Frontend Service:** `predictionsService.ts` → Usa `api.get/post` (parcialmente migrado)
    - **Estado:** ⚠️ Parcialmente migrado (algunos endpoints usan Edge Function, otros no)
-   - **Acción:** Completar migración a Edge Functions
+   - **Acción:** Completar migración a Edge Functions existentes
 
 8. **Payments** ❌
    - **Backend Route:** `/api/payments/*`
@@ -134,76 +138,64 @@
 
 ## 🎯 Plan de Migración por Prioridad
 
-### Fase 1: CRÍTICO - Funcionalidades Core (PRIORIDAD ALTA)
+### Fase 1: CRÍTICO - Funcionalidades Core (PRIORIDAD ALTA) ✅ COMPLETADO
 
-#### 1. Value Bet Alerts ⚠️ **CRÍTICO**
-**Razón:** Funcionalidad principal, usuarios la usan constantemente
+#### 1. Value Bet Alerts ✅ **COMPLETADO**
+**Estado:** ✅ Migrado y desplegado
 
-**Tareas:**
-- [ ] Crear `supabase/functions/value-bet-alerts/index.ts`
-- [ ] Migrar endpoints:
+**Tareas completadas:**
+- [x] Crear `supabase/functions/value-bet-alerts/index.ts`
+- [x] Migrar endpoints:
   - GET `/value-bet-alerts/my-alerts`
-  - GET `/value-bet-alerts/:id`
-  - PATCH `/value-bet-alerts/:id/click`
-  - PATCH `/value-bet-alerts/:id/bet-placed`
-- [ ] Actualizar `frontend/src/services/valueBetAlertsService.ts` para usar Edge Function en producción
-- [ ] Probar en producción
+  - GET `/value-bet-alerts/stats`
+  - POST `/value-bet-alerts/:id/click`
+  - POST `/value-bet-alerts/:id/taken`
+- [x] Actualizar `frontend/src/services/valueBetAlertsService.ts` para usar Edge Function en producción
+- [x] Desplegado a producción
 
-**Tiempo estimado:** 2-3 horas
+#### 2. Notifications ✅ **COMPLETADO**
+**Estado:** ✅ Migrado y desplegado
 
-#### 2. Notifications ⚠️ **CRÍTICO**
-**Razón:** Sistema de notificaciones es esencial
-
-**Tareas:**
-- [ ] Crear `supabase/functions/notifications/index.ts`
-- [ ] Migrar endpoints:
+**Tareas completadas:**
+- [x] Crear `supabase/functions/notifications/index.ts`
+- [x] Migrar endpoints:
   - GET `/notifications`
-  - POST `/notifications`
-  - PATCH `/notifications/:id/read`
-  - PATCH `/notifications/read-all`
+  - GET `/notifications/unread-count`
+  - POST `/notifications/:id/read`
+  - POST `/notifications/:id/click`
+  - POST `/notifications/read-all`
   - DELETE `/notifications/:id`
-- [ ] Actualizar `frontend/src/services/notificationsService.ts`
-- [ ] Integrar con Supabase Realtime para notificaciones en tiempo real
-- [ ] Probar en producción
-
-**Tiempo estimado:** 3-4 horas
-
-#### 3. Predictions (Completar) ⚠️ **CRÍTICO**
-**Razón:** Funcionalidad principal de la plataforma
-
-**Tareas:**
-- [ ] Verificar qué endpoints de predictions aún usan backend local
-- [ ] Completar migración a Edge Functions existentes
-- [ ] Actualizar `frontend/src/services/predictionsService.ts`
-- [ ] Probar en producción
-
-**Tiempo estimado:** 2 horas
+- [x] Actualizar `frontend/src/services/notificationsService.ts`
+- [x] Desplegado a producción
 
 ---
 
-### Fase 2: IMPORTANTE - Funcionalidades de Tracking (PRIORIDAD ALTA)
+### Fase 2: IMPORTANTE - Funcionalidades de Tracking (PRIORIDAD ALTA) ✅ COMPLETADO
 
-#### 4. ROI Tracking ⚠️ **IMPORTANTE**
-**Tareas:**
-- [ ] Crear `supabase/functions/roi-tracking/index.ts`
-- [ ] Migrar endpoints:
+#### 3. ROI Tracking ✅ **COMPLETADO**
+**Estado:** ✅ Migrado y desplegado
+
+**Tareas completadas:**
+- [x] Crear `supabase/functions/roi-tracking/index.ts`
+- [x] Migrar endpoints:
   - GET `/roi-tracking`
-  - POST `/roi-tracking/calculate`
-- [ ] Actualizar `frontend/src/services/roiTrackingService.ts`
-- [ ] Probar en producción
+  - GET `/roi-tracking/history`
+  - GET `/roi-tracking/top-value-bets`
+- [x] Actualizar `frontend/src/services/roiTrackingService.ts`
+- [x] Desplegado a producción
 
-**Tiempo estimado:** 2 horas
+#### 4. Value Bet Detection ✅ **COMPLETADO**
+**Estado:** ✅ Migrado y desplegado
 
-#### 5. Value Bet Detection ⚠️ **IMPORTANTE**
-**Tareas:**
-- [ ] Crear `supabase/functions/value-bet-detection/index.ts`
-- [ ] Migrar endpoints de detección
-- [ ] Actualizar `frontend/src/services/valueBetDetectionService.ts`
-- [ ] Probar en producción
+**Tareas completadas:**
+- [x] Crear `supabase/functions/value-bet-detection/index.ts`
+- [x] Migrar endpoints:
+  - GET `/value-bet-detection/sport/:sport`
+  - GET `/value-bet-detection/scan-all`
+- [x] Actualizar `frontend/src/services/valueBetDetectionService.ts`
+- [x] Desplegado a producción
 
-**Tiempo estimado:** 2-3 horas
-
-#### 6. Value Bet Analytics ⚠️ **IMPORTANTE**
+#### 5. Value Bet Analytics ⚠️ **PENDIENTE**
 **Tareas:**
 - [ ] Crear `supabase/functions/value-bet-analytics/index.ts`
 - [ ] Migrar endpoints de analytics
@@ -214,16 +206,19 @@
 
 ---
 
-### Fase 3: Funcionalidades Secundarias (PRIORIDAD MEDIA)
+### Fase 3: Funcionalidades Secundarias (PRIORIDAD MEDIA) ✅ COMPLETADO
 
-#### 7. Arbitrage
-**Tareas:**
-- [ ] Crear `supabase/functions/arbitrage/index.ts`
-- [ ] Migrar detección de arbitraje
-- [ ] Actualizar `frontend/src/services/arbitrageService.ts`
-- [ ] Probar en producción
+#### 6. Arbitrage ✅ **COMPLETADO**
+**Estado:** ✅ Migrado y desplegado
 
-**Tiempo estimado:** 2 horas
+**Tareas completadas:**
+- [x] Crear `supabase/functions/arbitrage/index.ts`
+- [x] Migrar endpoints:
+  - GET `/arbitrage/opportunities`
+  - GET `/arbitrage/event/:eventId`
+  - POST `/arbitrage/calculate-stakes`
+- [x] Actualizar `frontend/src/services/arbitrageService.ts`
+- [x] Desplegado a producción
 
 #### 8. User Preferences
 **Tareas:**
@@ -389,23 +384,26 @@
 
 ## 🎯 Prioridad de Implementación
 
-### 🔴 URGENTE (Hacer Primero)
-1. Value Bet Alerts
-2. Notifications
-3. WebSocket → Realtime
+### ✅ COMPLETADO
+1. ✅ Value Bet Alerts
+2. ✅ Notifications
+3. ✅ ROI Tracking
+4. ✅ Value Bet Detection
+5. ✅ Arbitrage
 
-### 🟡 IMPORTANTE (Hacer Segundo)
-4. ROI Tracking
-5. Value Bet Detection
-6. Predictions (completar)
+### 🔴 URGENTE (Pendiente)
+1. WebSocket → Supabase Realtime (CRÍTICO - Sin esto no hay actualizaciones en tiempo real)
 
-### 🟢 NORMAL (Hacer Tercero)
-7. Arbitrage
-8. User Preferences
-9. Referrals
-10. Platform Metrics
-11. 2FA
-12. Payments
+### 🟡 IMPORTANTE (Pendiente)
+2. Value Bet Analytics
+3. Predictions (completar migración)
+
+### 🟢 NORMAL (Pendiente)
+4. User Preferences
+5. Referrals
+6. Platform Metrics
+7. 2FA
+8. Payments
 
 ---
 
