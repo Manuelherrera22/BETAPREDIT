@@ -832,6 +832,7 @@ export default function Predictions() {
                               eventName={event.eventName}
                               startTime={event.startTime}
                               sport={event.sport}
+                              eventId={event.eventId}
                               onViewDetails={() => {
                                 setSelectedPrediction({
                                   predictionId: (prediction as any).id,

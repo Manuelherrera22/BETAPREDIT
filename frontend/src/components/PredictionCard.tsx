@@ -8,6 +8,7 @@ import { useState, memo, useMemo } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Icon from './icons/IconSystem';
+import RegisterBetForm from './RegisterBetForm';
 
 interface Prediction {
   selection: string;
@@ -23,11 +24,13 @@ interface PredictionCardProps {
   eventName: string;
   startTime: string;
   sport: string;
+  eventId?: string; // ID del evento para vincular con apuesta
   onViewDetails?: () => void;
 }
 
-const PredictionCard = memo(function PredictionCard({ prediction, eventName, startTime, sport, onViewDetails }: PredictionCardProps) {
+const PredictionCard = memo(function PredictionCard({ prediction, eventName, startTime, sport, eventId, onViewDetails }: PredictionCardProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const [isRegisterBetOpen, setIsRegisterBetOpen] = useState(false);
 
   const getRecommendationConfig = useMemo(() => (rec: string) => {
     switch (rec) {
@@ -191,45 +194,55 @@ const PredictionCard = memo(function PredictionCard({ prediction, eventName, sta
           </div>
         </div>
 
-        {/* Expected Value - Ultra compacto en línea con métricas */}
-        <div className="bg-gradient-to-r from-primary-500/10 to-primary-600/10 rounded p-1 border border-primary-500/30 mb-1.5">
-          <div className="flex items-center gap-1">
-            {expectedValue > 10 ? (
-              <Icon name="rocket" size={10} className="text-emerald-400" />
-            ) : expectedValue > 5 ? (
-              <Icon name="trending-up" size={10} className="text-green-400" />
-            ) : expectedValue > 0 ? (
-              <Icon name="arrow-up-right" size={10} className="text-yellow-400" />
-            ) : (
-              <Icon name="trending-down" size={10} className="text-red-400" />
-            )}
-            <div className="flex-1">
-              <div className="text-[7px] text-gray-400">EV</div>
-              <div className="text-[10px] font-black text-primary-400">
-                {expectedValue >= 0 ? '+' : ''}{expectedValue.toFixed(1)}%
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Action Button - Ultra compacto */}
-        {onViewDetails && (
+        {/* Action Buttons - Ultra compacto en grid */}
+        <div className="grid grid-cols-2 gap-1">
+          {onViewDetails && (
+            <button
+              onClick={onViewDetails}
+              className="py-0.5 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded font-bold text-[7px] transition-all duration-200 hover:scale-[1.01] hover:shadow-sm hover:shadow-primary-500/20 flex items-center justify-center gap-0.5"
+            >
+              <span>Ver Análisis</span>
+              <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
           <button
-            onClick={onViewDetails}
-            className="w-full py-0.5 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded font-bold text-[8px] transition-all duration-200 hover:scale-[1.02] hover:shadow-sm hover:shadow-primary-500/20 flex items-center justify-center gap-0.5"
+            onClick={() => setIsRegisterBetOpen(true)}
+            className="py-0.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded font-bold text-[7px] transition-all duration-200 hover:scale-[1.01] hover:shadow-sm hover:shadow-emerald-500/20 flex items-center justify-center gap-0.5"
           >
-            <span>Ver Análisis</span>
             <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
+            <span>Registrar</span>
           </button>
-        )}
+        </div>
       </div>
 
       {/* Shine effect on hover */}
       {isHovered && (
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-shine pointer-events-none"></div>
       )}
+
+      {/* Register Bet Form Modal */}
+      <RegisterBetForm
+        isOpen={isRegisterBetOpen}
+        onClose={() => setIsRegisterBetOpen(false)}
+        initialData={{
+          eventId: eventId,
+          selection: prediction.selection,
+          odds: prediction.marketOdds,
+          marketType: 'Match Winner', // Default, puede ser ajustado
+          betPlacedAt: new Date().toISOString(),
+          notes: `Predicción: ${(prediction.predictedProbability * 100).toFixed(1)}% confianza, ${prediction.value >= 0 ? '+' : ''}${prediction.value.toFixed(1)}% valor`,
+          metadata: {
+            predictionConfidence: prediction.confidence,
+            predictionValue: prediction.value,
+            predictedProbability: prediction.predictedProbability,
+            recommendation: prediction.recommendation,
+          },
+        }}
+      />
     </div>
   );
 });
