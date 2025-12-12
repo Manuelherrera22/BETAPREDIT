@@ -1,9 +1,36 @@
 /**
  * User Profile Service
  * Frontend service for managing user profile
+ * Uses Supabase Edge Function in production, backend API in development
  */
 
 import api from './api';
+import { isSupabaseConfigured } from '../config/supabase';
+
+// Get Supabase Functions URL
+const getSupabaseFunctionsUrl = () => {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  if (!supabaseUrl) return null;
+  return `${supabaseUrl}/functions/v1`;
+};
+
+// Helper to get Supabase auth token
+const getSupabaseAuthToken = async (): Promise<string | null> => {
+  try {
+    const { supabase } = await import('../config/supabase');
+    if (!supabase) return null;
+    
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error || !session?.access_token) {
+      console.warn('No Supabase session found:', error?.message);
+      return null;
+    }
+    return session.access_token;
+  } catch (error) {
+    console.error('Error getting Supabase auth token:', error);
+    return null;
+  }
+};
 
 export interface UserProfile {
   id: string;
@@ -33,16 +60,79 @@ export interface UpdateProfileData {
 export const userProfileService = {
   /**
    * Get current user profile
+   * Uses Supabase Edge Function in production, backend API in development
    */
   getProfile: async (): Promise<UserProfile> => {
+    // Use Supabase Edge Function in production
+    if (isSupabaseConfigured() && import.meta.env.PROD) {
+      const supabaseUrl = getSupabaseFunctionsUrl();
+      if (!supabaseUrl) {
+        throw new Error('Supabase not configured');
+      }
+
+      const token = await getSupabaseAuthToken();
+      if (!token) {
+        throw new Error('No authentication token available. Please log in.');
+      }
+
+      const response = await fetch(`${supabaseUrl}/user-profile`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || 'Failed to fetch profile');
+      }
+
+      const result = await response.json();
+      return result.data as UserProfile;
+    }
+
+    // Fallback to backend API in development
     const { data } = await api.get('/user/profile');
     return data.data as UserProfile;
   },
 
   /**
    * Update user profile
+   * Uses Supabase Edge Function in production, backend API in development
    */
   updateProfile: async (profileData: UpdateProfileData): Promise<UserProfile> => {
+    // Use Supabase Edge Function in production
+    if (isSupabaseConfigured() && import.meta.env.PROD) {
+      const supabaseUrl = getSupabaseFunctionsUrl();
+      if (!supabaseUrl) {
+        throw new Error('Supabase not configured');
+      }
+
+      const token = await getSupabaseAuthToken();
+      if (!token) {
+        throw new Error('No authentication token available. Please log in.');
+      }
+
+      const response = await fetch(`${supabaseUrl}/user-profile`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(profileData),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || 'Failed to update profile');
+      }
+
+      const result = await response.json();
+      return result.data as UserProfile;
+    }
+
+    // Fallback to backend API in development
     const { data } = await api.put('/user/profile', profileData);
     return data.data as UserProfile;
   },
