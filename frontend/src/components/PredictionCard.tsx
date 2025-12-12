@@ -99,79 +99,63 @@ const PredictionCard = memo(function PredictionCard({ prediction, eventName, sta
 
   return (
     <div
-      className={`relative overflow-hidden rounded-xl border-2 transition-all duration-300 ${recConfig.bg} ${recConfig.border} ${recConfig.glow} ${isHovered ? 'scale-[1.02] shadow-xl' : ''}`}
+      className={`relative overflow-hidden rounded-lg border-2 transition-all duration-300 ${recConfig.bg} ${recConfig.border} ${recConfig.glow} ${isHovered ? 'scale-[1.01] shadow-lg' : ''}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-transparent via-white/5 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
 
-      {/* Content - Ultra compacto y angosto */}
+      {/* Content - Diseño horizontal ultra compacto */}
       <div className="relative p-2">
-        {/* Header - Todo en una línea compacta */}
-        <div className="flex items-center justify-between gap-2 mb-1.5">
+        {/* Header - Todo en una línea */}
+        <div className="flex items-center justify-between gap-1.5 mb-1">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1 mb-0.5">
-              <span className="text-[8px] font-bold text-gray-400 uppercase">{sport}</span>
+              <span className="text-[7px] font-bold text-gray-400 uppercase">{sport}</span>
               <span className="w-0.5 h-0.5 bg-gray-500 rounded-full"></span>
-              <span className="text-[8px] text-gray-500">
+              <span className="text-[7px] text-gray-500">
                 {format(new Date(startTime), 'dd MMM, HH:mm', { locale: es })}
               </span>
             </div>
-            <h3 className="text-[10px] font-bold text-white truncate leading-tight mb-0.5">{eventName}</h3>
-            <h4 className="text-[10px] font-black text-white line-clamp-1 leading-tight">{prediction.selection}</h4>
+            <h3 className="text-[9px] font-bold text-white truncate leading-tight mb-0.5">{eventName}</h3>
+            <h4 className="text-[9px] font-black text-white line-clamp-1 leading-tight">{prediction.selection}</h4>
           </div>
           <div className={`px-1 py-0.5 rounded border ${recConfig.border} ${recConfig.bg} ${recConfig.pulse} shrink-0`}>
             <div className="flex items-center gap-0.5">
-              <Icon name={recConfig.icon} size={8} className={recConfig.text} />
+              <Icon name={recConfig.icon} size={7} className={recConfig.text} />
               <span className={`text-[7px] font-black ${recConfig.text} whitespace-nowrap`}>{recConfig.label}</span>
             </div>
           </div>
         </div>
 
-        {/* Probability Comparison - Todo en una línea horizontal */}
-        <div className="mb-1.5">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[7px] font-semibold text-gray-400 uppercase">Prob.</span>
+        {/* Probability Comparison - Todo horizontal ultra compacto */}
+        <div className="mb-1">
+          <div className="flex items-center justify-between mb-0.5">
+            <span className="text-[7px] font-semibold text-gray-400">Prob.</span>
             <span className={`text-[7px] font-bold ${confLevel.color} flex items-center gap-0.5`}>
-              <Icon name={confLevel.icon} size={7} />
+              <Icon name={confLevel.icon} size={6} />
               <span>{confLevel.level}</span>
             </span>
           </div>
 
-          {/* Probabilidades lado a lado - ultra compacto */}
+          {/* Probabilidades lado a lado - sin barras, solo números */}
           <div className="grid grid-cols-2 gap-1 mb-0.5">
-            <div>
-              <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[7px] text-gray-400">Nuestra</span>
-                <span className="text-[10px] font-black text-primary-400">
-                  {(prediction.predictedProbability * 100).toFixed(1)}%
-                </span>
-              </div>
-              <div className="relative w-full bg-slate-800/50 rounded-full h-0.5 overflow-hidden">
-                <div
-                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary-500 to-primary-400 rounded-full"
-                  style={{ width: `${prediction.predictedProbability * 100}%` }}
-                ></div>
-              </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[7px] text-gray-400">Nuestra</span>
+              <span className="text-[9px] font-black text-primary-400">
+                {(prediction.predictedProbability * 100).toFixed(1)}%
+              </span>
             </div>
-            <div>
-              <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[7px] text-gray-400">Mercado</span>
-                <span className="text-[9px] font-semibold text-gray-300">
-                  {marketProb.toFixed(1)}%
-                </span>
-              </div>
-              <div className="relative w-full bg-slate-800/50 rounded-full h-0.5 overflow-hidden">
-                <div
-                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-gray-500 to-gray-400 rounded-full"
-                  style={{ width: `${marketProb}%` }}
-                ></div>
-              </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[7px] text-gray-400">Mercado</span>
+              <span className="text-[8px] font-semibold text-gray-300">
+                {marketProb.toFixed(1)}%
+              </span>
             </div>
           </div>
 
-          {/* Value Difference - Inline ultra compacto */}
+          {/* Value Difference - Inline */}
           {valueDiff !== 0 && (
             <div className={`text-[7px] font-bold text-center ${valueDiff > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
               {valueDiff > 0 ? '↑' : '↓'} {Math.abs(valueDiff).toFixed(1)}%
@@ -179,24 +163,30 @@ const PredictionCard = memo(function PredictionCard({ prediction, eventName, sta
           )}
         </div>
 
-        {/* Key Metrics - Ultra compacto en una línea */}
-        <div className="grid grid-cols-3 gap-0.5 mb-1.5">
-          <div className="bg-slate-900/50 rounded p-1 border border-slate-700/50">
-            <div className="text-[7px] text-gray-500 mb-0.5">Valor</div>
-            <div className={`text-[9px] font-black ${prediction.value > 10 ? 'text-emerald-400' : prediction.value > 5 ? 'text-green-400' : prediction.value > 0 ? 'text-yellow-400' : 'text-red-400'}`}>
+        {/* Key Metrics - Todo en una línea horizontal */}
+        <div className="grid grid-cols-4 gap-0.5 mb-1">
+          <div className="bg-slate-900/50 rounded p-0.5 border border-slate-700/50">
+            <div className="text-[6px] text-gray-500 mb-0.5">Valor</div>
+            <div className={`text-[8px] font-black ${prediction.value > 10 ? 'text-emerald-400' : prediction.value > 5 ? 'text-green-400' : prediction.value > 0 ? 'text-yellow-400' : 'text-red-400'}`}>
               {prediction.value >= 0 ? '+' : ''}{prediction.value.toFixed(1)}%
             </div>
           </div>
-          <div className="bg-slate-900/50 rounded p-1 border border-slate-700/50">
-            <div className="text-[7px] text-gray-500 mb-0.5">Conf.</div>
-            <div className={`text-[9px] font-black ${confLevel.color}`}>
+          <div className="bg-slate-900/50 rounded p-0.5 border border-slate-700/50">
+            <div className="text-[6px] text-gray-500 mb-0.5">Conf.</div>
+            <div className={`text-[8px] font-black ${confLevel.color}`}>
               {(prediction.confidence * 100).toFixed(0)}%
             </div>
           </div>
-          <div className="bg-slate-900/50 rounded p-1 border border-slate-700/50">
-            <div className="text-[7px] text-gray-500 mb-0.5">Cuota</div>
-            <div className="text-[9px] font-black text-white">
+          <div className="bg-slate-900/50 rounded p-0.5 border border-slate-700/50">
+            <div className="text-[6px] text-gray-500 mb-0.5">Cuota</div>
+            <div className="text-[8px] font-black text-white">
               {prediction.marketOdds.toFixed(2)}
+            </div>
+          </div>
+          <div className="bg-gradient-to-r from-primary-500/10 to-primary-600/10 rounded p-0.5 border border-primary-500/30">
+            <div className="text-[6px] text-gray-400">EV</div>
+            <div className="text-[8px] font-black text-primary-400">
+              {expectedValue >= 0 ? '+' : ''}{expectedValue.toFixed(1)}%
             </div>
           </div>
         </div>
