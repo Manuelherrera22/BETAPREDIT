@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { valueBetAlertsService } from '../services/valueBetAlertsService';
+import { valueBetAlertsService, type ValueBetAlert } from '../services/valueBetAlertsService';
 import { notificationsService } from '../services/notificationsService';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { useAuthStore } from '../store/authStore';
 import Icon from '../components/icons/IconSystem';
 import EmptyState from '../components/EmptyState';
+import RegisterBetForm from '../components/RegisterBetForm';
 
 interface Alert {
   id: string;
@@ -20,6 +21,7 @@ interface Alert {
   read: boolean;
   priority?: 'high' | 'medium' | 'low';
   source?: 'value_bet_alert' | 'notification';
+  valueBetAlertData?: ValueBetAlert; // Datos completos del value bet alert
 }
 
 export default function Alerts() {
@@ -27,6 +29,8 @@ export default function Alerts() {
   const [_loading, setLoading] = useState(true);
   const [_error, setError] = useState<string | null>(null);
   const userId = useAuthStore((state) => state.user?.id);
+  const [isRegisterBetOpen, setIsRegisterBetOpen] = useState(false);
+  const [selectedValueBetAlert, setSelectedValueBetAlert] = useState<ValueBetAlert | null>(null);
 
   // WebSocket para alertas en tiempo real
   const { isConnected, lastMessage, subscribe, unsubscribe } = useWebSocket({
@@ -85,6 +89,7 @@ export default function Alerts() {
           read: alert.status !== 'ACTIVE',
           priority: alert.valuePercentage > 10 ? 'high' : alert.valuePercentage > 5 ? 'medium' : 'low',
           source: 'value_bet_alert' as const,
+          valueBetAlertData: alert, // Guardar datos completos
         }));
 
         // Convertir notificaciones a formato de alerta
@@ -489,6 +494,20 @@ export default function Alerts() {
                       )}
                     </div>
                     <div className="flex gap-2">
+                      {alert.type === 'value_bet' && alert.valueBetAlertData && (
+                        <button
+                          onClick={() => {
+                            setSelectedValueBetAlert(alert.valueBetAlertData!);
+                            setIsRegisterBetOpen(true);
+                          }}
+                          className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-lg font-bold text-sm transition-all hover:scale-105 shadow-lg shadow-emerald-500/30 flex items-center gap-2"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                          Registrar Apuesta
+                        </button>
+                      )}
                       {!alert.read && (
                         <button
                           onClick={() => markAsRead(alert.id)}
@@ -527,6 +546,33 @@ export default function Alerts() {
           />
         )}
       </div>
+
+      {/* Register Bet Form Modal */}
+      {selectedValueBetAlert && (
+        <RegisterBetForm
+          isOpen={isRegisterBetOpen}
+          onClose={() => {
+            setIsRegisterBetOpen(false);
+            setSelectedValueBetAlert(null);
+          }}
+          valueBetAlertId={selectedValueBetAlert.id}
+          initialData={{
+            eventId: selectedValueBetAlert.eventId,
+            platform: selectedValueBetAlert.bookmakerPlatform,
+            selection: selectedValueBetAlert.selection,
+            odds: selectedValueBetAlert.bookmakerOdds,
+            marketType: selectedValueBetAlert.market?.type || 'Match Winner',
+            betPlacedAt: new Date().toISOString(),
+            notes: `Value Bet: +${selectedValueBetAlert.valuePercentage.toFixed(1)}% valor, ${(selectedValueBetAlert.confidence * 100).toFixed(1)}% confianza`,
+            metadata: {
+              valuePercentage: selectedValueBetAlert.valuePercentage,
+              expectedValue: selectedValueBetAlert.expectedValue,
+              predictedProbability: selectedValueBetAlert.predictedProbability,
+              confidence: selectedValueBetAlert.confidence,
+            },
+          }}
+        />
+      )}
     </div>
   );
 }

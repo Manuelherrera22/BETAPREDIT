@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { eventsService } from '../services/eventsService'
 import { theOddsApiService } from '../services/theOddsApiService'
@@ -7,11 +7,18 @@ import { es } from 'date-fns/locale'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import SkeletonLoader from '../components/SkeletonLoader'
+import { useWebSocket } from '../hooks/useWebSocket'
 
 export default function Events() {
   const [selectedSport, setSelectedSport] = useState<string>('all')
   const [viewMode, setViewMode] = useState<'upcoming' | 'live'>('upcoming')
   const queryClient = useQueryClient()
+
+  // WebSocket para actualizaciones en tiempo real
+  const { isConnected, lastMessage, subscribe, unsubscribe } = useWebSocket({
+    autoConnect: true,
+    channels: viewMode === 'live' ? ['events:live'] : [],
+  })
 
   // Get available sports
   const { data: sports } = useQuery({
@@ -55,11 +62,40 @@ export default function Events() {
         return [];
       }
     },
-    refetchInterval: 300000, // 5 minutes
+    refetchInterval: viewMode === 'live' ? 30000 : 300000, // 30 segundos para eventos en vivo, 5 minutos para próximos
     retry: 2,
     retryDelay: 1000,
-    staleTime: 60000, // 1 minute
+    staleTime: viewMode === 'live' ? 10000 : 60000, // 10 segundos para eventos en vivo, 1 minuto para próximos
   })
+
+  // Suscribirse a eventos en vivo cuando cambia el modo
+  useEffect(() => {
+    if (viewMode === 'live' && isConnected) {
+      subscribe('events:live')
+      return () => {
+        unsubscribe('events:live')
+      }
+    }
+  }, [viewMode, isConnected, subscribe, unsubscribe])
+
+  // Actualizar eventos cuando llega mensaje por WebSocket
+  useEffect(() => {
+    if (lastMessage?.type === 'event:update' && viewMode === 'live') {
+      // Invalidar query para recargar eventos
+      queryClient.invalidateQueries({ queryKey: ['allEvents', selectedSport, viewMode] })
+      
+      // Mostrar notificación si es un cambio importante (score, estado)
+      const eventData = lastMessage.data
+      if (eventData.status === 'LIVE' && (eventData.homeScore !== undefined || eventData.awayScore !== undefined)) {
+        toast.success(`⚽ ${eventData.name || 'Evento'} actualizado`, {
+          icon: eventData.homeScore !== undefined && eventData.awayScore !== undefined 
+            ? `${eventData.homeScore} - ${eventData.awayScore}`
+            : '⚽',
+          duration: 3000,
+        })
+      }
+    }
+  }, [lastMessage, viewMode, queryClient, selectedSport])
 
   const handleRefresh = async () => {
     await queryClient.invalidateQueries({ queryKey: ['allEvents'] })
@@ -134,6 +170,25 @@ export default function Events() {
           <p className="text-gray-400">Explora eventos en vivo y próximos partidos</p>
         </div>
         <div className="flex items-center gap-3">
+          {/* WebSocket Status */}
+          {viewMode === 'live' && (
+            <div className="flex items-center gap-2 text-sm">
+              {isConnected ? (
+                <>
+                  <span className="relative">
+                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                    <span className="absolute top-0 left-0 w-2 h-2 bg-green-400 rounded-full animate-ping opacity-75"></span>
+                  </span>
+                  <span className="text-green-400 font-semibold">Tiempo Real</span>
+                </>
+              ) : (
+                <>
+                  <span className="w-2 h-2 bg-gray-500 rounded-full"></span>
+                  <span className="text-gray-500">Polling</span>
+                </>
+              )}
+            </div>
+          )}
           <button
             onClick={handleRefresh}
             disabled={isLoading}
