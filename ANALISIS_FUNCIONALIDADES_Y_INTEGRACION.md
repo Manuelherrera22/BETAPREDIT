@@ -4,31 +4,35 @@
 
 ### ✅ Funcionalidades Implementadas y Conectadas
 
-1. **Predicciones** ✅
+1. **Predicciones** ✅✅
    - Generación automática de predicciones
    - Visualización en tarjetas compactas
    - Filtros por deporte/liga
    - Heatmap de confianza
-   - **Estado:** Funcional pero NO conectado con apuestas
+   - **✅ CONECTADO:** Botón "Registrar Apuesta" en cada predicción
+   - **Estado:** Funcional y CONECTADO con apuestas
 
-2. **Mis Apuestas (External Bets)** ✅
+2. **Mis Apuestas (External Bets)** ✅✅
    - Registro manual de apuestas externas
    - Filtros y búsqueda
    - Resolución de apuestas (WON/LOST/VOID)
    - Exportación a CSV
-   - **Estado:** Funcional pero NO conectado con predicciones
+   - **✅ CONECTADO:** Recibe datos desde Predicciones y Value Bet Alerts
+   - **Estado:** Funcional y CONECTADO con otras funcionalidades
 
-3. **Eventos** ⚠️
+3. **Eventos** ✅✅
    - Muestra eventos próximos y en vivo
    - Sincronización con The Odds API
-   - **Problema:** No hay actualización en tiempo real real (solo polling)
-   - **Estado:** Funcional pero limitado
+   - **✅ MEJORADO:** WebSocket para actualización en tiempo real
+   - **✅ MEJORADO:** Notificaciones automáticas de cambios
+   - **Estado:** Funcional con actualización en tiempo real
 
-4. **Value Bet Detection** ✅
+4. **Value Bet Detection** ✅✅
    - Detección automática de value bets
    - Alertas al usuario
-   - **Problema:** NO conectado con registro de apuestas automático
-   - **Estado:** Funcional pero desconectado
+   - **✅ CONECTADO:** Botón "Registrar Apuesta" en alertas
+   - **✅ CONECTADO:** Pre-llenado automático de formulario
+   - **Estado:** Funcional y CONECTADO con registro de apuestas
 
 5. **ROI Tracking** ✅
    - Tracking de ROI por apuesta
@@ -125,24 +129,25 @@
 
 ## 📋 Checklist de Implementación
 
-### Conexión Predicciones → Apuestas
-- [ ] Agregar botón "Registrar Apuesta" en `PredictionCard`
-- [ ] Crear componente `QuickRegisterBetFromPrediction`
-- [ ] Pre-llenar formulario con datos de predicción
-- [ ] Conectar con `externalBetsService`
-- [ ] Agregar metadata de predicción en apuesta
+### Conexión Predicciones → Apuestas ✅ COMPLETADO
+- [x] Agregar botón "Registrar Apuesta" en `PredictionCard`
+- [x] Integrar `RegisterBetForm` con datos pre-llenados
+- [x] Pre-llenar formulario con datos de predicción
+- [x] Conectar con `externalBetsService`
+- [x] Agregar metadata de predicción en apuesta
 
-### Eventos en Tiempo Real
-- [ ] Configurar WebSocket en backend
-- [ ] Emitir actualizaciones de eventos en vivo
-- [ ] Suscribirse a eventos en frontend
-- [ ] Actualizar UI automáticamente
-- [ ] Notificar cambios importantes
+### Eventos en Tiempo Real ✅ COMPLETADO
+- [x] WebSocket ya configurado en backend
+- [x] Emitir actualizaciones de eventos en vivo (ya existe)
+- [x] Suscribirse a eventos en frontend
+- [x] Actualizar UI automáticamente
+- [x] Notificar cambios importantes (scores, estado)
+- [x] Mostrar estado de conexión WebSocket
 
-### Value Bets → Apuestas
-- [ ] Agregar botón en alertas
-- [ ] Pre-llenar formulario
-- [ ] Vincular alerta con apuesta
+### Value Bets → Apuestas ✅ COMPLETADO
+- [x] Agregar botón en alertas
+- [x] Pre-llenar formulario con datos del value bet
+- [x] Vincular alerta con apuesta (valueBetAlertId)
 
 ### Auto-Resolución
 - [ ] Detectar eventos finalizados
