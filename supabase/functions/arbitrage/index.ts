@@ -170,7 +170,9 @@ serve(async (req) => {
       const now = new Date();
       const maxTime = new Date(now.getTime() + 48 * 60 * 60 * 1000);
 
-      // Build query for events
+      // Build query for events - Limit to reasonable number to avoid timeout
+      const maxEventsToProcess = Math.min(limit * 2, 30); // Max 30 events to avoid timeout
+      
       let eventsQuery = supabase
         .from('Event')
         .select(`
@@ -190,7 +192,7 @@ serve(async (req) => {
         .eq('isActive', true)
         .gte('startTime', now.toISOString())
         .lte('startTime', maxTime.toISOString())
-        .limit(limit * 2) // Get more events to have better chances of finding opportunities
+        .limit(maxEventsToProcess)
         .order('startTime', { ascending: true });
 
       // Filter by sport if specified
@@ -234,8 +236,18 @@ serve(async (req) => {
       }
 
       const opportunities: any[] = [];
+      const startTime = Date.now();
+      const maxExecutionTime = 40000; // 40 seconds max execution time
 
-      for (const event of events) {
+      for (let i = 0; i < events.length; i++) {
+        // Check execution time to avoid timeout
+        if (Date.now() - startTime > maxExecutionTime) {
+          console.log(`Stopping early after ${i} events to avoid timeout`);
+          break;
+        }
+
+        const event = events[i];
+        
         // Get markets for this event
         const { data: markets, error: marketsError } = await supabase
           .from('Market')
