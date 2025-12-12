@@ -163,10 +163,12 @@ class ArbitrageService {
     const { minProfitMargin = 0.01, sport = 'soccer_epl', limit = 50 } = options || {};
 
     // Use Supabase Edge Function in production
-    if (import.meta.env.PROD) {
+    const isProduction = import.meta.env.PROD || window.location.hostname !== 'localhost';
+    if (isProduction) {
       try {
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        if (!supabaseUrl) {
+        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        if (!supabaseUrl || !supabaseAnonKey) {
           throw new Error('Supabase not configured');
         }
 
@@ -190,6 +192,7 @@ class ArbitrageService {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
+            'apikey': supabaseAnonKey,
             'Content-Type': 'application/json',
           },
         });
@@ -351,10 +354,12 @@ class ArbitrageService {
     }
   ): Promise<ArbitrageOpportunity[]> {
     // Use Supabase Edge Function in production
-    if (import.meta.env.PROD) {
+    const isProduction = import.meta.env.PROD || window.location.hostname !== 'localhost';
+    if (isProduction) {
       try {
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        if (!supabaseUrl) {
+        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        if (!supabaseUrl || !supabaseAnonKey) {
           throw new Error('Supabase not configured');
         }
 
@@ -377,6 +382,7 @@ class ArbitrageService {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
+            'apikey': supabaseAnonKey,
             'Content-Type': 'application/json',
           },
         });
@@ -416,10 +422,12 @@ class ArbitrageService {
     totalBankroll: number
   ): Promise<CalculateStakesResponse> {
     // Use Supabase Edge Function in production
-    if (import.meta.env.PROD) {
+    const isProduction = import.meta.env.PROD || window.location.hostname !== 'localhost';
+    if (isProduction) {
       try {
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        if (!supabaseUrl) {
+        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        if (!supabaseUrl || !supabaseAnonKey) {
           throw new Error('Supabase not configured');
         }
 
@@ -439,6 +447,7 @@ class ArbitrageService {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
+            'apikey': supabaseAnonKey,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ opportunity, totalBankroll }),
