@@ -89,13 +89,19 @@ export const userProfileService = {
 
       if (!response.ok) {
         let errorMessage = 'Failed to fetch profile';
+        let errorDetails: any = null;
         try {
           const error = await response.json();
           errorMessage = error.error?.message || error.message || errorMessage;
+          errorDetails = error.error;
           console.error('[userProfileService] Error response:', error);
-        } catch {
+          console.error('[userProfileService] Error details:', errorDetails);
+          console.error('[userProfileService] Error code:', errorDetails?.code);
+          console.error('[userProfileService] Error details field:', errorDetails?.details);
+        } catch (e) {
           errorMessage = `HTTP ${response.status}: ${response.statusText}`;
           console.error('[userProfileService] Error status:', response.status, response.statusText);
+          console.error('[userProfileService] Failed to parse error response:', e);
         }
         throw new Error(errorMessage);
       }

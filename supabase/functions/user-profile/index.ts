@@ -54,6 +54,14 @@ serve(async (req) => {
 
     const userId = user.id;
 
+    // Validate email exists
+    if (!user.email) {
+      return new Response(
+        JSON.stringify({ success: false, error: { message: 'User email is required' } }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Handle GET request - Get profile
     if (req.method === 'GET') {
       let { data: profile, error } = await supabase
@@ -67,21 +75,31 @@ serve(async (req) => {
         // User not found in User table, create it
         const userData: any = {
           id: userId,
-          email: user.email || '',
+          email: user.email,
           firstName: user.user_metadata?.first_name || user.user_metadata?.firstName || null,
           lastName: user.user_metadata?.last_name || user.user_metadata?.lastName || null,
           passwordHash: null, // No password needed for OAuth users
           provider: user.app_metadata?.provider || 'supabase',
           verified: user.email_confirmed_at ? true : false,
+          role: 'USER', // Default role
+          kycStatus: 'PENDING', // Default KYC status
           preferredMode: 'pro', // Default to pro mode
           preferredCurrency: 'USD', // Default currency
           subscriptionTier: 'FREE', // Default tier
+          timezone: 'UTC', // Default timezone
         };
 
         // Add avatar if available
         if (user.user_metadata?.avatar_url || user.user_metadata?.picture) {
           userData.avatar = user.user_metadata?.avatar_url || user.user_metadata?.picture;
         }
+
+        // Add Google ID if available
+        if (user.app_metadata?.provider === 'google' && user.user_metadata?.sub) {
+          userData.googleId = user.user_metadata.sub;
+        }
+
+        console.log('Creating user with data:', { ...userData, passwordHash: '[REDACTED]' });
 
         const { data: newUser, error: createError } = await supabase
           .from('User')
@@ -91,10 +109,15 @@ serve(async (req) => {
 
         if (createError) {
           console.error('Error creating user:', createError);
+          console.error('User data attempted:', { ...userData, passwordHash: '[REDACTED]' });
           return new Response(
             JSON.stringify({ 
               success: false, 
-              error: { message: `Failed to create user profile: ${createError.message}` }
+              error: { 
+                message: `Failed to create user profile: ${createError.message}`,
+                code: createError.code,
+                details: createError.details
+              }
             }),
             { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
@@ -160,20 +183,28 @@ serve(async (req) => {
         // User doesn't exist, create it first
         const userData: any = {
           id: userId,
-          email: user.email || '',
+          email: user.email,
           firstName: user.user_metadata?.first_name || user.user_metadata?.firstName || null,
           lastName: user.user_metadata?.last_name || user.user_metadata?.lastName || null,
           passwordHash: null,
           provider: user.app_metadata?.provider || 'supabase',
           verified: user.email_confirmed_at ? true : false,
+          role: 'USER',
+          kycStatus: 'PENDING',
           preferredMode: 'pro',
           preferredCurrency: 'USD',
           subscriptionTier: 'FREE',
+          timezone: 'UTC',
           ...updateData, // Merge with update data
         };
 
         if (user.user_metadata?.avatar_url || user.user_metadata?.picture) {
           userData.avatar = user.user_metadata?.avatar_url || user.user_metadata?.picture;
+        }
+
+        // Add Google ID if available
+        if (user.app_metadata?.provider === 'google' && user.user_metadata?.sub) {
+          userData.googleId = user.user_metadata.sub;
         }
 
         const { data: newUser, error: createError } = await supabase
@@ -183,8 +214,16 @@ serve(async (req) => {
           .single();
 
         if (createError) {
+          console.error('Error creating user in PUT:', createError);
           return new Response(
-            JSON.stringify({ success: false, error: { message: `Failed to create user profile: ${createError.message}` } }),
+            JSON.stringify({ 
+              success: false, 
+              error: { 
+                message: `Failed to create user profile: ${createError.message}`,
+                code: createError.code,
+                details: createError.details
+              }
+            }),
             { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
