@@ -102,6 +102,7 @@ export interface PredictionStats {
 export const predictionsService = {
   /**
    * Get prediction accuracy tracking with detailed metrics
+   * Uses Supabase Edge Function in production, backend API in development
    */
   getAccuracyTracking: async (filters?: {
     modelVersion?: string;
@@ -110,8 +111,43 @@ export const predictionsService = {
     startDate?: string;
     endDate?: string;
   }): Promise<PredictionAccuracyStats> => {
-    const { data } = await api.get('/predictions/accuracy', { params: filters });
-    return data.data as PredictionAccuracyStats;
+    const isProduction = import.meta.env.PROD;
+    const supabaseUrl = getSupabaseFunctionsUrl();
+
+    if (isProduction && supabaseUrl) {
+      // Use Supabase Edge Function
+      const token = await getSupabaseAuthToken();
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
+
+      const params = new URLSearchParams();
+      if (filters?.modelVersion) params.append('modelVersion', filters.modelVersion);
+      if (filters?.sportId) params.append('sportId', filters.sportId);
+      if (filters?.marketType) params.append('marketType', filters.marketType);
+      if (filters?.startDate) params.append('startDate', filters.startDate);
+      if (filters?.endDate) params.append('endDate', filters.endDate);
+
+      const response = await fetch(`${supabaseUrl}/predictions/accuracy?${params}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || 'Failed to get accuracy tracking');
+      }
+
+      const result = await response.json();
+      return result.data;
+    } else {
+      // Use local backend
+      const { data } = await api.get('/predictions/accuracy', { params: filters });
+      return data.data as PredictionAccuracyStats;
+    }
   },
 
   /**
@@ -171,16 +207,49 @@ export const predictionsService = {
 
   /**
    * Get basic prediction statistics
+   * Uses Supabase Edge Function in production, backend API in development
    */
   getPredictionStats: async (modelVersion?: string): Promise<PredictionStats> => {
-    const { data } = await api.get('/predictions/stats', {
-      params: modelVersion ? { modelVersion } : {},
-    });
-    return data.data as PredictionStats;
+    const isProduction = import.meta.env.PROD;
+    const supabaseUrl = getSupabaseFunctionsUrl();
+
+    if (isProduction && supabaseUrl) {
+      // Use Supabase Edge Function
+      const token = await getSupabaseAuthToken();
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
+
+      const params = new URLSearchParams();
+      if (modelVersion) params.append('modelVersion', modelVersion);
+
+      const response = await fetch(`${supabaseUrl}/predictions/stats?${params}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || 'Failed to get prediction stats');
+      }
+
+      const result = await response.json();
+      return result.data;
+    } else {
+      // Use local backend
+      const { data } = await api.get('/predictions/stats', {
+        params: modelVersion ? { modelVersion } : {},
+      });
+      return data.data as PredictionStats;
+    }
   },
 
   /**
    * Get prediction history (resolved predictions)
+   * Uses Supabase Edge Function in production, backend API in development
    */
   getPredictionHistory: async (options?: {
     limit?: number;
@@ -190,14 +259,51 @@ export const predictionsService = {
     startDate?: string;
     endDate?: string;
   }): Promise<any[]> => {
-    const { data } = await api.get('/predictions/history', {
-      params: options || {},
-    });
-    return Array.isArray(data?.data) ? data.data : [];
+    const isProduction = import.meta.env.PROD;
+    const supabaseUrl = getSupabaseFunctionsUrl();
+
+    if (isProduction && supabaseUrl) {
+      // Use Supabase Edge Function
+      const token = await getSupabaseAuthToken();
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
+
+      const params = new URLSearchParams();
+      if (options?.limit) params.append('limit', options.limit.toString());
+      if (options?.offset) params.append('offset', options.offset.toString());
+      if (options?.sportId) params.append('sportId', options.sportId);
+      if (options?.marketType) params.append('marketType', options.marketType);
+      if (options?.startDate) params.append('startDate', options.startDate);
+      if (options?.endDate) params.append('endDate', options.endDate);
+
+      const response = await fetch(`${supabaseUrl}/predictions/history?${params}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || 'Failed to get prediction history');
+      }
+
+      const result = await response.json();
+      return Array.isArray(result.data) ? result.data : [];
+    } else {
+      // Use local backend
+      const { data } = await api.get('/predictions/history', {
+        params: options || {},
+      });
+      return Array.isArray(data?.data) ? data.data : [];
+    }
   },
 
   /**
    * Submit user feedback on a prediction
+   * Uses Supabase Edge Function in production, backend API in development
    */
   submitFeedback: async (
     predictionId: string,
@@ -207,16 +313,74 @@ export const predictionsService = {
       notes?: string;
     }
   ): Promise<any> => {
-    const { data } = await api.post(`/predictions/${predictionId}/feedback`, feedback);
-    return data.data;
+    const isProduction = import.meta.env.PROD;
+    const supabaseUrl = getSupabaseFunctionsUrl();
+
+    if (isProduction && supabaseUrl) {
+      // Use Supabase Edge Function
+      const token = await getSupabaseAuthToken();
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
+
+      const response = await fetch(`${supabaseUrl}/predictions/${predictionId}/feedback`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(feedback),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || 'Failed to submit feedback');
+      }
+
+      const result = await response.json();
+      return result.data;
+    } else {
+      // Use local backend
+      const { data } = await api.post(`/predictions/${predictionId}/feedback`, feedback);
+      return data.data;
+    }
   },
 
   /**
    * Get prediction with detailed factors explanation
+   * Uses Supabase Edge Function in production, backend API in development
    */
   getPredictionFactors: async (predictionId: string): Promise<any> => {
-    const { data } = await api.get(`/predictions/${predictionId}/factors`);
-    return data.data;
+    const isProduction = import.meta.env.PROD;
+    const supabaseUrl = getSupabaseFunctionsUrl();
+
+    if (isProduction && supabaseUrl) {
+      // Use Supabase Edge Function
+      const token = await getSupabaseAuthToken();
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
+
+      const response = await fetch(`${supabaseUrl}/predictions/${predictionId}/factors`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || 'Failed to get prediction factors');
+      }
+
+      const result = await response.json();
+      return result.data;
+    } else {
+      // Use local backend
+      const { data } = await api.get(`/predictions/${predictionId}/factors`);
+      return data.data;
+    }
   },
 
   /**
