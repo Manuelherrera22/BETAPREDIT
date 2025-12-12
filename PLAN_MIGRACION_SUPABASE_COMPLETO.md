@@ -87,11 +87,17 @@
    - **Estado:** ✅ Migrado y desplegado
    - **URL:** `https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/value-bet-analytics`
 
-6. **Predictions** ⚠️
-   - **Backend Route:** `/api/predictions/*`
-   - **Frontend Service:** `predictionsService.ts` → Usa `api.get/post` (parcialmente migrado)
-   - **Estado:** ⚠️ Parcialmente migrado (algunos endpoints usan Edge Function, otros no)
-   - **Acción:** Completar migración a Edge Functions existentes
+6. **Predictions** ✅
+   - **Edge Functions:** 
+     - `supabase/functions/get-predictions/index.ts` (GET event predictions)
+     - `supabase/functions/generate-predictions/index.ts` (POST generate)
+     - `supabase/functions/predictions/index.ts` (otros endpoints)
+   - **Frontend Service:** `predictionsService.ts` → Usa Edge Functions en producción
+   - **Estado:** ✅ Migrado y desplegado
+   - **URLs:** 
+     - `https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/get-predictions`
+     - `https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/generate-predictions`
+     - `https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/predictions`
 
 8. **Payments** ❌
    - **Backend Route:** `/api/payments/*`

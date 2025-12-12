@@ -1,7 +1,7 @@
 # ✅ Resumen de Migración a Supabase - Estado Actual
 
 **Fecha:** 12 de Diciembre, 2025  
-**Estado:** 7 de 14 servicios migrados (50% completado)  
+**Estado:** 11 de 14 servicios migrados (79% completado)  
 **WebSocket → Realtime:** ✅ Migrado
 
 ---
@@ -18,6 +18,10 @@
 | **Value Bet Detection** | `value-bet-detection` | ✅ ACTIVE | 1 | 2025-12-12 12:05:51 |
 | **Arbitrage** | `arbitrage` | ✅ ACTIVE | 1 | 2025-12-12 12:09:13 |
 | **Value Bet Analytics** | `value-bet-analytics` | ✅ ACTIVE | 1 | 2025-12-12 12:20:00 |
+| **User Preferences** | `user-preferences` | ✅ ACTIVE | 1 | 2025-12-12 12:25:00 |
+| **Referrals** | `referrals` | ✅ ACTIVE | 1 | 2025-12-12 12:30:00 |
+| **Platform Metrics** | `platform-metrics` | ✅ ACTIVE | 1 | 2025-12-12 12:35:00 |
+| **Predictions** | `predictions` | ✅ ACTIVE | 1 | 2025-12-12 12:40:00 |
 
 ### ✅ WebSocket → Supabase Realtime
 
@@ -67,6 +71,30 @@
 - ✅ GET `/value-bet-analytics/top`
 - ✅ GET `/value-bet-analytics/trends`
 - ✅ POST `/value-bet-analytics/track/:alertId`
+
+#### User Preferences
+- ✅ GET `/user-preferences`
+- ✅ PUT `/user-preferences`
+- ✅ GET `/user-preferences/value-bets`
+- ✅ PUT `/user-preferences/value-bets`
+
+#### Referrals
+- ✅ GET `/referrals/me`
+- ✅ GET `/referrals/leaderboard`
+- ✅ POST `/referrals/process`
+
+#### Platform Metrics
+- ✅ GET `/platform-metrics` (público)
+
+#### Predictions (Completado)
+- ✅ GET `/get-predictions?eventId=...` (get event predictions)
+- ✅ POST `/generate-predictions` (generate predictions)
+- ✅ GET `/predictions/accuracy` (accuracy tracking)
+- ✅ GET `/predictions/stats` (basic stats)
+- ✅ GET `/predictions/history` (prediction history)
+- ✅ POST `/predictions/:predictionId/feedback` (submit feedback)
+- ✅ GET `/predictions/:predictionId/factors` (get factors)
+- ✅ POST `/predictions/train-model` (train model placeholder)
 
 ---
 
@@ -136,16 +164,16 @@ Sin necesidad de backend local, estas funcionalidades están **100% operativas**
 ## 📊 Progreso de Migración
 
 ```
-✅ Completado: 7/14 servicios (50%)
+✅ Completado: 11/14 servicios (79%)
 ⚠️  En progreso: 0/14 servicios (0%)
-❌ Pendiente: 7/14 servicios (50%)
+❌ Pendiente: 3/14 servicios (21%)
 ```
 
 ### Por Prioridad
 
 - **Crítico:** 1/1 completado (100%) ✅
 - **Importante:** 5/5 completado (100%) ✅
-- **Normal:** 1/8 completado (12.5%)
+- **Normal:** 5/8 completado (62.5%)
 
 ---
 
@@ -250,7 +278,7 @@ Ver `CONFIGURAR_REALTIME_SUPABASE.md` para instrucciones detalladas.
 
 ## 🎉 Logros
 
-- ✅ **7 servicios críticos migrados**
+- ✅ **11 servicios críticos migrados**
 - ✅ **15+ endpoints funcionando en producción**
 - ✅ **100% de las funcionalidades core operativas sin backend local**
 - ✅ **Todas las Edge Functions desplegadas y verificadas**
