@@ -10,3 +10,7 @@
 # Function: auto-sync
 # Enabled: true
 
+# Platform Metrics - Public endpoint (no authentication required)
+[functions.platform-metrics]
+verify_jwt = false
+

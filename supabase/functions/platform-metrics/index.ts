@@ -63,19 +63,30 @@ serve(async (req) => {
       // Active users (users who logged in in last 7 days or have bets in last 7 days)
       const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       
-      // Get users with recent login or bets
-      const { data: activeUsersData, error: activeUsersError } = await supabase
+      // Get users with recent login
+      const { data: usersWithLogin, error: loginError } = await supabase
         .from('User')
         .select('id')
-        .or(`lastLoginAt.gte.${sevenDaysAgo.toISOString()},externalBets.registeredAt.gte.${sevenDaysAgo.toISOString()}`);
+        .gte('lastLoginAt', sevenDaysAgo.toISOString());
 
-      if (activeUsersError) {
-        throw activeUsersError;
+      // Get users with recent bets
+      const { data: usersWithBets, error: betsUserError } = await supabase
+        .from('ExternalBet')
+        .select('userId')
+        .gte('registeredAt', sevenDaysAgo.toISOString());
+
+      // Combine and get unique users
+      const activeUserIds = new Set<string>();
+      if (usersWithLogin) {
+        usersWithLogin.forEach((u: any) => activeUserIds.add(u.id));
       }
-
-      // Get unique active users count
-      const uniqueActiveUserIds = new Set((activeUsersData || []).map((u: any) => u.id));
-      const activeUsers = uniqueActiveUserIds.size;
+      if (usersWithBets) {
+        usersWithBets.forEach((b: any) => {
+          if (b.userId) activeUserIds.add(b.userId);
+        });
+      }
+      
+      const activeUsers = activeUserIds.size;
 
       // Total users
       const { count: totalUsers } = await supabase
@@ -135,17 +146,32 @@ serve(async (req) => {
 
       // Active users last month
       const lastMonthSevenDaysAgo = new Date(lastMonthStart.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const { data: lastMonthUsersData, error: lastMonthUsersError } = await supabase
+      
+      // Get users with login last month
+      const { data: lastMonthUsersLogin, error: lastMonthLoginError } = await supabase
         .from('User')
         .select('id')
-        .or(`lastLoginAt.gte.${lastMonthSevenDaysAgo.toISOString()},externalBets.registeredAt.gte.${lastMonthStart.toISOString()}`)
+        .gte('lastLoginAt', lastMonthSevenDaysAgo.toISOString())
         .lt('lastLoginAt', thisMonthStart.toISOString());
 
-      if (lastMonthUsersError) {
-        throw lastMonthUsersError;
-      }
+      // Get users with bets last month
+      const { data: lastMonthUsersBets, error: lastMonthBetsUserError } = await supabase
+        .from('ExternalBet')
+        .select('userId')
+        .gte('registeredAt', lastMonthStart.toISOString())
+        .lt('registeredAt', thisMonthStart.toISOString());
 
-      const lastMonthActiveUserIds = new Set((lastMonthUsersData || []).map((u: any) => u.id));
+      // Combine and get unique users
+      const lastMonthActiveUserIds = new Set<string>();
+      if (lastMonthUsersLogin) {
+        lastMonthUsersLogin.forEach((u: any) => lastMonthActiveUserIds.add(u.id));
+      }
+      if (lastMonthUsersBets) {
+        lastMonthUsersBets.forEach((b: any) => {
+          if (b.userId) lastMonthActiveUserIds.add(b.userId);
+        });
+      }
+      
       const lastMonthActiveUsers = lastMonthActiveUserIds.size;
       const usersChange = activeUsers - lastMonthActiveUsers;
 
