@@ -408,3 +408,4 @@ El sistema tiene una **base sólida** y **funcionalidades core implementadas**. 
 **¿Empezamos con la Fase 1?**
 
 
+

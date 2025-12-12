@@ -32,3 +32,4 @@ export const updateValueBetPreferencesSchema = z.object({
 export type UpdateUserPreferencesInput = z.infer<typeof updateUserPreferencesSchema>['body'];
 export type UpdateValueBetPreferencesInput = z.infer<typeof updateValueBetPreferencesSchema>['body'];
 
+

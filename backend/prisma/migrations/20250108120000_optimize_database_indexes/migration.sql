@@ -76,3 +76,4 @@ CREATE INDEX IF NOT EXISTS "OddsHistory_eventId_marketId_selection_idx" ON "Odds
 -- CreateIndex
 CREATE INDEX IF NOT EXISTS "OddsHistory_marketId_selection_timestamp_idx" ON "OddsHistory"("marketId", "selection", "timestamp");
 
+

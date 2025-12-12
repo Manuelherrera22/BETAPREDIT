@@ -155,6 +155,17 @@ export default function Home() {
     bankroll: userStats?.totalStaked || 0,
   }), [userStats])
 
+  // Quick access tools - Organized and essential only - Memoizado (no cambia)
+  // IMPORTANTE: Todos los hooks deben estar antes de cualquier return condicional
+  const quickTools = useMemo(() => [
+    { to: '/predictions', label: 'Predicciones', icon: 'predictions' as IconName, color: 'from-gold-500/20 to-gold-600/20', borderColor: 'border-gold-500/40', badge: 'Pro' },
+    { to: '/events', label: 'Eventos', icon: 'events' as IconName, color: 'from-primary-500/20 to-primary-600/20', borderColor: 'border-primary-500/40' },
+    { to: '/odds-comparison', label: 'Comparar Cuotas', icon: 'odds' as IconName, color: 'from-accent-500/20 to-accent-600/20', borderColor: 'border-accent-500/40' },
+    { to: '/my-bets', label: 'Mis Apuestas', icon: 'bets' as IconName, color: 'from-purple-500/20 to-purple-600/20', borderColor: 'border-purple-500/40' },
+    { to: '/statistics', label: 'Estadísticas', icon: 'statistics' as IconName, color: 'from-blue-500/20 to-blue-600/20', borderColor: 'border-blue-500/40' },
+    { to: '/alerts', label: 'Alertas', icon: 'alerts' as IconName, color: 'from-red-500/20 to-red-600/20', borderColor: 'border-red-500/40' },
+  ], [])
+
   // Loading state mejorado con skeleton
   if (eventsLoading && !liveEvents) {
     return (
@@ -186,16 +197,6 @@ export default function Home() {
       </div>
     )
   }
-
-  // Quick access tools - Organized and essential only - Memoizado (no cambia)
-  const quickTools = useMemo(() => [
-    { to: '/predictions', label: 'Predicciones', icon: 'predictions' as IconName, color: 'from-gold-500/20 to-gold-600/20', borderColor: 'border-gold-500/40', badge: 'Pro' },
-    { to: '/events', label: 'Eventos', icon: 'events' as IconName, color: 'from-primary-500/20 to-primary-600/20', borderColor: 'border-primary-500/40' },
-    { to: '/odds-comparison', label: 'Comparar Cuotas', icon: 'odds' as IconName, color: 'from-accent-500/20 to-accent-600/20', borderColor: 'border-accent-500/40' },
-    { to: '/my-bets', label: 'Mis Apuestas', icon: 'bets' as IconName, color: 'from-purple-500/20 to-purple-600/20', borderColor: 'border-purple-500/40' },
-    { to: '/statistics', label: 'Estadísticas', icon: 'statistics' as IconName, color: 'from-blue-500/20 to-blue-600/20', borderColor: 'border-blue-500/40' },
-    { to: '/alerts', label: 'Alertas', icon: 'alerts' as IconName, color: 'from-red-500/20 to-red-600/20', borderColor: 'border-red-500/40' },
-  ], [])
 
   return (
     <>
