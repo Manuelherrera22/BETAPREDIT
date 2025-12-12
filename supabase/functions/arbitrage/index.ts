@@ -36,6 +36,10 @@ function findArbitrageCombinations(
 
   const selections = Object.keys(comparisons);
 
+  // Limit selections to avoid exponential explosion (max 3 selections for arbitrage)
+  const maxSelections = Math.min(selections.length, 3);
+  const limitedSelections = selections.slice(0, maxSelections);
+
   // Generate all possible combinations
   const generateCombinations = (
     currentSelections: string[],
@@ -43,7 +47,12 @@ function findArbitrageCombinations(
     currentOdds: number[],
     index: number
   ) => {
-    if (index === selections.length) {
+    // Early exit if we already have enough combinations
+    if (combinations.length >= 50) {
+      return;
+    }
+
+    if (index === limitedSelections.length) {
       const totalImpliedProb = currentOdds.reduce((sum, odd) => sum + 1 / odd, 0);
       const profitMargin = 1 - totalImpliedProb;
 
@@ -61,10 +70,14 @@ function findArbitrageCombinations(
       return;
     }
 
-    const currentSelection = selections[index];
+    const currentSelection = limitedSelections[index];
     const oddsForSelection = comparisons[currentSelection] || [];
 
-    for (const oddData of oddsForSelection) {
+    // Limit odds per selection to avoid too many combinations
+    const maxOddsPerSelection = 3;
+    const limitedOdds = oddsForSelection.slice(0, maxOddsPerSelection);
+
+    for (const oddData of limitedOdds) {
       generateCombinations(
         [...currentSelections, currentSelection],
         [...currentBookmakers, oddData.bookmaker],
@@ -75,6 +88,11 @@ function findArbitrageCombinations(
   };
 
   generateCombinations([], [], [], 0);
+  
+  // Early exit if no combinations found
+  if (combinations.length === 0) {
+    return [];
+  }
 
   // Sort by profit margin (highest first)
   combinations.sort((a, b) => {
@@ -316,11 +334,21 @@ serve(async (req) => {
         // Find arbitrage combinations
         const combinations = findArbitrageCombinations(comparisons, minProfitMargin);
 
-        for (const combination of combinations) {
-          const profitMargin = 1 - combination.totalImpliedProbability;
+        // Only take the BEST opportunity per event (highest profit margin)
+        if (combinations.length > 0) {
+          // Sort combinations by profit margin (highest first)
+          const sortedCombinations = [...combinations].sort((a, b) => {
+            const profitA = 1 - a.totalImpliedProbability;
+            const profitB = 1 - b.totalImpliedProbability;
+            return profitB - profitA;
+          });
+
+          // Take only the best combination for this event
+          const bestCombination = sortedCombinations[0];
+          const profitMargin = 1 - bestCombination.totalImpliedProbability;
           
           opportunities.push({
-            id: `${event.id}-${market.id}-${Date.now()}`,
+            id: `${event.id}-${market.id}`,
             eventId: event.id,
             event: {
               id: event.id,
@@ -334,11 +362,11 @@ serve(async (req) => {
               type: market.type,
               name: market.name,
             },
-            selections: combination.selections,
-            totalImpliedProbability: combination.totalImpliedProbability,
+            selections: bestCombination.selections,
+            totalImpliedProbability: bestCombination.totalImpliedProbability,
             profitMargin,
             guaranteedProfit: 0,
-            roi: (profitMargin / combination.totalImpliedProbability) * 100,
+            roi: (profitMargin / bestCombination.totalImpliedProbability) * 100,
             minBankroll: 10,
             detectedAt: new Date().toISOString(),
             expiresAt: event.startTime,
@@ -347,13 +375,23 @@ serve(async (req) => {
         }
       }
 
-      // Sort by profit margin
-      opportunities.sort((a, b) => b.profitMargin - a.profitMargin);
+      // Remove duplicates by eventId (keep only the best one per event)
+      const opportunitiesByEvent = new Map<string, any>();
+      for (const opp of opportunities) {
+        const existing = opportunitiesByEvent.get(opp.eventId);
+        if (!existing || opp.profitMargin > existing.profitMargin) {
+          opportunitiesByEvent.set(opp.eventId, opp);
+        }
+      }
+
+      // Convert back to array and sort by profit margin
+      const uniqueOpportunities = Array.from(opportunitiesByEvent.values())
+        .sort((a, b) => b.profitMargin - a.profitMargin);
 
       // Limit results
-      const limitedOpportunities = opportunities.slice(0, limit);
+      const limitedOpportunities = uniqueOpportunities.slice(0, limit);
 
-      console.log(`Found ${limitedOpportunities.length} arbitrage opportunities from ${events?.length || 0} events`);
+      console.log(`Found ${limitedOpportunities.length} unique arbitrage opportunities from ${events?.length || 0} events (${opportunities.length} total combinations found)`);
 
       return new Response(
         JSON.stringify({ success: true, data: limitedOpportunities, count: limitedOpportunities.length }),
@@ -443,11 +481,21 @@ serve(async (req) => {
       const combinations = findArbitrageCombinations(comparisons, minProfitMargin);
       const opportunities: any[] = [];
 
-      for (const combination of combinations) {
-        const profitMargin = 1 - combination.totalImpliedProbability;
+      // Only take the BEST opportunity (highest profit margin)
+      if (combinations.length > 0) {
+        // Sort combinations by profit margin (highest first)
+        const sortedCombinations = [...combinations].sort((a, b) => {
+          const profitA = 1 - a.totalImpliedProbability;
+          const profitB = 1 - b.totalImpliedProbability;
+          return profitB - profitA;
+        });
+
+        // Take only the best combination
+        const bestCombination = sortedCombinations[0];
+        const profitMargin = 1 - bestCombination.totalImpliedProbability;
         
         opportunities.push({
-          id: `${event.id}-${market.id}-${Date.now()}`,
+          id: `${event.id}-${market.id}`,
           eventId: event.id,
           event: {
             id: event.id,
@@ -461,11 +509,11 @@ serve(async (req) => {
             type: market.type,
             name: market.name,
           },
-          selections: combination.selections,
-          totalImpliedProbability: combination.totalImpliedProbability,
+          selections: bestCombination.selections,
+          totalImpliedProbability: bestCombination.totalImpliedProbability,
           profitMargin,
           guaranteedProfit: 0,
-          roi: (profitMargin / combination.totalImpliedProbability) * 100,
+          roi: (profitMargin / bestCombination.totalImpliedProbability) * 100,
           minBankroll: 10,
           detectedAt: new Date().toISOString(),
           expiresAt: event.startTime,
