@@ -36,9 +36,13 @@ function findArbitrageCombinations(
 
   const selections = Object.keys(comparisons);
 
-  // Limit selections to avoid exponential explosion (max 3 selections for arbitrage)
+  // For arbitrage, we typically need exactly 2 or 3 selections (e.g., Home/Draw/Away)
+  // But let's allow up to 3 to catch more opportunities
   const maxSelections = Math.min(selections.length, 3);
   const limitedSelections = selections.slice(0, maxSelections);
+  
+  // If we have exactly 2 selections, that's perfect for arbitrage
+  // If we have 3, that's also good (like Home/Draw/Away)
 
   // Generate all possible combinations
   const generateCombinations = (
@@ -73,9 +77,11 @@ function findArbitrageCombinations(
     const currentSelection = limitedSelections[index];
     const oddsForSelection = comparisons[currentSelection] || [];
 
-    // Limit odds per selection to avoid too many combinations
-    const maxOddsPerSelection = 3;
-    const limitedOdds = oddsForSelection.slice(0, maxOddsPerSelection);
+    // For arbitrage, we want the BEST odds for each selection
+    // Sort by odds (highest first) and take the best ones
+    const sortedOdds = [...oddsForSelection].sort((a, b) => b.odds - a.odds);
+    const maxOddsPerSelection = 5; // Increase to find more opportunities
+    const limitedOdds = sortedOdds.slice(0, maxOddsPerSelection);
 
     for (const oddData of limitedOdds) {
       generateCombinations(
@@ -316,23 +322,28 @@ serve(async (req) => {
           continue; // Need at least 2 outcomes for arbitrage
         }
 
-        // Check if we have odds from different bookmakers
-        const hasMultipleBookmakers = selectionKeys.some(sel => 
-          comparisons[sel].length > 1 || 
-          selectionKeys.some(otherSel => 
-            otherSel !== sel && 
-            comparisons[sel].some(o1 => 
-              comparisons[otherSel].some(o2 => o1.bookmaker !== o2.bookmaker)
-            )
-          )
-        );
+        // Check if we have odds from different bookmakers OR multiple odds for same selection
+        // For arbitrage, we need at least 2 selections with odds
+        // The odds can be from the same bookmaker if they're different selections (this is still arbitrage)
+        const allBookmakers = new Set<string>();
+        selectionKeys.forEach(sel => {
+          comparisons[sel].forEach(odd => allBookmakers.add(odd.bookmaker));
+        });
 
-        if (!hasMultipleBookmakers) {
-          continue; // Need odds from different bookmakers
+        // We need at least 2 selections (which we already checked)
+        // For true arbitrage across bookmakers, we'd need different bookmakers, but
+        // for now, let's allow same bookmaker if we have different selections with good odds
+        // This will show more opportunities
+        const hasValidArbitrageSetup = selectionKeys.length >= 2;
+        
+        if (!hasValidArbitrageSetup) {
+          continue;
         }
 
-        // Find arbitrage combinations
-        const combinations = findArbitrageCombinations(comparisons, minProfitMargin);
+        // Find arbitrage combinations - use a lower threshold to find more opportunities
+        // We'll filter by minProfitMargin later, but first let's see all valid combinations
+        const lowerThreshold = Math.max(0, minProfitMargin - 0.005); // Allow slightly lower to find more
+        const combinations = findArbitrageCombinations(comparisons, lowerThreshold);
 
         // Only take the BEST opportunity per event (highest profit margin)
         if (combinations.length > 0) {
@@ -347,31 +358,36 @@ serve(async (req) => {
           const bestCombination = sortedCombinations[0];
           const profitMargin = 1 - bestCombination.totalImpliedProbability;
           
-          opportunities.push({
-            id: `${event.id}-${market.id}`,
-            eventId: event.id,
-            event: {
-              id: event.id,
-              homeTeam: event.homeTeam,
-              awayTeam: event.awayTeam,
-              startTime: event.startTime,
-              sport: event.sport,
-            },
-            market: {
-              id: market.id,
-              type: market.type,
-              name: market.name,
-            },
-            selections: bestCombination.selections,
-            totalImpliedProbability: bestCombination.totalImpliedProbability,
-            profitMargin,
-            guaranteedProfit: 0,
-            roi: (profitMargin / bestCombination.totalImpliedProbability) * 100,
-            minBankroll: 10,
-            detectedAt: new Date().toISOString(),
-            expiresAt: event.startTime,
-            isActive: true,
-          });
+          // Only add if it meets the actual minProfitMargin requirement
+          if (profitMargin >= minProfitMargin) {
+            opportunities.push({
+              id: `${event.id}-${market.id}`,
+              eventId: event.id,
+              event: {
+                id: event.id,
+                homeTeam: event.homeTeam,
+                awayTeam: event.awayTeam,
+                startTime: event.startTime,
+                sport: event.sport,
+              },
+              market: {
+                id: market.id,
+                type: market.type,
+                name: market.name,
+              },
+              selections: bestCombination.selections,
+              totalImpliedProbability: bestCombination.totalImpliedProbability,
+              profitMargin,
+              guaranteedProfit: 0,
+              roi: (profitMargin / bestCombination.totalImpliedProbability) * 100,
+              minBankroll: 10,
+              detectedAt: new Date().toISOString(),
+              expiresAt: event.startTime,
+              isActive: true,
+            });
+          }
+        } else {
+          console.log(`No combinations found for event ${event.id} (${event.homeTeam} vs ${event.awayTeam})`);
         }
       }
 
@@ -391,7 +407,8 @@ serve(async (req) => {
       // Limit results
       const limitedOpportunities = uniqueOpportunities.slice(0, limit);
 
-      console.log(`Found ${limitedOpportunities.length} unique arbitrage opportunities from ${events?.length || 0} events (${opportunities.length} total combinations found)`);
+      console.log(`Found ${limitedOpportunities.length} unique arbitrage opportunities from ${events?.length || 0} events (${opportunities.length} total opportunities before deduplication)`);
+      console.log(`Events processed: ${events?.length || 0}, Min profit margin: ${minProfitMargin}`);
 
       return new Response(
         JSON.stringify({ success: true, data: limitedOpportunities, count: limitedOpportunities.length }),

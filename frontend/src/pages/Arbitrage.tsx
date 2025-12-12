@@ -17,7 +17,7 @@ export default function Arbitrage() {
   const [stakes, setStakes] = useState<StakeCalculation[] | null>(null);
   const [bankroll, setBankroll] = useState<number>(100);
   const [filters, setFilters] = useState({
-    minProfitMargin: 0.01,
+    minProfitMargin: 0.001, // Default to 0.1% instead of 1% to find more opportunities
     sport: '',
   });
   const [isOnline, setIsOnline] = useState(false);
