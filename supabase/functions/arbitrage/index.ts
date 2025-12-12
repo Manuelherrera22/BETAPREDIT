@@ -194,21 +194,9 @@ serve(async (req) => {
           homeTeam,
           awayTeam,
           startTime,
-          sport:Sport!Event_sportId_fkey (
+          sport:Sport (
             name,
             slug
-          ),
-          markets:Market!Event_id_fkey (
-            id,
-            type,
-            name,
-            odds:Odds!Market_id_fkey (
-              id,
-              selection,
-              decimal,
-              source,
-              isActive
-            )
           )
         `)
         .eq('sportId', sportData.id)
@@ -229,8 +217,30 @@ serve(async (req) => {
       const opportunities: any[] = [];
 
       for (const event of events) {
-        const market = (event.markets as any[])?.find((m: any) => m.type === 'MATCH_WINNER');
-        if (!market || !market.odds) continue;
+        // Get markets for this event
+        const { data: markets, error: marketsError } = await supabase
+          .from('Market')
+          .select(`
+            id,
+            type,
+            name,
+            odds:Odds (
+              id,
+              selection,
+              decimal,
+              source,
+              isActive
+            )
+          `)
+          .eq('eventId', event.id)
+          .eq('type', 'MATCH_WINNER')
+          .eq('isActive', true)
+          .limit(1);
+
+        if (marketsError || !markets || markets.length === 0) continue;
+        
+        const market = markets[0];
+        if (!market || !market.odds || (market.odds as any[]).length === 0) continue;
 
         // Group odds by selection
         const comparisons: Record<string, Array<{ bookmaker: string; odds: number }>> = {};
@@ -294,7 +304,7 @@ serve(async (req) => {
       const marketType = url.searchParams.get('marketType') || 'h2h';
       const minProfitMargin = parseFloat(url.searchParams.get('minProfitMargin') || '0.01');
 
-      // Get event with markets and odds
+      // Get event
       const { data: event, error: eventError } = await supabase
         .from('Event')
         .select(`
@@ -303,21 +313,9 @@ serve(async (req) => {
           homeTeam,
           awayTeam,
           startTime,
-          sport:Sport!Event_sportId_fkey (
+          sport:Sport (
             name,
             slug
-          ),
-          markets:Market!Event_id_fkey (
-            id,
-            type,
-            name,
-            odds:Odds!Market_id_fkey (
-              id,
-              selection,
-              decimal,
-              source,
-              isActive
-            )
           )
         `)
         .eq('id', eventIdParam)
@@ -330,8 +328,35 @@ serve(async (req) => {
         );
       }
 
-      const market = (event.markets as any[])?.find((m: any) => m.type === 'MATCH_WINNER');
-      if (!market || !market.odds) {
+      // Get markets for this event
+      const { data: markets, error: marketsError } = await supabase
+        .from('Market')
+        .select(`
+          id,
+          type,
+          name,
+          odds:Odds (
+            id,
+            selection,
+            decimal,
+            source,
+            isActive
+          )
+        `)
+        .eq('eventId', event.id)
+        .eq('type', 'MATCH_WINNER')
+        .eq('isActive', true)
+        .limit(1);
+
+      if (marketsError || !markets || markets.length === 0) {
+        return new Response(
+          JSON.stringify({ success: true, data: [], count: 0 }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const market = markets[0];
+      if (!market || !market.odds || (market.odds as any[]).length === 0) {
         return new Response(
           JSON.stringify({ success: true, data: [], count: 0 }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
