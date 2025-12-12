@@ -72,7 +72,17 @@ serve(async (req) => {
     const userId = user.id;
     const url = new URL(req.url);
     const pathParts = url.pathname.split('/').filter(Boolean);
-    const betId = pathParts[pathParts.length - 1];
+    
+    // Find the index of 'external-bets' in the path
+    const functionIndex = pathParts.indexOf('external-bets');
+    const action = functionIndex >= 0 && pathParts.length > functionIndex + 1 
+      ? pathParts[functionIndex + 1] 
+      : null;
+    
+    // betId is the last part if it's not 'stats' or 'external-bets'
+    const betId = action && action !== 'stats' && action !== 'external-bets' 
+      ? action 
+      : null;
 
     // POST /external-bets - Register new bet
     if (req.method === 'POST' && !betId) {
@@ -174,7 +184,7 @@ serve(async (req) => {
     }
 
     // GET /external-bets - Get user's bets
-    if (req.method === 'GET' && !betId) {
+    if (req.method === 'GET' && !betId && action !== 'stats') {
       const status = url.searchParams.get('status');
       const platform = url.searchParams.get('platform');
       const limit = parseInt(url.searchParams.get('limit') || '50');
@@ -235,7 +245,7 @@ serve(async (req) => {
     }
 
     // GET /external-bets/stats - Get bet statistics
-    if (req.method === 'GET' && pathParts[pathParts.length - 1] === 'stats') {
+    if (req.method === 'GET' && action === 'stats') {
       const period = url.searchParams.get('period') || 'all';
       const now = new Date();
       let startDate: Date | undefined;

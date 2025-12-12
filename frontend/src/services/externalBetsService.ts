@@ -36,7 +36,8 @@ const getSupabaseAuthToken = async (): Promise<string | null> => {
 // Helper to make API calls (Edge Function or backend)
 const makeApiCall = async (method: string, endpoint: string, data?: any) => {
   const supabaseFunctionsUrl = getSupabaseFunctionsUrl();
-  const useSupabase = isSupabaseConfigured() && supabaseFunctionsUrl && import.meta.env.PROD;
+  const isProduction = import.meta.env.PROD || window.location.hostname !== 'localhost';
+  const useSupabase = isSupabaseConfigured() && supabaseFunctionsUrl && isProduction;
   
   if (useSupabase) {
     // Try to get Supabase auth token first
