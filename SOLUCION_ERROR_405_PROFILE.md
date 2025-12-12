@@ -105,3 +105,4 @@ El proxy de Netlify solo funciona para peticiones GET/POST/PUT/DELETE estándar.
 
 
 
+

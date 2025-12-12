@@ -5,6 +5,11 @@
 import { Router } from 'express';
 import { userPreferencesController } from '../controllers/user-preferences.controller';
 import { authenticate } from '../../middleware/auth';
+import { validate } from '../../middleware/validate';
+import {
+  updateUserPreferencesSchema,
+  updateValueBetPreferencesSchema,
+} from '../../validators/user-preferences.validator';
 
 const router = Router();
 
@@ -23,7 +28,7 @@ router.get('/', userPreferencesController.getPreferences.bind(userPreferencesCon
  * @desc    Update user preferences
  * @access  Private
  */
-router.put('/', userPreferencesController.updatePreferences.bind(userPreferencesController));
+router.put('/', validate(updateUserPreferencesSchema), userPreferencesController.updatePreferences.bind(userPreferencesController));
 
 /**
  * @route   GET /api/user/preferences/value-bets
@@ -37,6 +42,6 @@ router.get('/value-bets', userPreferencesController.getValueBetPreferences.bind(
  * @desc    Update value bet preferences only
  * @access  Private
  */
-router.put('/value-bets', userPreferencesController.updateValueBetPreferences.bind(userPreferencesController));
+router.put('/value-bets', validate(updateValueBetPreferencesSchema), userPreferencesController.updateValueBetPreferences.bind(userPreferencesController));
 
 export default router;

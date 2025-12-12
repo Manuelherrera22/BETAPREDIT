@@ -1,9 +1,10 @@
 /**
  * Professional Prediction Card Component
  * Beautiful, modern card for displaying predictions
+ * Optimized with React.memo for performance
  */
 
-import { useState } from 'react';
+import { useState, memo, useMemo } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Icon from './icons/IconSystem';
@@ -25,10 +26,10 @@ interface PredictionCardProps {
   onViewDetails?: () => void;
 }
 
-export default function PredictionCard({ prediction, eventName, startTime, sport, onViewDetails }: PredictionCardProps) {
+const PredictionCard = memo(function PredictionCard({ prediction, eventName, startTime, sport, onViewDetails }: PredictionCardProps) {
   const [isHovered, setIsHovered] = useState(false);
 
-  const getRecommendationConfig = (rec: string) => {
+  const getRecommendationConfig = useMemo(() => (rec: string) => {
     switch (rec) {
       case 'STRONG_BUY':
         return {
@@ -81,20 +82,20 @@ export default function PredictionCard({ prediction, eventName, startTime, sport
           pulse: '',
         };
     }
-  };
+  }, []);
 
-  const getConfidenceLevel = (confidence: number) => {
+  const getConfidenceLevel = useMemo(() => (confidence: number) => {
     if (confidence >= 0.75) return { level: 'Muy Alta', color: 'text-emerald-400', icon: 'target' as const };
     if (confidence >= 0.65) return { level: 'Alta', color: 'text-green-400', icon: 'chart' as const };
     if (confidence >= 0.55) return { level: 'Media', color: 'text-yellow-400', icon: 'trending-up' as const };
     return { level: 'Baja', color: 'text-orange-400', icon: 'alert' as const };
-  };
+  }, []);
 
-  const recConfig = getRecommendationConfig(prediction.recommendation);
-  const confLevel = getConfidenceLevel(prediction.confidence);
-  const marketProb = (1 / prediction.marketOdds) * 100;
-  const valueDiff = prediction.predictedProbability * 100 - marketProb;
-  const expectedValue = (prediction.predictedProbability * prediction.marketOdds - 1) * 100;
+  const recConfig = useMemo(() => getRecommendationConfig(prediction.recommendation), [prediction.recommendation, getRecommendationConfig]);
+  const confLevel = useMemo(() => getConfidenceLevel(prediction.confidence), [prediction.confidence, getConfidenceLevel]);
+  const marketProb = useMemo(() => (1 / prediction.marketOdds) * 100, [prediction.marketOdds]);
+  const valueDiff = useMemo(() => prediction.predictedProbability * 100 - marketProb, [prediction.predictedProbability, marketProb]);
+  const expectedValue = useMemo(() => (prediction.predictedProbability * prediction.marketOdds - 1) * 100, [prediction.predictedProbability, prediction.marketOdds]);
 
   return (
     <div
@@ -246,5 +247,7 @@ export default function PredictionCard({ prediction, eventName, startTime, sport
       )}
     </div>
   );
-}
+});
+
+export default PredictionCard;
 

@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { externalBetsService, type ExternalBet } from '../services/externalBetsService'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import RegisterBetForm from '../components/RegisterBetForm'
@@ -10,6 +10,7 @@ import ImportBetsModal from '../components/ImportBetsModal'
 import { exportToCSV } from '../utils/csvExport'
 import EmptyState from '../components/EmptyState'
 import SkeletonLoader from '../components/SkeletonLoader'
+import { VirtualizedList } from '../components/VirtualizedList'
 
 export default function MyBets() {
   const queryClient = useQueryClient()
@@ -92,23 +93,26 @@ export default function MyBets() {
     staleTime: 30000, // 30 seconds
   })
   
-  // Filtrar por búsqueda de texto (client-side)
-  const filteredBets = bets?.filter((bet: ExternalBet) => {
-    if (!filters.search) return true
-    
-    const searchLower = filters.search.toLowerCase()
-    const eventName = bet.event 
-      ? `${bet.event.homeTeam} ${bet.event.awayTeam}`.toLowerCase()
-      : ''
-    const selection = bet.selection.toLowerCase()
-    const platform = bet.platform.toLowerCase()
-    
-    return (
-      eventName.includes(searchLower) ||
-      selection.includes(searchLower) ||
-      platform.includes(searchLower)
-    )
-  }) || []
+  // Filtrar por búsqueda de texto (client-side) - Memoizado
+  const filteredBets = useMemo(() => {
+    if (!bets) return [];
+    return bets.filter((bet: ExternalBet) => {
+      if (!filters.search) return true
+      
+      const searchLower = filters.search.toLowerCase()
+      const eventName = bet.event 
+        ? `${bet.event.homeTeam} ${bet.event.awayTeam}`.toLowerCase()
+        : ''
+      const selection = bet.selection.toLowerCase()
+      const platform = bet.platform.toLowerCase()
+      
+      return (
+        eventName.includes(searchLower) ||
+        selection.includes(searchLower) ||
+        platform.includes(searchLower)
+      )
+    })
+  }, [bets, filters.search])
 
   // Mutation para resolver apuesta
   const resolveBetMutation = useMutation({
@@ -183,7 +187,7 @@ export default function MyBets() {
       console.error('Error exportando apuestas:', error)
       toast.error('Error al exportar apuestas')
     }
-  }
+  }, [filteredBets])
 
   if (isLoading && !bets) {
     return (

@@ -1,10 +1,11 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
+import { AuthRequest } from '../../middleware/auth';
 import { valueBetAlertsService } from '../../services/value-bet-alerts.service';
 
 class ValueBetAlertsController {
-  async getMyAlerts(req: Request, res: Response, next: NextFunction) {
+  async getMyAlerts(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = req.user?.id;
       if (!userId) {
         res.status(401).json({ success: false, error: { message: 'Unauthorized' } });
         return;
@@ -24,9 +25,9 @@ class ValueBetAlertsController {
     }
   }
 
-  async markAsClicked(req: Request, res: Response, next: NextFunction) {
+  async markAsClicked(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = req.user?.id;
       const { alertId } = req.params;
 
       const alert = await valueBetAlertsService.markAsClicked(alertId, userId);
@@ -48,9 +49,9 @@ class ValueBetAlertsController {
     }
   }
 
-  async getAlertStats(req: Request, res: Response, next: NextFunction) {
+  async getAlertStats(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = req.user?.id;
       if (!userId) {
         res.status(401).json({ success: false, error: { message: 'Unauthorized' } });
         return;
@@ -65,6 +66,7 @@ class ValueBetAlertsController {
 }
 
 export const valueBetAlertsController = new ValueBetAlertsController();
+
 
 
 

@@ -40,7 +40,7 @@ class TheOddsAPIController {
           await eventSyncService.syncEventsFromOddsData(odds);
         } catch (syncError: any) {
           // No fallar si la sincronización falla, solo loguear
-          console.warn('Failed to sync events:', syncError.message);
+          logger.warn('Failed to sync events:', { error: syncError.message });
         }
       }
 
@@ -81,7 +81,7 @@ class TheOddsAPIController {
           );
         } catch (saveError: any) {
           // No fallar si el guardado falla, solo loguear
-          console.warn('Failed to save comparison:', saveError.message);
+          logger.warn('Failed to save comparison:', { error: saveError.message });
         }
       }
 

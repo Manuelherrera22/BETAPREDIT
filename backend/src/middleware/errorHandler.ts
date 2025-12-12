@@ -37,8 +37,14 @@ export class AppError extends Error {
   }
 }
 
+interface ErrorWithStatusCode extends Error {
+  statusCode?: number;
+  status?: number;
+  isOperational?: boolean;
+}
+
 export const errorHandler = (
-  err: any,
+  err: ErrorWithStatusCode | AppError | Error,
   req: Request,
   res: Response,
   _next: NextFunction
@@ -63,7 +69,7 @@ export const errorHandler = (
     method: req.method,
     body: sanitizedBody,
     errorName: err.name,
-    requestId: (req as any).id, // Include request ID for tracking
+    requestId: (req as Request & { id?: string }).id, // Include request ID for tracking
     errorDetails: sanitizedError,
   });
 

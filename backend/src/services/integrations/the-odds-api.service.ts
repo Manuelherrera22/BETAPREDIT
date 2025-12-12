@@ -174,7 +174,11 @@ class TheOddsAPIService {
         dateFormat = 'iso',
       } = options;
 
-      const cacheKey = `theodds:odds:${sport}:${regions.join(',')}:${markets.join(',')}`;
+      // Normalizar markets y regions a arrays si son strings
+      const marketsArray = Array.isArray(markets) ? markets : [markets];
+      const regionsArray = Array.isArray(regions) ? regions : [regions];
+
+      const cacheKey = `theodds:odds:${sport}:${regionsArray.join(',')}:${marketsArray.join(',')}`;
       const cached = await redisHelpers.get(cacheKey);
       
       if (cached) {
@@ -183,8 +187,8 @@ class TheOddsAPIService {
 
       const response = await this.client.get(`/sports/${sport}/odds`, {
         params: {
-          regions: regions.join(','),
-          markets: markets.join(','),
+          regions: regionsArray.join(','),
+          markets: marketsArray.join(','),
           oddsFormat,
           dateFormat,
         },

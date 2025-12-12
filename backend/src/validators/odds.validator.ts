@@ -33,6 +33,31 @@ export const getOddsHistoryQuerySchema = z.object({
   ).optional().default('100'),
 });
 
+// Schema for getOddsHistory endpoint (params + query)
+export const getOddsHistorySchema = z.object({
+  params: z.object({
+    eventId: z.string().uuid('Event ID must be a valid UUID'),
+  }),
+  query: z.object({
+    startDate: z.string().datetime('Fecha de inicio inválida').optional(),
+    endDate: z.string().datetime('Fecha de fin inválida').optional(),
+    limit: z.string().regex(/^\d+$/, 'Límite debe ser un número').transform((val) => parseInt(val, 10)).optional(),
+    marketId: z.string().uuid('Market ID inválido').optional(),
+    selection: z.string().min(1, 'Selección requerida').optional(),
+  }),
+});
+
+// Schema for compareOddsFromAPI endpoint
+export const compareOddsFromAPISchema = z.object({
+  params: z.object({
+    sport: z.string().min(1, 'Deporte requerido'),
+    eventId: z.string().uuid('Event ID must be a valid UUID'),
+  }),
+  query: z.object({
+    market: z.string().min(1, 'Mercado requerido').optional(),
+  }),
+});
+
 // Schema for comparing odds
 export const compareOddsSchema = z.object({
   eventId: z.string().uuid('Event ID inválido'),

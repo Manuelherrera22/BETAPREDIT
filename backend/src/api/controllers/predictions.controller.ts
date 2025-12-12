@@ -25,7 +25,15 @@ class PredictionsController {
         endDate,
       } = req.query;
 
-      const options: any = {};
+      interface AccuracyOptions {
+        modelVersion?: string;
+        sportId?: string;
+        marketType?: string;
+        startDate?: Date;
+        endDate?: Date;
+      }
+
+      const options: AccuracyOptions = {};
       if (modelVersion) options.modelVersion = modelVersion as string;
       if (sportId) options.sportId = sportId as string;
       if (marketType) options.marketType = marketType as string;

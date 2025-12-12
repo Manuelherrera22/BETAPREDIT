@@ -1,10 +1,11 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
+import { AuthRequest } from '../../middleware/auth';
 import { externalBetsService } from '../../services/external-bets.service';
 
 class ExternalBetsController {
-  async registerBet(req: Request, res: Response, next: NextFunction) {
+  async registerBet(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = req.user?.id;
       if (!userId) {
         res.status(401).json({ success: false, error: { message: 'Unauthorized' } });
         return;
@@ -17,9 +18,9 @@ class ExternalBetsController {
     }
   }
 
-  async getMyBets(req: Request, res: Response, next: NextFunction) {
+  async getMyBets(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = req.user?.id;
       if (!userId) {
         res.status(401).json({ success: false, error: { message: 'Unauthorized' } });
         return;
@@ -41,9 +42,9 @@ class ExternalBetsController {
     }
   }
 
-  async updateBetResult(req: Request, res: Response, next: NextFunction) {
+  async updateBetResult(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = req.user?.id;
       if (!userId) {
         res.status(401).json({ success: false, error: { message: 'Unauthorized' } });
         return;
@@ -64,9 +65,9 @@ class ExternalBetsController {
     }
   }
 
-  async getBetStats(req: Request, res: Response, next: NextFunction) {
+  async getBetStats(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = req.user?.id;
       if (!userId) {
         res.status(401).json({ success: false, error: { message: 'Unauthorized' } });
         return;
@@ -83,9 +84,9 @@ class ExternalBetsController {
     }
   }
 
-  async deleteBet(req: Request, res: Response, next: NextFunction) {
+  async deleteBet(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = req.user?.id;
       if (!userId) {
         res.status(401).json({ success: false, error: { message: 'Unauthorized' } });
         return;
@@ -101,6 +102,7 @@ class ExternalBetsController {
 }
 
 export const externalBetsController = new ExternalBetsController();
+
 
 
 

@@ -153,24 +153,35 @@ class ImprovedPredictionService {
         },
         include: {
           externalBet: {
-            include: {
-              result: true,
+            select: {
+              id: true,
+              result: true, // result es un campo escalar (enum), no una relación
+              status: true,
             },
           },
         },
         take: 100, // Last 100 similar bets
+        orderBy: {
+          createdAt: 'desc',
+        },
       });
 
-      if (historicalAlerts.length < 10) {
+      // Filtrar en memoria los que tienen resultado
+      const alertsWithResult = historicalAlerts.filter(a => 
+        a.externalBet && a.externalBet.result !== null
+      );
+
+      if (alertsWithResult.length < 10) {
         return undefined; // Not enough data
       }
 
       // Calculate win rate
-      const wonBets = historicalAlerts.filter(a => 
-        a.externalBet?.result?.status === 'WON'
+      // result es un enum directamente en ExternalBet, no una relación
+      const wonBets = alertsWithResult.filter(a => 
+        a.externalBet?.result === 'WON'
       ).length;
 
-      const winRate = wonBets / historicalAlerts.length;
+      const winRate = wonBets / alertsWithResult.length;
 
       // Return as probability (0-1)
       return winRate;

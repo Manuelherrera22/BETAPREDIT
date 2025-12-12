@@ -1,76 +1,26 @@
 name: PR Checks
 
+# Este workflow está siendo reemplazado por ci.yml
+# Se mantiene para compatibilidad, pero usa ci.yml para las verificaciones
+
 on:
   pull_request:
-    branches: [ master, main, develop ]
+    branches: [master, main, develop]
 
 jobs:
   pr-checks:
-    name: PR Quality Checks
+    name: PR Quality Checks (Legacy)
     runs-on: ubuntu-latest
+    # Este job ahora solo referencia el workflow principal
+    # Las verificaciones reales están en .github/workflows/ci.yml
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-
-      - name: Check backend linting
-        working-directory: ./backend
+      - name: Note
         run: |
-          npm ci
-          npm run lint
-
-      - name: Check frontend linting
-        working-directory: ./frontend
-        run: |
-          npm ci
-          npm run lint
-
-      - name: Run backend tests
-        working-directory: ./backend
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test
-          JWT_SECRET: test-secret-minimum-32-characters-long
-          NODE_ENV: test
-        run: npm test -- --maxWorkers=2
-
-      - name: Run frontend tests
-        working-directory: ./frontend
-        run: npm test -- --run
-
-      - name: Check coverage threshold
-        working-directory: ./backend
-        run: |
-          echo "📊 Checking coverage thresholds..."
-          if [ -f "coverage/coverage-summary.json" ]; then
-            BACKEND_COVERAGE=$(node -e "const data = require('./coverage/coverage-summary.json'); console.log(data.total.lines.pct)")
-            echo "Backend coverage: ${BACKEND_COVERAGE}%"
-            if (( $(echo "$BACKEND_COVERAGE < 80" | bc -l) )); then
-              echo "⚠️ Backend coverage below 80% threshold"
-            else
-              echo "✅ Backend coverage meets threshold"
-            fi
-          else
-            echo "⚠️ Coverage file not found"
-          fi
-
-      - name: Check frontend coverage threshold
-        working-directory: ./frontend
-        run: |
-          if [ -f "coverage/coverage-summary.json" ]; then
-            FRONTEND_COVERAGE=$(node -e "const data = require('./coverage/coverage-summary.json'); console.log(data.total.lines.pct)")
-            echo "Frontend coverage: ${FRONTEND_COVERAGE}%"
-            if (( $(echo "$FRONTEND_COVERAGE < 75" | bc -l) )); then
-              echo "⚠️ Frontend coverage below 75% threshold"
-            else
-              echo "✅ Frontend coverage meets threshold"
-            fi
-          else
-            echo "⚠️ Coverage file not found"
-          fi
+          echo "⚠️ Este workflow está siendo reemplazado por ci.yml"
+          echo "Las verificaciones principales se ejecutan en el workflow CI"
+          echo "Este workflow se mantiene solo para compatibilidad"
 

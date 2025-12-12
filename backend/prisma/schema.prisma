@@ -13,7 +13,7 @@ datasource db {
 model User {
   id           String    @id @default(cuid())
   email        String    @unique
-  passwordHash String?  // Optional for OAuth users
+  passwordHash String? // Optional for OAuth users
   firstName    String?
   lastName     String?
   phone        String?
@@ -25,10 +25,10 @@ model User {
   updatedAt    DateTime  @updatedAt
 
   // OAuth fields
-  googleId      String?  @unique
-  provider      String?  // 'google', 'email', etc.
-  avatar        String?  // Profile picture URL from OAuth
-  oauthData     Json?    // Additional OAuth data
+  googleId  String? @unique
+  provider  String? // 'google', 'email', etc.
+  avatar    String? // Profile picture URL from OAuth
+  oauthData Json? // Additional OAuth data
 
   // New fields
   timezone              String?          @default("UTC")
@@ -49,29 +49,29 @@ model User {
   lastStatsUpdate DateTime?
 
   // Referral system
-  referralCode   String?  @unique // Unique referral code for this user
-  referredBy     String?  // User ID who referred this user
-  referralCount  Int      @default(0) // How many users this user has referred
+  referralCode    String? @unique // Unique referral code for this user
+  referredBy      String? // User ID who referred this user
+  referralCount   Int     @default(0) // How many users this user has referred
   activeReferrals Int     @default(0) // Active (subscribed) referrals
-  referralRewards Json?   // { freeMonths: 0, discount: 0, premiumAccess: false }
+  referralRewards Json? // { freeMonths: 0, discount: 0, premiumAccess: false }
 
   // Relations
-  bets           Bet[]
-  sessions       Session[]
-  rgSettings     ResponsibleGaming?
-  transactions   Transaction[]
-  addresses      Address[]
-  externalBets   ExternalBet[]
-  valueBetAlerts ValueBetAlert[]
-  notifications  Notification[]
-  userStatistics UserStatistics[]
-  subscription   Subscription?
-  payments       Payment[]
-  referrals      User[]  @relation("UserReferrals") // Users referred by this user
-  referrer       User?   @relation("UserReferrals", fields: [referredBy], references: [id])
-  referralRecords Referral[] @relation("Referrer") // Referrals made by this user
-  referredRecord  Referral?   @relation("Referred") // Referral record for this user
-  betTemplates   BetTemplate[] // Bet templates created by user
+  bets            Bet[]
+  sessions        Session[]
+  rgSettings      ResponsibleGaming?
+  transactions    Transaction[]
+  addresses       Address[]
+  externalBets    ExternalBet[]
+  valueBetAlerts  ValueBetAlert[]
+  notifications   Notification[]
+  userStatistics  UserStatistics[]
+  subscription    Subscription?
+  payments        Payment[]
+  referrals       User[]             @relation("UserReferrals") // Users referred by this user
+  referrer        User?              @relation("UserReferrals", fields: [referredBy], references: [id])
+  referralRecords Referral[]         @relation("Referrer") // Referrals made by this user
+  referredRecord  Referral?          @relation("Referred") // Referral record for this user
+  betTemplates    BetTemplate[] // Bet templates created by user
 
   @@index([email])
   @@index([role])
@@ -216,6 +216,9 @@ model Odds {
   @@index([eventId])
   @@index([marketId])
   @@index([isActive])
+  @@index([eventId, marketId]) // Composite: Event odds by market
+  @@index([eventId, isActive]) // Composite: Active odds for event
+  @@index([marketId, isActive]) // Composite: Active odds for market
 }
 
 model OddsHistory {
@@ -230,6 +233,9 @@ model OddsHistory {
 
   @@index([eventId])
   @@index([timestamp])
+  @@index([eventId, timestamp]) // Composite: Odds history by event and time
+  @@index([eventId, marketId, selection]) // Composite: Odds history by event, market, selection
+  @@index([marketId, selection, timestamp]) // Composite: Market selection history ordered by time
 }
 
 // Player-level granular data (from ShotTracker, KINEXON, etc.)
@@ -295,6 +301,9 @@ model Bet {
   @@index([eventId])
   @@index([status])
   @@index([createdAt])
+  @@index([userId, status]) // Composite: User bets by status
+  @@index([userId, createdAt]) // Composite: User bets ordered by date
+  @@index([eventId, status]) // Composite: Event bets by status
 }
 
 enum BetType {
@@ -591,28 +600,32 @@ model ExternalBet {
   @@index([status])
   @@index([betPlacedAt])
   @@index([registeredAt])
+  @@index([userId, status]) // Composite: User external bets by status
+  @@index([userId, platform]) // Composite: User bets by platform
+  @@index([userId, betPlacedAt]) // Composite: User bets ordered by date
+  @@index([status, betPlacedAt]) // Composite: Resolved bets by date
 }
 
 // Template for frequently used bets
 model BetTemplate {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   userId      String
-  name        String   // Template name (e.g., "My Football Strategy")
-  description String?  // Optional description
-  
+  name        String // Template name (e.g., "My Football Strategy")
+  description String? // Optional description
+
   // Template data
-  platform    String   // Default platform
-  marketType  String   // Default market type
-  defaultStake Float?  // Default stake amount
-  tags        String[] // Tags for organization
-  
+  platform     String // Default platform
+  marketType   String // Default market type
+  defaultStake Float? // Default stake amount
+  tags         String[] // Tags for organization
+
   // Usage tracking
-  useCount    Int      @default(0)
-  lastUsedAt  DateTime?
-  
+  useCount   Int       @default(0)
+  lastUsedAt DateTime?
+
   // Timestamps
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id])
 
@@ -669,6 +682,11 @@ model ValueBetAlert {
   @@index([valuePercentage])
   @@index([expiresAt])
   @@index([createdAt])
+  @@index([userId, status]) // Composite: User alerts by status
+  @@index([userId, valuePercentage]) // Composite: User alerts by value
+  @@index([status, expiresAt]) // Composite: Active alerts by expiration
+  @@index([status, valuePercentage]) // Composite: Active alerts by value (for sorting)
+  @@index([eventId, status]) // Composite: Event alerts by status
 }
 
 enum ValueBetStatus {
@@ -757,6 +775,9 @@ model Prediction {
   @@index([createdAt])
   @@index([eventId, marketId]) // Composite index for common query pattern
   @@index([eventId, selection]) // Composite index for event + selection queries
+  @@index([modelVersion, wasCorrect]) // Composite: Model accuracy by version
+  @@index([createdAt, wasCorrect]) // Composite: Predictions by date and correctness (for stats)
+  @@index([eventId, marketId, selection]) // Composite: Unique prediction lookup
 }
 
 // Model for tracking ML model performance
@@ -828,24 +849,26 @@ model UserStatistics {
 
   @@index([userId, period, periodStart])
   @@index([period])
+  @@index([userId, period]) // Composite: User stats by period (for quick lookup)
+  @@index([period, periodStart]) // Composite: Stats by period and date (for aggregations)
 }
 
 // Referral system
 model Referral {
-  id              String   @id @default(cuid())
-  referrerId      String   // User who referred
-  referredUserId  String   @unique // User who was referred
-  referralCode    String   // Code used for referral
-  status          ReferralStatus @default(PENDING)
-  rewardGranted   Boolean  @default(false)
-  rewardType      String?  // 'free_month', 'discount', 'premium_access'
-  rewardValue     Float?   // Value of reward (e.g., discount percentage)
-  convertedAt     DateTime? // When referred user became active (subscribed)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String         @id @default(cuid())
+  referrerId     String // User who referred
+  referredUserId String         @unique // User who was referred
+  referralCode   String // Code used for referral
+  status         ReferralStatus @default(PENDING)
+  rewardGranted  Boolean        @default(false)
+  rewardType     String? // 'free_month', 'discount', 'premium_access'
+  rewardValue    Float? // Value of reward (e.g., discount percentage)
+  convertedAt    DateTime? // When referred user became active (subscribed)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
-  referrer        User     @relation("Referrer", fields: [referrerId], references: [id])
-  referredUser    User     @relation("Referred", fields: [referredUserId], references: [id])
+  referrer     User @relation("Referrer", fields: [referrerId], references: [id])
+  referredUser User @relation("Referred", fields: [referredUserId], references: [id])
 
   @@index([referrerId])
   @@index([referredUserId])
@@ -854,10 +877,10 @@ model Referral {
 }
 
 enum ReferralStatus {
-  PENDING      // User registered but not active
-  ACTIVE       // User has active subscription
-  REWARDED     // Reward already granted
-  EXPIRED      // Referral expired
+  PENDING // User registered but not active
+  ACTIVE // User has active subscription
+  REWARDED // Reward already granted
+  EXPIRED // Referral expired
 }
 
 // Model for notifications
@@ -889,6 +912,9 @@ model Notification {
   @@index([read])
   @@index([type])
   @@index([createdAt])
+  @@index([userId, read]) // Composite: User notifications by read status
+  @@index([userId, type]) // Composite: User notifications by type
+  @@index([userId, createdAt]) // Composite: User notifications ordered by date
 }
 
 enum NotificationType {

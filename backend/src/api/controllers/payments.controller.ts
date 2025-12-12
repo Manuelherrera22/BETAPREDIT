@@ -3,7 +3,8 @@
  * Handles payment and subscription endpoints
  */
 
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
+import { AuthRequest } from '../../middleware/auth';
 import { getStripeService } from '../../services/payments/stripe.service';
 import { AppError } from '../../middleware/errorHandler';
 import { prisma } from '../../config/database';
@@ -13,9 +14,9 @@ class PaymentsController {
   /**
    * Create checkout session for subscription
    */
-  async createCheckoutSession(req: Request, res: Response, next: NextFunction) {
+  async createCheckoutSession(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = req.user?.id;
       if (!userId) {
         throw new AppError('Unauthorized', 401);
       }
@@ -56,9 +57,9 @@ class PaymentsController {
   /**
    * Create portal session for subscription management
    */
-  async createPortalSession(req: Request, res: Response, next: NextFunction) {
+  async createPortalSession(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = req.user?.id;
       if (!userId) {
         throw new AppError('Unauthorized', 401);
       }
@@ -99,9 +100,9 @@ class PaymentsController {
   /**
    * Get user's subscription details
    */
-  async getSubscription(req: Request, res: Response, next: NextFunction) {
+  async getSubscription(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = req.user?.id;
       if (!userId) {
         throw new AppError('Unauthorized', 401);
       }
@@ -140,9 +141,9 @@ class PaymentsController {
   /**
    * Cancel subscription
    */
-  async cancelSubscription(req: Request, res: Response, next: NextFunction) {
+  async cancelSubscription(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = req.user?.id;
       if (!userId) {
         throw new AppError('Unauthorized', 401);
       }
@@ -174,9 +175,9 @@ class PaymentsController {
   /**
    * Reactivate subscription
    */
-  async reactivateSubscription(req: Request, res: Response, next: NextFunction) {
+  async reactivateSubscription(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = req.user?.id;
       if (!userId) {
         throw new AppError('Unauthorized', 401);
       }
@@ -234,6 +235,7 @@ class PaymentsController {
 }
 
 export const paymentsController = new PaymentsController();
+
 
 
 

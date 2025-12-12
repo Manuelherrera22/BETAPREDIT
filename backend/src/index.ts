@@ -21,8 +21,10 @@ dotenv.config();
 import { validateEnvironmentVariables } from './config/env-validator';
 try {
   validateEnvironmentVariables();
-} catch (error: any) {
-  console.error('❌ Error validando variables de entorno:', error.message);
+} catch (error) {
+  logger.error('Error validating environment variables:', { 
+    message: error instanceof Error ? error.message : String(error) 
+  });
   process.exit(1);
 }
 
@@ -117,6 +119,16 @@ app.use(helmet({
     },
   },
   crossOriginEmbedderPolicy: false, // Allow embedding if needed
+  hsts: {
+    maxAge: 31536000, // 1 year
+    includeSubDomains: true,
+    preload: true,
+  },
+  frameguard: {
+    action: 'deny',
+  },
+  noSniff: true,
+  xssFilter: true,
 }));
 
 // CORS configuration - more restrictive in production

@@ -122,3 +122,4 @@ Con estas optimizaciones, la plataforma deber√≠a usar **solo ~50-100 llamadas/d√
 
 
 
+

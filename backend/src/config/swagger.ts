@@ -11,7 +11,7 @@ const options = {
     info: {
       title: 'BETAPREDIT API',
       version: '1.0.0',
-      description: 'API para plataforma de análisis predictivo de apuestas deportivas',
+      description: 'API para plataforma de an?lisis predictivo de apuestas deportivas',
       contact: {
         name: 'BETAPREDIT Support',
         email: 'support@betapredit.com',
@@ -75,11 +75,11 @@ const options = {
     tags: [
       {
         name: 'Auth',
-        description: 'Autenticación y autorización',
+        description: 'Autenticaci?n y autorizaci?n',
       },
       {
         name: 'Bets',
-        description: 'Gestión de apuestas',
+        description: 'Gesti?n de apuestas',
       },
       {
         name: 'Events',
@@ -87,7 +87,7 @@ const options = {
       },
       {
         name: 'Odds',
-        description: 'Cuotas y comparación',
+        description: 'Cuotas y comparaci?n',
       },
       {
         name: 'Referrals',
@@ -95,29 +95,62 @@ const options = {
       },
       {
         name: 'Arbitrage',
-        description: 'Detección de arbitraje',
+        description: 'Detecci?n de arbitraje',
       },
       {
         name: 'Statistics',
-        description: 'Estadísticas de usuario',
+        description: 'Estad?sticas de usuario',
       },
       {
         name: 'Predictions',
-        description: 'Predicciones y análisis predictivo',
+        description: 'Predicciones y an?lisis predictivo',
       },
       {
         name: 'Value Bets',
-        description: 'Detección de value bets y alertas',
+        description: 'Detecci?n de value bets y alertas',
+      },
+      {
+        name: 'External Bets',
+        description: 'Registro de apuestas externas',
+      },
+      {
+        name: 'Payments',
+        description: 'Pagos y suscripciones',
+      },
+      {
+        name: 'User Profile',
+        description: 'Perfil de usuario',
+      },
+      {
+        name: 'User Preferences',
+        description: 'Preferencias de usuario',
+      },
+      {
+        name: 'Notifications',
+        description: 'Notificaciones',
+      },
+      {
+        name: 'ROI Tracking',
+        description: 'Tracking de ROI',
+      },
+      {
+        name: 'Platform Metrics',
+        description: 'M?tricas de plataforma',
       },
     ],
   },
-  apis: ['./src/api/routes/*.ts', './src/api/controllers/*.ts'],
+  apis: [
+    './src/api/routes/*.ts', 
+    './src/api/controllers/*.ts',
+    './src/api/routes/swagger-docs/*.ts',
+    './src/api/routes/swagger-docs/**/*.ts',
+  ],
 };
 
 // Add common response schemas
 const commonResponses = {
   UnauthorizedError: {
-    description: 'No autorizado - Token inválido o expirado',
+    description: 'No autorizado - Token inv?lido o expirado',
     content: {
       'application/json': {
         schema: {
@@ -151,7 +184,7 @@ const commonResponses = {
     },
   },
   ValidationError: {
-    description: 'Error de validación',
+    description: 'Error de validaci?n',
     content: {
       'application/json': {
         schema: {
@@ -160,12 +193,12 @@ const commonResponses = {
         example: {
           success: false,
           error: {
-            message: 'Error de validación',
+            message: 'Error de validaci?n',
             code: 'VALIDATION_ERROR',
             details: [
               {
                 field: 'email',
-                message: 'Email inválido',
+                message: 'Email inv?lido',
               },
             ],
           },

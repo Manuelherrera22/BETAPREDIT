@@ -10,7 +10,9 @@ import {
   getPredictionsQuerySchema,
   submitFeedbackSchema,
   regeneratePredictionsSchema,
-} from '../../validators/prediction.validator';
+  getEventPredictionsSchema,
+  getPredictionFactorsSchema,
+} from '../../validators/predictions.validator';
 
 const router = Router();
 
@@ -145,7 +147,7 @@ router.get('/accuracy', validateQuery(getPredictionsQuerySchema), predictionsCon
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  */
-router.get('/event/:eventId', predictionsController.getEventPredictions.bind(predictionsController));
+router.get('/event/:eventId', validateParams(getEventPredictionsSchema), predictionsController.getEventPredictions.bind(predictionsController));
 
 /**
  * @route   GET /api/predictions/stats
@@ -232,7 +234,7 @@ router.post('/:predictionId/feedback', validate(submitFeedbackSchema), predictio
  * @desc    Get prediction with detailed factors explanation
  * @access  Private
  */
-router.get('/:predictionId/factors', predictionsController.getPredictionFactors.bind(predictionsController));
+router.get('/:predictionId/factors', validateParams(getPredictionFactorsSchema), predictionsController.getPredictionFactors.bind(predictionsController));
 
 export default router;
 

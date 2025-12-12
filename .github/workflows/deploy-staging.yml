@@ -1,0 +1,116 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+jobs:
+  deploy-edge-functions-staging:
+    name: Deploy Edge Functions to Staging
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    environment:
+      name: staging-edge-functions
+      url: https://mdjzqxhjbisnlfpbjfgb.supabase.co
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Login to Supabase
+        run: |
+          echo "${{ secrets.SUPABASE_ACCESS_TOKEN }}" | supabase login --token-stdin
+
+      - name: Link project
+        run: |
+          supabase link --project-ref mdjzqxhjbisnlfpbjfgb
+
+      - name: Deploy Edge Functions
+        run: |
+          echo "🚀 Deploying Edge Functions to Supabase..."
+          
+          # Lista de funciones a desplegar
+          FUNCTIONS=(
+            "external-bets"
+            "user-statistics"
+            "user-profile"
+            "sync-events"
+            "get-events"
+            "generate-predictions"
+            "get-predictions"
+            "auto-sync"
+            "cleanup-predictions"
+            "update-finished-events"
+            "the-odds-api"
+          )
+          
+          for func in "${FUNCTIONS[@]}"; do
+            echo "📦 Deploying $func..."
+            supabase functions deploy "$func" --project-ref mdjzqxhjbisnlfpbjfgb || echo "⚠️ Failed to deploy $func"
+          done
+          
+          echo "✅ Edge Functions deployment completed"
+
+      - name: Verify deployment
+        run: |
+          echo "✅ Edge Functions deployed to:"
+          echo "https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/"
+
+  deploy-frontend-staging:
+    name: Deploy Frontend to Staging
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    environment:
+      name: staging-frontend
+      url: ${{ steps.deploy.outputs.url }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build
+        working-directory: ./frontend
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_API_URL: ${{ secrets.VITE_API_URL_STAGING }}
+
+      - name: Deploy to Netlify (Staging)
+        id: deploy
+        uses: netlify/actions/cli@master
+        with:
+          args: deploy --dir=frontend/dist --prod=false
+          secrets: '["NETLIFY_AUTH_TOKEN", "NETLIFY_SITE_ID"]'
+        env:
+          NETLIFY_AUTH_TOKEN: nfp_AoU3hMmYfrijsaWDCCr62vcAgkJDTQ4p88b1
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_ID || secrets.NETLIFY_SITE_ID_STAGING }}
+
+      - name: Comment deployment URL
+        uses: actions/github-script@v6
+        if: github.event_name == 'pull_request'
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🚀 Frontend deployed to staging: ${{ steps.deploy.outputs.url }}'
+            })

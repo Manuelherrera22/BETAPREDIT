@@ -53,3 +53,4 @@ const SUPABASE_FUNCTIONS_URL = 'https://mdjzqxhjbisnlfpbjfgb.supabase.co/functio
 
 
 
+

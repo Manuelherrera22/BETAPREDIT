@@ -5,6 +5,13 @@
 import { Router } from 'express';
 import { paymentsController } from '../controllers/payments.controller';
 import { authenticate } from '../../middleware/auth';
+import { validate } from '../../middleware/validate';
+import {
+  createCheckoutSessionSchema,
+  createPortalSessionSchema,
+  cancelSubscriptionSchema,
+  reactivateSubscriptionSchema,
+} from '../../validators/payments.validator';
 import express from 'express';
 
 const router = Router();
@@ -22,12 +29,14 @@ router.use(authenticate);
 // Create checkout session
 router.post(
   '/checkout',
+  validate(createCheckoutSessionSchema),
   paymentsController.createCheckoutSession.bind(paymentsController)
 );
 
 // Create portal session
 router.post(
   '/portal',
+  validate(createPortalSessionSchema),
   paymentsController.createPortalSession.bind(paymentsController)
 );
 
@@ -40,16 +49,19 @@ router.get(
 // Cancel subscription
 router.post(
   '/subscription/cancel',
+  validate(cancelSubscriptionSchema),
   paymentsController.cancelSubscription.bind(paymentsController)
 );
 
 // Reactivate subscription
 router.post(
   '/subscription/reactivate',
+  validate(reactivateSubscriptionSchema),
   paymentsController.reactivateSubscription.bind(paymentsController)
 );
 
 export default router;
+
 
 
 

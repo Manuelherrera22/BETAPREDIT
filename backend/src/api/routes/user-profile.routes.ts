@@ -5,6 +5,8 @@
 import { Router } from 'express';
 import { userProfileController } from '../controllers/user-profile.controller';
 import { authenticate } from '../../middleware/auth';
+import { validate } from '../../middleware/validate';
+import { updateProfileSchema } from '../../validators/user-profile.validator';
 
 const router = Router();
 
@@ -23,7 +25,7 @@ router.get('/', userProfileController.getProfile.bind(userProfileController));
  * @desc    Update user profile
  * @access  Private
  */
-router.put('/', userProfileController.updateProfile.bind(userProfileController));
+router.put('/', validate(updateProfileSchema), userProfileController.updateProfile.bind(userProfileController));
 
 export default router;
 

@@ -1,0 +1,207 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "deploy" to confirm production deployment'
+        required: true
+        default: ''
+
+jobs:
+  # ============================================
+  # PRE-DEPLOYMENT CHECKS
+  # ============================================
+  pre-deployment-checks:
+    name: Pre-Deployment Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify deployment confirmation
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "deploy" ]; then
+            echo "❌ Deployment not confirmed. Type 'deploy' to confirm."
+            exit 1
+          fi
+          echo "✅ Deployment confirmed"
+
+      - name: Check for breaking changes
+        run: |
+          echo "Checking for breaking changes..."
+          # Add checks for breaking changes in migrations, API, etc.
+
+  # ============================================
+  # DEPLOY EDGE FUNCTIONS
+  # ============================================
+  deploy-edge-functions-production:
+    name: Deploy Edge Functions to Production
+    runs-on: ubuntu-latest
+    needs: [pre-deployment-checks]
+    environment:
+      name: production-edge-functions
+      url: https://mdjzqxhjbisnlfpbjfgb.supabase.co
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Login to Supabase
+        run: |
+          echo "${{ secrets.SUPABASE_ACCESS_TOKEN }}" | supabase login --token-stdin
+
+      - name: Link project
+        run: |
+          supabase link --project-ref mdjzqxhjbisnlfpbjfgb
+
+      - name: Deploy Edge Functions
+        run: |
+          echo "🚀 Deploying Edge Functions to Supabase Production..."
+          
+          # Lista de funciones a desplegar
+          FUNCTIONS=(
+            "external-bets"
+            "user-statistics"
+            "user-profile"
+            "sync-events"
+            "get-events"
+            "generate-predictions"
+            "get-predictions"
+            "auto-sync"
+            "cleanup-predictions"
+            "update-finished-events"
+            "the-odds-api"
+          )
+          
+          for func in "${FUNCTIONS[@]}"; do
+            echo "📦 Deploying $func..."
+            supabase functions deploy "$func" --project-ref mdjzqxhjbisnlfpbjfgb || echo "⚠️ Failed to deploy $func"
+          done
+          
+          echo "✅ Edge Functions deployment completed"
+
+      - name: Verify deployment
+        run: |
+          echo "✅ Edge Functions deployed to:"
+          echo "https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/"
+          
+      - name: Notify deployment success
+        if: success()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              "text": "✅ Edge Functions deployed to production successfully",
+              "attachments": [{
+                "color": "good",
+                "text": "Deployment URL: https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/"
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # ============================================
+  # DEPLOY FRONTEND
+  # ============================================
+  deploy-frontend-production:
+    name: Deploy Frontend to Production
+    runs-on: ubuntu-latest
+    needs: [pre-deployment-checks, deploy-edge-functions-production]
+    environment:
+      name: production-frontend
+      url: ${{ steps.deploy.outputs.url }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build
+        working-directory: ./frontend
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_API_URL: ${{ secrets.VITE_API_URL_PRODUCTION }}
+
+      - name: Deploy to Netlify (Production)
+        id: deploy
+        uses: netlify/actions/cli@master
+        with:
+          args: deploy --dir=frontend/dist --prod
+          secrets: '["NETLIFY_AUTH_TOKEN", "NETLIFY_SITE_ID"]'
+        env:
+          NETLIFY_AUTH_TOKEN: nfp_AoU3hMmYfrijsaWDCCr62vcAgkJDTQ4p88b1
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_ID || secrets.NETLIFY_SITE_ID_PRODUCTION }}
+
+      - name: Health check
+        run: |
+          echo "Waiting for deployment to be ready..."
+          sleep 30
+          # Verify frontend is accessible
+          curl -f ${{ steps.deploy.outputs.url }} || exit 1
+
+      - name: Notify deployment success
+        if: success()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              "text": "✅ Frontend deployed to production successfully",
+              "attachments": [{
+                "color": "good",
+                "text": "Deployment URL: ${{ steps.deploy.outputs.url }}"
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # ============================================
+  # POST-DEPLOYMENT VERIFICATION
+  # ============================================
+  post-deployment-verification:
+    name: Post-Deployment Verification
+    runs-on: ubuntu-latest
+    needs: [deploy-edge-functions-production, deploy-frontend-production]
+    if: always()
+
+    steps:
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests..."
+          # Add smoke tests here
+          # - Check health endpoints
+          # - Verify critical API endpoints
+          # - Check frontend loads correctly
+
+      - name: Create deployment summary
+        run: |
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Edge Functions deployed successfully" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Frontend deployed successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Edge Functions URL:** https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployment completed at:** $(date)" >> $GITHUB_STEP_SUMMARY

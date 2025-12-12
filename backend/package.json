@@ -24,7 +24,11 @@
     "db:studio": "prisma studio",
     "db:migrate": "prisma migrate deploy",
     "db:migrate:dev": "prisma migrate dev",
-    "db:status": "prisma migrate status"
+    "db:status": "prisma migrate status",
+    "validate-predictions": "tsx src/scripts/validate-prediction-accuracy.ts",
+    "validate-all-real-data": "tsx src/scripts/validate-all-real-data.ts",
+    "test:real-data": "jest --testPathPattern=real-data --testTimeout=30000",
+    "test:integration": "jest --testPathPattern=integration --testTimeout=30000"
   },
   "dependencies": {
     "@prisma/client": "^5.7.1",
@@ -46,6 +50,7 @@
     "helmet": "^7.1.0",
     "ioredis": "^5.3.2",
     "jsonwebtoken": "^9.0.2",
+    "prom-client": "^15.1.3",
     "qrcode": "^1.5.4",
     "socket.io": "^4.5.4",
     "speakeasy": "^2.0.0",

@@ -182,3 +182,4 @@ postgresql://postgres:[PASSWORD]@db.mdjzqxhjbisnlfpbjfgb.supabase.co:5432/postgr
 
 
 
+

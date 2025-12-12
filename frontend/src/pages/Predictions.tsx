@@ -237,39 +237,49 @@ export default function Predictions() {
     enabled: true,
   });
 
-  // Filter and sort predictions
-  const filteredEvents = eventsWithPredictions?.filter((event) => {
-    return event.predictions.some(
-      (pred) =>
-        pred.confidence >= minConfidence &&
-        pred.value >= minValue
-    );
-  }) || [];
+  // Filter and sort predictions - Memoizado
+  const filteredEvents = useMemo(() => {
+    if (!eventsWithPredictions) return [];
+    return eventsWithPredictions.filter((event) => {
+      return event.predictions.some(
+        (pred) =>
+          pred.confidence >= minConfidence &&
+          pred.value >= minValue
+      );
+    });
+  }, [eventsWithPredictions, minConfidence, minValue]);
 
-  // Sort events
-  const sortedEvents = [...filteredEvents].sort((a, b) => {
-    if (sortBy === 'time') {
-      return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+  // Sort events - Memoizado
+  const sortedEvents = useMemo(() => {
+    const sorted = [...filteredEvents].sort((a, b) => {
+      if (sortBy === 'time') {
+        return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+      }
+      
+      const aBest = Math.max(...a.predictions.map(p => sortBy === 'confidence' ? p.confidence : p.value));
+      const bBest = Math.max(...b.predictions.map(p => sortBy === 'confidence' ? p.confidence : p.value));
+      return bBest - aBest;
+    });
+    return sorted;
+  }, [filteredEvents, sortBy]);
+
+  // Flatten predictions for list view - Memoizado
+  const allPredictions = useMemo(() => {
+    const flattened = sortedEvents.flatMap(event =>
+      event.predictions
+        .filter((pred) => pred.confidence >= minConfidence && pred.value >= minValue)
+        .map(pred => ({ ...pred, event }))
+    );
+
+    // Sort flattened predictions
+    if (sortBy === 'value') {
+      flattened.sort((a, b) => b.value - a.value);
+    } else if (sortBy === 'confidence') {
+      flattened.sort((a, b) => b.confidence - a.confidence);
     }
     
-    const aBest = Math.max(...a.predictions.map(p => sortBy === 'confidence' ? p.confidence : p.value));
-    const bBest = Math.max(...b.predictions.map(p => sortBy === 'confidence' ? p.confidence : p.value));
-    return bBest - aBest;
-  });
-
-  // Flatten predictions for list view
-  const allPredictions = sortedEvents.flatMap(event =>
-    event.predictions
-      .filter((pred) => pred.confidence >= minConfidence && pred.value >= minValue)
-      .map(pred => ({ ...pred, event }))
-  );
-
-  // Sort flattened predictions
-  if (sortBy === 'value') {
-    allPredictions.sort((a, b) => b.value - a.value);
-  } else if (sortBy === 'confidence') {
-    allPredictions.sort((a, b) => b.confidence - a.confidence);
-  }
+    return flattened;
+  }, [sortedEvents, minConfidence, minValue, sortBy]);
 
   // Mutation to generate predictions manually
   const generatePredictionsMutation = useMutation({
@@ -287,15 +297,15 @@ export default function Predictions() {
     },
   });
 
-  // Calculate statistics
-  const totalPredictions = filteredEvents.reduce((sum, e) => sum + e.predictions.length, 0);
-  const avgConfidence = filteredEvents.length > 0
+  // Calculate statistics - Memoizado
+  const totalPredictions = useMemo(() => filteredEvents.reduce((sum, e) => sum + e.predictions.length, 0), [filteredEvents]);
+  const avgConfidence = useMemo(() => filteredEvents.length > 0
     ? filteredEvents.reduce((sum, e) => 
         sum + e.predictions.reduce((pSum, p) => pSum + p.confidence, 0) / e.predictions.length, 0
       ) / filteredEvents.length
-    : 0;
-  const highValueCount = allPredictions.filter(p => p.value > 10).length;
-  const strongBuyCount = allPredictions.filter(p => p.recommendation === 'STRONG_BUY').length;
+    : 0, [filteredEvents]);
+  const highValueCount = useMemo(() => allPredictions.filter(p => p.value > 10).length, [allPredictions]);
+  const strongBuyCount = useMemo(() => allPredictions.filter(p => p.recommendation === 'STRONG_BUY').length, [allPredictions]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
@@ -597,9 +607,13 @@ export default function Predictions() {
                 ))}
               </div>
             ) : (
-              // List View
-              <div className="space-y-3 sm:space-y-4">
-                {allPredictions.map((pred, idx) => (
+              // List View - Virtualizado para listas grandes
+              allPredictions.length > 50 ? (
+                <VirtualizedList
+                  items={allPredictions}
+                  itemHeight={200}
+                  containerHeight={600}
+                  renderItem={(pred: any, idx: number) => (
                   <div
                     key={idx}
                     className="bg-slate-800/70 backdrop-blur-xl rounded-xl sm:rounded-2xl border-2 border-slate-700/50 p-4 sm:p-6 hover:border-slate-600 transition-all duration-200 hover:shadow-xl"
@@ -658,8 +672,72 @@ export default function Predictions() {
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
+                  )}
+                />
+              ) : (
+                <div className="space-y-3 sm:space-y-4">
+                  {allPredictions.map((pred, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-slate-800/70 backdrop-blur-xl rounded-xl sm:rounded-2xl border-2 border-slate-700/50 p-4 sm:p-6 hover:border-slate-600 transition-all duration-200 hover:shadow-xl"
+                    >
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                        {/* Event Info */}
+                        <div>
+                          <div className="text-xs text-gray-500 mb-1 uppercase tracking-wide">{pred.event.sport}</div>
+                          <h3 className="text-lg sm:text-xl font-black text-white mb-2 break-words">{pred.event.eventName}</h3>
+                          <div className="text-xl sm:text-2xl font-black text-primary-400 mb-2 break-words">{pred.selection}</div>
+                          <div className="text-xs sm:text-sm text-gray-400">
+                            {format(new Date(pred.event.startTime), 'dd MMM, HH:mm', { locale: es })}
+                          </div>
+                        </div>
+
+                        {/* Comparison Chart */}
+                        <div>
+                          <PredictionComparisonChart
+                            ourPrediction={pred.predictedProbability}
+                            marketProbability={1 / pred.marketOdds}
+                          />
+                        </div>
+
+                        {/* Metrics */}
+                        <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                          <div className="bg-slate-900/50 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-slate-700/50">
+                            <div className="text-xs text-gray-500 mb-1">Valor</div>
+                            <div className={`text-xl sm:text-2xl font-black ${pred.value > 10 ? 'text-emerald-400' : pred.value > 5 ? 'text-green-400' : pred.value > 0 ? 'text-yellow-400' : 'text-red-400'}`}>
+                              {pred.value >= 0 ? '+' : ''}{pred.value.toFixed(1)}%
+                            </div>
+                          </div>
+                          <div className="bg-slate-900/50 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-slate-700/50">
+                            <div className="text-xs text-gray-500 mb-1">Confianza</div>
+                            <div className="text-xl sm:text-2xl font-black text-primary-400">
+                              {(pred.confidence * 100).toFixed(0)}%
+                            </div>
+                          </div>
+                          <div className="bg-slate-900/50 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-slate-700/50">
+                            <div className="text-xs text-gray-500 mb-1">Cuota</div>
+                            <div className="text-xl sm:text-2xl font-black text-white">
+                              {pred.marketOdds.toFixed(2)}
+                            </div>
+                          </div>
+                          <div className="bg-slate-900/50 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-slate-700/50">
+                            <div className="text-xs text-gray-500 mb-1">Recomendación</div>
+                            <div className={`text-sm sm:text-base md:text-lg font-black break-words ${
+                              pred.recommendation === 'STRONG_BUY' ? 'text-emerald-400' :
+                              pred.recommendation === 'BUY' ? 'text-green-400' :
+                              pred.recommendation === 'HOLD' ? 'text-yellow-400' : 'text-red-400'
+                            }`}>
+                              {pred.recommendation === 'STRONG_BUY' ? '🔥 COMPRA FUERTE' :
+                               pred.recommendation === 'BUY' ? '✅ COMPRA' :
+                               pred.recommendation === 'HOLD' ? '⏸️ MANTENER' : '❌ EVITAR'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
             )}
 
             {/* Empty State */}

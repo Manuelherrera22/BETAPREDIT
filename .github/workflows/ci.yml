@@ -1,22 +1,63 @@
-name: CI Pipeline
+name: CI - Continuous Integration
 
 on:
-  push:
-    branches: [ master, main, develop ]
   pull_request:
-    branches: [ master, main, develop ]
+    branches: [main, master, develop]
+  push:
+    branches: [main, master, develop]
 
 jobs:
-  backend-tests:
-    name: Backend Tests
+  # ============================================
+  # LINTING - Verificar código
+  # ============================================
+  lint:
+    name: Lint Code
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Lint backend
+        working-directory: ./backend
+        run: npm run lint
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Lint frontend
+        working-directory: ./frontend
+        run: npm run lint
+
+  # ============================================
+  # TESTS - Backend
+  # ============================================
+  test-backend:
+    name: Test Backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
     services:
       postgres:
-        image: postgres:14
+        image: postgres:15-alpine
         env:
-          POSTGRES_PASSWORD: postgres
           POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
           POSTGRES_DB: test
         options: >-
           --health-cmd pg_isready
@@ -25,16 +66,13 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
-    
-      redis:
-        image: redis:7
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test
+      JWT_SECRET: test-secret-minimum-32-characters-long-for-ci
+      JWT_REFRESH_SECRET: test-refresh-secret-minimum-32-characters-long-for-ci
+      NODE_ENV: test
+      FRONTEND_URL: http://localhost:5173
 
     steps:
       - name: Checkout code
@@ -51,20 +89,19 @@ jobs:
         working-directory: ./backend
         run: npm ci
 
-      - name: Run linter
+      - name: Generate Prisma Client
         working-directory: ./backend
-        run: npm run lint || true
+        run: npx prisma generate
+
+      - name: Run database migrations
+        working-directory: ./backend
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test
 
       - name: Run tests
         working-directory: ./backend
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test
-          JWT_SECRET: test-secret-minimum-32-characters-long
-          JWT_REFRESH_SECRET: test-refresh-secret-minimum-32-characters-long
-          FRONTEND_URL: http://localhost:5173
-          NODE_ENV: test
-          REDIS_URL: redis://localhost:6379
-        run: npm test -- --coverage --maxWorkers=2
+        run: npm run test:coverage
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
@@ -72,11 +109,34 @@ jobs:
           file: ./backend/coverage/coverage-final.json
           flags: backend
           name: backend-coverage
-        continue-on-error: true
+          fail_ci_if_error: false
 
-  frontend-tests:
-    name: Frontend Tests
+      - name: Check coverage threshold
+        working-directory: ./backend
+        run: |
+          echo "📊 Checking coverage thresholds..."
+          if [ -f "coverage/coverage-summary.json" ]; then
+            BACKEND_COVERAGE=$(node -e "const data = require('./coverage/coverage-summary.json'); console.log(data.total.lines.pct)")
+            echo "Backend coverage: ${BACKEND_COVERAGE}%"
+            echo "::set-output name=coverage::${BACKEND_COVERAGE}"
+            if (( $(echo "$BACKEND_COVERAGE < 50" | bc -l) )); then
+              echo "❌ Backend coverage below 50% threshold (current: ${BACKEND_COVERAGE}%)"
+              exit 1
+            else
+              echo "✅ Backend coverage meets threshold (${BACKEND_COVERAGE}%)"
+            fi
+          else
+            echo "⚠️ Coverage file not found"
+            exit 1
+          fi
+
+  # ============================================
+  # TESTS - Frontend
+  # ============================================
+  test-frontend:
+    name: Test Frontend
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout code
@@ -93,13 +153,9 @@ jobs:
         working-directory: ./frontend
         run: npm ci
 
-      - name: Run linter
-        working-directory: ./frontend
-        run: npm run lint || true
-
       - name: Run tests
         working-directory: ./frontend
-        run: npm test -- --coverage --run
+        run: npm run test:coverage
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
@@ -107,12 +163,35 @@ jobs:
           file: ./frontend/coverage/coverage-final.json
           flags: frontend
           name: frontend-coverage
-        continue-on-error: true
+          fail_ci_if_error: false
 
-  build:
-    name: Build
+      - name: Check coverage threshold
+        working-directory: ./frontend
+        run: |
+          echo "📊 Checking coverage thresholds..."
+          if [ -f "coverage/coverage-summary.json" ]; then
+            FRONTEND_COVERAGE=$(node -e "const data = require('./coverage/coverage-summary.json'); console.log(data.total.lines.pct)")
+            echo "Frontend coverage: ${FRONTEND_COVERAGE}%"
+            echo "::set-output name=coverage::${FRONTEND_COVERAGE}"
+            if (( $(echo "$FRONTEND_COVERAGE < 40" | bc -l) )); then
+              echo "❌ Frontend coverage below 40% threshold (current: ${FRONTEND_COVERAGE}%)"
+              exit 1
+            else
+              echo "✅ Frontend coverage meets threshold (${FRONTEND_COVERAGE}%)"
+            fi
+          else
+            echo "⚠️ Coverage file not found"
+            exit 1
+          fi
+
+  # ============================================
+  # BUILD - Verificar que el código compile
+  # ============================================
+  build-backend:
+    name: Build Backend
     runs-on: ubuntu-latest
-    needs: [backend-tests, frontend-tests]
+    timeout-minutes: 10
+    needs: [lint]
 
     steps:
       - name: Checkout code
@@ -123,24 +202,34 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
 
-      - name: Build backend
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Generate Prisma Client
+        working-directory: ./backend
+        run: npx prisma generate
+
+      - name: Build
+        working-directory: ./backend
+        run: npm run build
+
+      - name: Check build artifacts
         working-directory: ./backend
         run: |
-          npm ci
-          npm run build
+          if [ ! -d "dist" ]; then
+            echo "❌ Build failed: dist directory not found"
+            exit 1
+          fi
+          echo "✅ Build successful"
 
-      - name: Build frontend
-        working-directory: ./frontend
-        run: |
-          npm ci
-          npm run build
-
-  quality-gates:
-    name: Quality Gates
+  build-frontend:
+    name: Build Frontend
     runs-on: ubuntu-latest
-    needs: [backend-tests, frontend-tests]
-    if: always()
+    timeout-minutes: 10
+    needs: [lint]
 
     steps:
       - name: Checkout code
@@ -150,29 +239,82 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
 
-      - name: Check backend test results
-        working-directory: ./backend
-        run: |
-          if [ "${{ needs.backend-tests.result }}" != "success" ]; then
-            echo "❌ Backend tests failed"
-            exit 1
-          fi
-          echo "✅ Backend tests passed"
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
 
-      - name: Check frontend test results
+      - name: Build
+        working-directory: ./frontend
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: placeholder_key
+          VITE_API_URL: http://localhost:3000/api
+
+      - name: Check build artifacts
         working-directory: ./frontend
         run: |
-          if [ "${{ needs.frontend-tests.result }}" != "success" ]; then
-            echo "❌ Frontend tests failed"
+          if [ ! -d "dist" ]; then
+            echo "❌ Build failed: dist directory not found"
             exit 1
           fi
-          echo "✅ Frontend tests passed"
+          echo "✅ Build successful"
 
-      - name: Check coverage thresholds
+  # ============================================
+  # SECURITY - Escaneo básico
+  # ============================================
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run npm audit (Backend)
+        working-directory: ./backend
         run: |
-          echo "📊 Coverage thresholds:"
-          echo "  Backend: >80% (target)"
-          echo "  Frontend: >75% (target)"
-          echo "✅ Quality gates passed"
+          npm audit --audit-level=moderate || true
+          echo "⚠️ npm audit completed (warnings are non-blocking)"
 
+      - name: Run npm audit (Frontend)
+        working-directory: ./frontend
+        run: |
+          npm audit --audit-level=moderate || true
+          echo "⚠️ npm audit completed (warnings are non-blocking)"
+
+  # ============================================
+  # QUALITY GATES - Resumen final
+  # ============================================
+  quality-gates:
+    name: Quality Gates
+    runs-on: ubuntu-latest
+    needs: [lint, test-backend, test-frontend, build-backend, build-frontend, security]
+    if: always()
+
+    steps:
+      - name: Check all jobs status
+        run: |
+          echo "📊 Quality Gates Summary"
+          echo "========================"
+          echo "Lint: ${{ needs.lint.result }}"
+          echo "Backend Tests: ${{ needs.test-backend.result }}"
+          echo "Frontend Tests: ${{ needs.test-frontend.result }}"
+          echo "Backend Build: ${{ needs.build-backend.result }}"
+          echo "Frontend Build: ${{ needs.build-frontend.result }}"
+          echo "Security: ${{ needs.security.result }}"
+          
+          if [ "${{ needs.lint.result }}" != "success" ] || \
+             [ "${{ needs.test-backend.result }}" != "success" ] || \
+             [ "${{ needs.test-frontend.result }}" != "success" ] || \
+             [ "${{ needs.build-backend.result }}" != "success" ] || \
+             [ "${{ needs.build-frontend.result }}" != "success" ]; then
+            echo "❌ Quality gates failed"
+            exit 1
+          fi
+          
+          echo "✅ All quality gates passed"

@@ -1,10 +1,11 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
+import { AuthRequest } from '../../middleware/auth';
 import { notificationsService } from '../../services/notifications.service';
 
 class NotificationsController {
-  async getMyNotifications(req: Request, res: Response, next: NextFunction) {
+  async getMyNotifications(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = req.user?.id;
       if (!userId) {
         res.status(401).json({ success: false, error: { message: 'Unauthorized' } });
         return;
@@ -24,9 +25,9 @@ class NotificationsController {
     }
   }
 
-  async markAsRead(req: Request, res: Response, next: NextFunction) {
+  async markAsRead(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = req.user?.id;
       if (!userId) {
         res.status(401).json({ success: false, error: { message: 'Unauthorized' } });
         return;
@@ -40,9 +41,9 @@ class NotificationsController {
     }
   }
 
-  async markAllAsRead(req: Request, res: Response, next: NextFunction) {
+  async markAllAsRead(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = req.user?.id;
       if (!userId) {
         res.status(401).json({ success: false, error: { message: 'Unauthorized' } });
         return;
@@ -55,9 +56,9 @@ class NotificationsController {
     }
   }
 
-  async markAsClicked(req: Request, res: Response, next: NextFunction) {
+  async markAsClicked(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = req.user?.id;
       if (!userId) {
         res.status(401).json({ success: false, error: { message: 'Unauthorized' } });
         return;
@@ -71,9 +72,9 @@ class NotificationsController {
     }
   }
 
-  async getUnreadCount(req: Request, res: Response, next: NextFunction) {
+  async getUnreadCount(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = req.user?.id;
       if (!userId) {
         res.status(401).json({ success: false, error: { message: 'Unauthorized' } });
         return;
@@ -86,9 +87,9 @@ class NotificationsController {
     }
   }
 
-  async deleteNotification(req: Request, res: Response, next: NextFunction) {
+  async deleteNotification(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = req.user?.id;
       if (!userId) {
         res.status(401).json({ success: false, error: { message: 'Unauthorized' } });
         return;
@@ -104,6 +105,7 @@ class NotificationsController {
 }
 
 export const notificationsController = new NotificationsController();
+
 
 
 

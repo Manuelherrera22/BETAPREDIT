@@ -16,7 +16,14 @@ module.exports = {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   setupFilesAfterEnv: ['<rootDir>/src/tests/setup.ts'],
+  // Configuración para tests con datos reales
+  testTimeout: 30000, // 30 segundos para tests de integración
+  // No usar mocks automáticamente para tests de integración
+  clearMocks: true,
+  resetMocks: true,
+  restoreMocks: true,
 };
+
 
 
 

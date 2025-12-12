@@ -575,10 +575,54 @@ class ScheduledTasksService {
    * Get status of scheduled tasks
    */
   getStatus() {
+    const taskStatuses = Array.from(this.intervals.keys()).map(taskName => {
+      const interval = this.intervals.get(taskName);
+      return {
+        name: taskName,
+        active: !!interval,
+      };
+    });
+
     return {
       isRunning: this.isRunning,
       tasks: Array.from(this.intervals.keys()),
       count: this.intervals.size,
+      taskStatuses,
+      // Verify interval count matches task count
+      health: this.intervals.size === taskStatuses.filter(t => t.active).length ? 'ok' : 'degraded',
+    };
+  }
+
+  /**
+   * Health check for scheduled tasks
+   * Verifies that all intervals are properly registered
+   */
+  healthCheck(): { healthy: boolean; issues: string[] } {
+    const issues: string[] = [];
+    
+    if (!this.isRunning) {
+      issues.push('Scheduled tasks are not running');
+    }
+
+    const expectedTasks = [
+      'auto-predictions',
+      'prediction-updates',
+      'event-sync',
+      'value-bet-scan',
+      'alert-expiration',
+      'prediction-accuracy-update',
+      'prediction-regeneration',
+    ];
+
+    for (const expectedTask of expectedTasks) {
+      if (!this.intervals.has(expectedTask)) {
+        issues.push(`Task ${expectedTask} is not registered`);
+      }
+    }
+
+    return {
+      healthy: issues.length === 0,
+      issues,
     };
   }
 }

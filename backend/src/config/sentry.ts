@@ -4,6 +4,7 @@
  */
 
 import * as Sentry from '@sentry/node';
+import { logger } from '../utils/logger';
 
 // ProfilingIntegration is optional
 let ProfilingIntegration: any;
@@ -18,7 +19,7 @@ export const initSentry = () => {
   const dsn = process.env.SENTRY_DSN;
   
   if (!dsn) {
-    console.warn('⚠️  Sentry DSN not configured. Error tracking disabled.');
+    logger.warn('Sentry DSN not configured. Error tracking disabled.');
     return;
   }
 
@@ -45,7 +46,7 @@ export const initSentry = () => {
     },
   });
 
-  console.log('✅ Sentry initialized');
+  logger.info('Sentry initialized successfully');
 };
 
 export { Sentry };
