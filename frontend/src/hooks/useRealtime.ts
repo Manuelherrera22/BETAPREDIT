@@ -40,7 +40,6 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
 
     // Subscribe to channels
     const subscriptions: RealtimeChannel[] = [];
-    let hasConnectedChannel = false;
 
     channels.forEach((channelName) => {
       let channel: RealtimeChannel | null = null;
@@ -48,7 +47,7 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
       // Subscribe based on channel type
       if (channelName === 'events:live') {
         // Subscribe to Event table changes where status = 'LIVE'
-        channel = supabase
+        channel = supabase!
           .channel(`events:live-${Date.now()}`)
           .on(
             'postgres_changes',
@@ -68,7 +67,6 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
           )
           .subscribe((status) => {
             if (status === 'SUBSCRIBED') {
-              hasConnectedChannel = true;
               setIsConnected(true);
             } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
               setIsConnected(false);
@@ -78,7 +76,7 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
         const targetUserId = channelName.replace('notifications:', '') || userId;
         if (targetUserId) {
           // Subscribe to Notification table changes for this user
-          channel = supabase
+          channel = supabase!
             .channel(`notifications:${targetUserId}-${Date.now()}`)
             .on(
               'postgres_changes',
@@ -114,7 +112,6 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
             )
             .subscribe((status) => {
               if (status === 'SUBSCRIBED') {
-                hasConnectedChannel = true;
                 setIsConnected(true);
               } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
                 setIsConnected(false);
@@ -125,7 +122,7 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
         const targetUserId = channelName.replace('value-bets:', '') || userId;
         if (targetUserId) {
           // Subscribe to ValueBetAlert table changes for this user
-          channel = supabase
+          channel = supabase!
             .channel(`value-bets:${targetUserId}-${Date.now()}`)
             .on(
               'postgres_changes',
@@ -161,7 +158,6 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
             )
             .subscribe((status) => {
               if (status === 'SUBSCRIBED') {
-                hasConnectedChannel = true;
                 setIsConnected(true);
               } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
                 setIsConnected(false);
@@ -171,7 +167,7 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
       } else if (channelName.startsWith('odds:')) {
         const eventId = channelName.replace('odds:', '');
         // Subscribe to Odds table changes for this event
-        channel = supabase
+        channel = supabase!
           .channel(`odds:${eventId}-${Date.now()}`)
           .on(
             'postgres_changes',
@@ -194,7 +190,6 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
           )
           .subscribe((status) => {
             if (status === 'SUBSCRIBED') {
-              hasConnectedChannel = true;
               setIsConnected(true);
             } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
               setIsConnected(false);
@@ -204,7 +199,7 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
         const eventId = channelName.replace('predictions:', '');
         if (eventId === 'all') {
           // Subscribe to all Prediction changes
-          channel = supabase
+          channel = supabase!
             .channel(`predictions:all-${Date.now()}`)
             .on(
               'postgres_changes',
@@ -223,7 +218,6 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
             )
             .subscribe((status) => {
               if (status === 'SUBSCRIBED') {
-                hasConnectedChannel = true;
                 setIsConnected(true);
               } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
                 setIsConnected(false);
@@ -231,7 +225,7 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
             });
         } else {
           // Subscribe to Prediction changes for specific event
-          channel = supabase
+          channel = supabase!
             .channel(`predictions:${eventId}-${Date.now()}`)
             .on(
               'postgres_changes',
@@ -251,7 +245,6 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
             )
             .subscribe((status) => {
               if (status === 'SUBSCRIBED') {
-                hasConnectedChannel = true;
                 setIsConnected(true);
               } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
                 setIsConnected(false);
@@ -267,16 +260,19 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
     });
 
     // Cleanup: unsubscribe from all channels
+    const currentSupabase = supabase;
     return () => {
-      subscriptions.forEach((channel) => {
-        supabase.removeChannel(channel);
-      });
+      if (currentSupabase) {
+        subscriptions.forEach((channel) => {
+          currentSupabase.removeChannel(channel);
+        });
+      }
       channelsRef.current.clear();
     };
   }, [channels, autoConnect, userId]);
 
   // Subscribe to a channel
-  const subscribe = useCallback((channelName: string, handler?: (data: any) => void) => {
+  const subscribe = useCallback((channelName: string) => {
     if (!isSupabaseConfigured() || !supabase) {
       console.warn('Supabase not configured, cannot subscribe');
       return;
@@ -299,7 +295,7 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
       supabase.removeChannel(channel);
       channelsRef.current.delete(channelName);
     }
-  }, []);
+  }, [supabase]);
 
   // Connect (no-op for Realtime, it connects automatically)
   const connect = useCallback(() => {
@@ -309,11 +305,12 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
 
   // Disconnect
   const disconnect = useCallback(() => {
-    channelsRef.current.forEach((channel) => {
-      if (supabase) {
-        supabase.removeChannel(channel);
-      }
-    });
+    const currentSupabase = supabase;
+    if (currentSupabase) {
+      channelsRef.current.forEach((channel) => {
+        currentSupabase.removeChannel(channel);
+      });
+    }
     channelsRef.current.clear();
     setIsConnected(false);
   }, []);

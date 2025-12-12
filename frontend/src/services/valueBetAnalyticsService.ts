@@ -15,7 +15,6 @@ const getSupabaseFunctionsUrl = () => {
 // Helper to get auth token
 const getSupabaseAuthToken = async (): Promise<string | null> => {
   try {
-    const { createClient } = await import('../config/supabase');
     const { supabase } = await import('../config/supabase');
     if (!supabase) return null;
     
