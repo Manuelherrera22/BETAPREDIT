@@ -79,6 +79,7 @@ export const userProfileService = {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
           'Content-Type': 'application/json',
         },
       });
@@ -118,6 +119,7 @@ export const userProfileService = {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(profileData),
