@@ -328,44 +328,22 @@ export default function Predictions() {
         }
       }
       
-      // Filtrar por league si está seleccionado - búsqueda más flexible (igual que en heatmap)
+      // Filtrar por league si está seleccionado - USAR EXACTAMENTE LA MISMA LÓGICA QUE EL HEATMAP
       if (selectedLeague) {
         const eventAny = event as any;
         
-        // Intentar obtener la liga del evento desde diferentes fuentes (igual que heatmap)
-        // IMPORTANTE: Usar la misma lógica que el heatmap
-        let eventLeague = eventAny.metadata?.league || 
-                         eventAny.league || 
-                         eventAny.event?.metadata?.league ||
-                         eventAny.event?.league;
+        // IMPORTANTE: Usar EXACTAMENTE la misma lógica que el heatmap (línea 65 del heatmap)
+        // const leagueName = event.metadata?.league || event.sport?.name || sportName;
+        const sportName = event.sport || 'Unknown';
+        const eventLeagueName = eventAny.metadata?.league || eventAny.league || eventAny.event?.metadata?.league || eventAny.event?.league || eventAny.sport?.name || sportName;
         
-        // Si no hay league en metadata, intentar inferirla del nombre del evento o equipos
-        if (!eventLeague || eventLeague === eventAny.sport?.name) {
-          // Buscar indicadores de liga en los nombres de los equipos
-          const homeTeam = (event.homeTeam || '').toLowerCase();
-          const awayTeam = (event.awayTeam || '').toLowerCase();
-          
-          // Detectar EPL por equipos conocidos o nombres
-          if (selectedLeague.toUpperCase() === 'EPL' || selectedLeague.toLowerCase().includes('epl')) {
-            const eplTeams = ['manchester', 'liverpool', 'chelsea', 'arsenal', 'tottenham', 'city', 'united'];
-            if (eplTeams.some(team => homeTeam.includes(team) || awayTeam.includes(team))) {
-              eventLeague = 'EPL';
-            }
-          }
-          
-          // Si aún no hay league, usar el sport como fallback (igual que heatmap)
-          if (!eventLeague) {
-            eventLeague = eventAny.sport?.name || 'Unknown';
-          }
-        }
+        console.log(`Checking league filter for event ${event.eventId}:`);
+        console.log(`  - selectedLeague: "${selectedLeague}"`);
+        console.log(`  - eventLeagueName (heatmap logic): "${eventLeagueName}"`);
+        console.log(`  - event.metadata?.league: "${eventAny.metadata?.league}"`);
+        console.log(`  - event.sport: "${event.sport}"`);
         
-        // También buscar en el nombre del evento y equipos
-        const eventName = (event.eventName || '').toLowerCase();
-        const eventHomeTeam = (event.homeTeam || '').toLowerCase();
-        const eventAwayTeam = (event.awayTeam || '').toLowerCase();
-        const fullEventText = `${eventName} ${eventHomeTeam} ${eventAwayTeam}`.toLowerCase();
-        
-        // Normalizar nombres de ligas para comparación (más completo)
+        // Normalizar nombres de ligas para comparación
         const normalizeLeague = (name: string) => {
           if (!name) return '';
           const normalized = name.toLowerCase()
@@ -376,7 +354,6 @@ export default function Predictions() {
             .replace(/bundesliga|germany|germanbundesliga|german/g, 'bundesliga')
             .replace(/ligue1|france|frenchligue1|french/g, 'ligue1');
           
-          // Si el nombre original es exactamente "EPL", mantenerlo
           if (name.toUpperCase() === 'EPL' || name.toLowerCase() === 'epl') {
             return 'epl';
           }
@@ -385,41 +362,68 @@ export default function Predictions() {
         };
         
         const normalizedSelected = normalizeLeague(selectedLeague);
-        const normalizedEvent = normalizeLeague(eventLeague || '');
+        const normalizedEvent = normalizeLeague(eventLeagueName || '');
         
-        // Buscar en el texto completo del evento
-        const fullTextNormalized = normalizeLeague(fullEventText);
+        // También buscar en nombres de equipos para detectar ligas por equipos conocidos
+        const homeTeam = (event.homeTeam || '').toLowerCase();
+        const awayTeam = (event.awayTeam || '').toLowerCase();
+        const eventName = (event.eventName || '').toLowerCase();
+        const fullText = `${eventName} ${homeTeam} ${awayTeam}`.toLowerCase();
+        const fullTextNormalized = normalizeLeague(fullText);
+        
+        // Lista de equipos conocidos por liga
+        const leagueTeams: Record<string, string[]> = {
+          'epl': ['manchester', 'liverpool', 'chelsea', 'arsenal', 'tottenham', 'city', 'united', 'everton', 'newcastle', 'brighton', 'west ham', 'crystal palace', 'wolves', 'aston villa', 'leicester', 'southampton', 'burnley', 'watford', 'norwich', 'brentford'],
+          'laliga': ['real madrid', 'barcelona', 'atletico', 'sevilla', 'valencia', 'villarreal', 'real sociedad', 'athletic', 'betis', 'espanyol', 'getafe', 'celta', 'levante', 'granada', 'osasuna'],
+          'seriea': ['juventus', 'inter', 'milan', 'napoli', 'roma', 'atalanta', 'lazio', 'fiorentina', 'torino', 'sampdoria', 'udinese', 'bologna', 'verona', 'sassuolo', 'empoli'],
+        };
+        
+        // Detectar liga por equipos si el nombre normalizado coincide
+        let detectedByTeams = false;
+        if (normalizedSelected === 'epl' || normalizedSelected === 'laliga' || normalizedSelected === 'seriea') {
+          const teams = leagueTeams[normalizedSelected] || [];
+          detectedByTeams = teams.some(team => 
+            homeTeam.includes(team) || 
+            awayTeam.includes(team) || 
+            fullText.includes(team)
+          );
+        }
         
         // Comparar nombres normalizados - más permisivo
         const leagueMatches = 
-          // Coincidencia exacta (sin normalizar primero)
-          (eventLeague && selectedLeague && 
-           (eventLeague.toLowerCase() === selectedLeague.toLowerCase() ||
-            eventLeague.toLowerCase().includes(selectedLeague.toLowerCase()) ||
-            selectedLeague.toLowerCase().includes(eventLeague.toLowerCase()))) ||
-          // Coincidencia exacta normalizada
+          // Coincidencia exacta (sin normalizar)
+          (eventLeagueName && selectedLeague && 
+           (eventLeagueName.toLowerCase() === selectedLeague.toLowerCase() ||
+            eventLeagueName.toLowerCase().includes(selectedLeague.toLowerCase()) ||
+            selectedLeague.toLowerCase().includes(eventLeagueName.toLowerCase()))) ||
+          // Coincidencia normalizada
           (normalizedEvent && normalizedSelected && 
            (normalizedEvent === normalizedSelected ||
             normalizedEvent.includes(normalizedSelected) || 
             normalizedSelected.includes(normalizedEvent))) ||
-          // Buscar en el texto completo del evento
+          // Buscar en texto completo
           (fullTextNormalized && normalizedSelected &&
            (fullTextNormalized.includes(normalizedSelected) ||
             normalizedSelected.includes(fullTextNormalized))) ||
-          // Casos especiales: EPL puede estar en diferentes formatos
+          // Detección por equipos conocidos
+          detectedByTeams ||
+          // Casos especiales para EPL
           (selectedLeague.toUpperCase() === 'EPL' && 
            (normalizedEvent === 'epl' || 
-            eventLeague?.toUpperCase().includes('PREMIER') ||
-            eventLeague?.toUpperCase().includes('EPL')));
+            eventLeagueName?.toUpperCase().includes('PREMIER') ||
+            eventLeagueName?.toUpperCase().includes('EPL')));
         
         if (!leagueMatches) {
-          console.log(`Event ${event.eventId} filtered out: league "${eventLeague}" !== "${selectedLeague}" (normalized: "${normalizedEvent}" vs "${normalizedSelected}")`);
-          console.log(`  - Event sport: "${event.sport}", eventName: "${event.eventName}"`);
-          console.log(`  - Event metadata:`, eventAny.metadata);
+          console.log(`✗ Event ${event.eventId} filtered out: league "${eventLeagueName}" !== "${selectedLeague}"`);
+          console.log(`  - Normalized: "${normalizedEvent}" vs "${normalizedSelected}"`);
+          console.log(`  - Teams: ${homeTeam} vs ${awayTeam}`);
           return false;
         } else {
-          console.log(`✓ Event ${event.eventId} MATCHES league filter: "${eventLeague}" matches "${selectedLeague}"`);
+          console.log(`✓ Event ${event.eventId} MATCHES league filter: "${eventLeagueName}" matches "${selectedLeague}"`);
           console.log(`  - Has ${event.predictions.length} predictions`);
+          if (detectedByTeams) {
+            console.log(`  - Detected by team names`);
+          }
         }
       }
       
