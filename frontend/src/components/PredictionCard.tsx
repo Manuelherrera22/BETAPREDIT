@@ -106,49 +106,49 @@ const PredictionCard = memo(function PredictionCard({ prediction, eventName, sta
       {/* Gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-transparent via-white/5 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
 
-      {/* Content - Ultra compacto */}
-      <div className="relative p-2.5">
-        {/* Header - Ultra compacto en una línea */}
-        <div className="flex items-center justify-between gap-2 mb-2">
+      {/* Content - Ultra compacto y angosto */}
+      <div className="relative p-2">
+        {/* Header - Todo en una línea compacta */}
+        <div className="flex items-center justify-between gap-2 mb-1.5">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1 mb-0.5">
-              <span className="text-[9px] font-bold text-gray-400 uppercase">{sport}</span>
+              <span className="text-[8px] font-bold text-gray-400 uppercase">{sport}</span>
               <span className="w-0.5 h-0.5 bg-gray-500 rounded-full"></span>
-              <span className="text-[9px] text-gray-500">
+              <span className="text-[8px] text-gray-500">
                 {format(new Date(startTime), 'dd MMM, HH:mm', { locale: es })}
               </span>
             </div>
-            <h3 className="text-xs font-bold text-white truncate leading-tight mb-0.5">{eventName}</h3>
-            <h4 className="text-xs font-black text-white line-clamp-1 leading-tight">{prediction.selection}</h4>
+            <h3 className="text-[10px] font-bold text-white truncate leading-tight mb-0.5">{eventName}</h3>
+            <h4 className="text-[10px] font-black text-white line-clamp-1 leading-tight">{prediction.selection}</h4>
           </div>
-          <div className={`px-1.5 py-0.5 rounded-md border ${recConfig.border} ${recConfig.bg} ${recConfig.pulse} shrink-0`}>
+          <div className={`px-1 py-0.5 rounded border ${recConfig.border} ${recConfig.bg} ${recConfig.pulse} shrink-0`}>
             <div className="flex items-center gap-0.5">
-              <Icon name={recConfig.icon} size={9} className={recConfig.text} />
-              <span className={`text-[8px] font-black ${recConfig.text} whitespace-nowrap`}>{recConfig.label}</span>
+              <Icon name={recConfig.icon} size={8} className={recConfig.text} />
+              <span className={`text-[7px] font-black ${recConfig.text} whitespace-nowrap`}>{recConfig.label}</span>
             </div>
           </div>
         </div>
 
-        {/* Probability Comparison - Ultra compacto horizontal */}
-        <div className="mb-2">
+        {/* Probability Comparison - Todo en una línea horizontal */}
+        <div className="mb-1.5">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[8px] font-semibold text-gray-400 uppercase">Prob.</span>
-            <span className={`text-[8px] font-bold ${confLevel.color} flex items-center gap-0.5`}>
-              <Icon name={confLevel.icon} size={8} />
+            <span className="text-[7px] font-semibold text-gray-400 uppercase">Prob.</span>
+            <span className={`text-[7px] font-bold ${confLevel.color} flex items-center gap-0.5`}>
+              <Icon name={confLevel.icon} size={7} />
               <span>{confLevel.level}</span>
             </span>
           </div>
 
-          {/* Probabilidades lado a lado - más compacto */}
-          <div className="grid grid-cols-2 gap-1.5 mb-1">
+          {/* Probabilidades lado a lado - ultra compacto */}
+          <div className="grid grid-cols-2 gap-1 mb-0.5">
             <div>
               <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[8px] text-gray-400">Nuestra</span>
-                <span className="text-xs font-black text-primary-400">
+                <span className="text-[7px] text-gray-400">Nuestra</span>
+                <span className="text-[10px] font-black text-primary-400">
                   {(prediction.predictedProbability * 100).toFixed(1)}%
                 </span>
               </div>
-              <div className="relative w-full bg-slate-800/50 rounded-full h-1 overflow-hidden">
+              <div className="relative w-full bg-slate-800/50 rounded-full h-0.5 overflow-hidden">
                 <div
                   className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary-500 to-primary-400 rounded-full"
                   style={{ width: `${prediction.predictedProbability * 100}%` }}
@@ -157,12 +157,12 @@ const PredictionCard = memo(function PredictionCard({ prediction, eventName, sta
             </div>
             <div>
               <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[8px] text-gray-400">Mercado</span>
-                <span className="text-[10px] font-semibold text-gray-300">
+                <span className="text-[7px] text-gray-400">Mercado</span>
+                <span className="text-[9px] font-semibold text-gray-300">
                   {marketProb.toFixed(1)}%
                 </span>
               </div>
-              <div className="relative w-full bg-slate-800/50 rounded-full h-1 overflow-hidden">
+              <div className="relative w-full bg-slate-800/50 rounded-full h-0.5 overflow-hidden">
                 <div
                   className="absolute inset-y-0 left-0 bg-gradient-to-r from-gray-500 to-gray-400 rounded-full"
                   style={{ width: `${marketProb}%` }}
@@ -171,51 +171,51 @@ const PredictionCard = memo(function PredictionCard({ prediction, eventName, sta
             </div>
           </div>
 
-          {/* Value Difference - Inline compacto */}
+          {/* Value Difference - Inline ultra compacto */}
           {valueDiff !== 0 && (
-            <div className={`text-[8px] font-bold text-center ${valueDiff > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+            <div className={`text-[7px] font-bold text-center ${valueDiff > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
               {valueDiff > 0 ? '↑' : '↓'} {Math.abs(valueDiff).toFixed(1)}%
             </div>
           )}
         </div>
 
-        {/* Key Metrics - Ultra compacto */}
-        <div className="grid grid-cols-3 gap-1 mb-2">
+        {/* Key Metrics - Ultra compacto en una línea */}
+        <div className="grid grid-cols-3 gap-0.5 mb-1.5">
           <div className="bg-slate-900/50 rounded p-1 border border-slate-700/50">
-            <div className="text-[8px] text-gray-500 mb-0.5">Valor</div>
-            <div className={`text-[10px] font-black ${prediction.value > 10 ? 'text-emerald-400' : prediction.value > 5 ? 'text-green-400' : prediction.value > 0 ? 'text-yellow-400' : 'text-red-400'}`}>
+            <div className="text-[7px] text-gray-500 mb-0.5">Valor</div>
+            <div className={`text-[9px] font-black ${prediction.value > 10 ? 'text-emerald-400' : prediction.value > 5 ? 'text-green-400' : prediction.value > 0 ? 'text-yellow-400' : 'text-red-400'}`}>
               {prediction.value >= 0 ? '+' : ''}{prediction.value.toFixed(1)}%
             </div>
           </div>
           <div className="bg-slate-900/50 rounded p-1 border border-slate-700/50">
-            <div className="text-[8px] text-gray-500 mb-0.5">Conf.</div>
-            <div className={`text-[10px] font-black ${confLevel.color}`}>
+            <div className="text-[7px] text-gray-500 mb-0.5">Conf.</div>
+            <div className={`text-[9px] font-black ${confLevel.color}`}>
               {(prediction.confidence * 100).toFixed(0)}%
             </div>
           </div>
           <div className="bg-slate-900/50 rounded p-1 border border-slate-700/50">
-            <div className="text-[8px] text-gray-500 mb-0.5">Cuota</div>
-            <div className="text-[10px] font-black text-white">
+            <div className="text-[7px] text-gray-500 mb-0.5">Cuota</div>
+            <div className="text-[9px] font-black text-white">
               {prediction.marketOdds.toFixed(2)}
             </div>
           </div>
         </div>
 
-        {/* Expected Value - Ultra compacto inline */}
-        <div className="bg-gradient-to-r from-primary-500/10 to-primary-600/10 rounded p-1 border border-primary-500/30 mb-2">
+        {/* Expected Value - Ultra compacto en línea con métricas */}
+        <div className="bg-gradient-to-r from-primary-500/10 to-primary-600/10 rounded p-1 border border-primary-500/30 mb-1.5">
           <div className="flex items-center gap-1">
             {expectedValue > 10 ? (
-              <Icon name="rocket" size={12} className="text-emerald-400" />
+              <Icon name="rocket" size={10} className="text-emerald-400" />
             ) : expectedValue > 5 ? (
-              <Icon name="trending-up" size={12} className="text-green-400" />
+              <Icon name="trending-up" size={10} className="text-green-400" />
             ) : expectedValue > 0 ? (
-              <Icon name="arrow-up-right" size={12} className="text-yellow-400" />
+              <Icon name="arrow-up-right" size={10} className="text-yellow-400" />
             ) : (
-              <Icon name="trending-down" size={12} className="text-red-400" />
+              <Icon name="trending-down" size={10} className="text-red-400" />
             )}
             <div className="flex-1">
-              <div className="text-[8px] text-gray-400">EV</div>
-              <div className="text-xs font-black text-primary-400">
+              <div className="text-[7px] text-gray-400">EV</div>
+              <div className="text-[10px] font-black text-primary-400">
                 {expectedValue >= 0 ? '+' : ''}{expectedValue.toFixed(1)}%
               </div>
             </div>
@@ -226,10 +226,10 @@ const PredictionCard = memo(function PredictionCard({ prediction, eventName, sta
         {onViewDetails && (
           <button
             onClick={onViewDetails}
-            className="w-full py-1 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-md font-bold text-[9px] transition-all duration-200 hover:scale-[1.02] hover:shadow-sm hover:shadow-primary-500/20 flex items-center justify-center gap-1"
+            className="w-full py-0.5 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded font-bold text-[8px] transition-all duration-200 hover:scale-[1.02] hover:shadow-sm hover:shadow-primary-500/20 flex items-center justify-center gap-0.5"
           >
             <span>Ver Análisis</span>
-            <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
