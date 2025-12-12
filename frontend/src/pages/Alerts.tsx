@@ -82,7 +82,7 @@ export default function Alerts() {
           id: alert.id,
           type: 'value_bet' as const,
           title: 'Value Bet Detectado',
-          message: `${alert.event?.homeTeam || 'Equipo 1'} vs ${alert.event?.awayTeam || 'Equipo 2'} - ${alert.selection} @ ${alert.bookmakerOdds.toFixed(2)} (${alert.bookmakerPlatform})`,
+          message: `${alert.event?.homeTeam || 'Equipo 1'} vs ${alert.event?.awayTeam || 'Equipo 2'} - ${alert.selection} @ ${alert.bookmakerOdds.toFixed(2)}`,
           event: alert.event ? `${alert.event.homeTeam} vs ${alert.event.awayTeam}` : undefined,
           value: alert.valuePercentage,
           timestamp: alert.createdAt,

@@ -57,7 +57,7 @@ export default function OddsComparisonTable({ event, odds }: OddsComparisonTable
           <thead>
             <tr className="border-b border-primary-500/20">
               <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">
-                Plataforma
+                Fuente
               </th>
               <th className="text-center py-3 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">
                 1 (Local)
@@ -88,7 +88,7 @@ export default function OddsComparisonTable({ event, odds }: OddsComparisonTable
                   <td className="py-4 px-4">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 bg-primary-400 rounded-full"></div>
-                      <span className="text-white font-semibold">{odd.platform}</span>
+                      <span className="text-white font-semibold">Fuente {index + 1}</span>
                       <span className="text-xs text-gray-500 ml-auto">
                         {formatDistanceToNow(new Date(odd.lastUpdated), { addSuffix: true, locale: es })}
                       </span>

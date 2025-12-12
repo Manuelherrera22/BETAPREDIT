@@ -342,7 +342,6 @@ export default function Arbitrage() {
                               <span className="text-accent-400 font-bold">
                                 {sel?.odds ? sel.odds.toFixed(2) : 'N/A'}
                               </span>
-                              <span className="text-gray-500 text-xs ml-2">({sel?.bookmaker || 'N/A'})</span>
                             </div>
                           ))
                         : <span className="text-gray-400 text-sm">No hay selecciones disponibles</span>}

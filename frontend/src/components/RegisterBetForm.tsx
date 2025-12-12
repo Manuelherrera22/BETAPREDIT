@@ -14,18 +14,12 @@ interface RegisterBetFormProps {
 }
 
 const PLATFORMS = [
-  'Bet365',
-  'Betfair',
-  'Pinnacle',
-  'William Hill',
-  'DraftKings',
-  'FanDuel',
-  'BetMGM',
-  'Caesars',
-  'Unibet',
-  '888sport',
-  'Betway',
-  'BetVictor',
+  'Plataforma A',
+  'Plataforma B',
+  'Plataforma C',
+  'Plataforma D',
+  'Plataforma E',
+  'Plataforma F',
   'Otra',
 ]
 
