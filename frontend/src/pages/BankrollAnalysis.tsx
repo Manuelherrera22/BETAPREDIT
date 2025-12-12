@@ -1,9 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import StatsCard from '../components/StatsCard';
 import SimpleChart from '../components/SimpleChart';
 import { userStatisticsService, type UserStatistics } from '../services/userStatisticsService';
 import ValueBetCalculator from '../components/ValueBetCalculator';
+import Icon from '../components/icons/IconSystem';
 
 export default function BankrollAnalysis() {
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('month');

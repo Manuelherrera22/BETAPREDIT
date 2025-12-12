@@ -75,18 +75,11 @@ export default function ValueBetCalculator() {
     };
   }, [kellyStake, bookmakerOddsNum, trueProbNum, bankrollNum]);
 
-  // Ajustar Kelly Fraction según nivel de riesgo
-  const riskLevels = {
-    conservative: 0.25, // 25% Kelly (muy conservador)
-    moderate: 0.5,      // 50% Kelly (moderado)
-    aggressive: 0.75,   // 75% Kelly (agresivo)
-  };
-
   return (
     <div>
       <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500/30 to-accent-500/30 flex items-center justify-center border border-primary-500/40 shadow-lg">
-          <Icon name="calculator" size={20} className="text-primary-300" strokeWidth={2} />
+          <Icon name="chart" size={20} className="text-primary-300" strokeWidth={2} />
         </div>
         <div>
           <h3 className="text-xl sm:text-2xl font-black text-white">Calculadora de Value Bets</h3>

@@ -7,7 +7,6 @@ import { useState, useEffect } from 'react';
 import { arbitrageService, type ArbitrageOpportunity, type StakeCalculation } from '../services/arbitrageService';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useDebounce } from '../hooks/useDebounce';
-import GradientText from '../components/GradientText';
 import Icon from '../components/icons/IconSystem';
 
 export default function Arbitrage() {
@@ -185,7 +184,7 @@ export default function Arbitrage() {
         <div className="bg-slate-800/70 backdrop-blur-xl rounded-2xl p-5 sm:p-6 border-2 border-slate-700/50 shadow-xl mb-6">
           <div className="flex items-center gap-3 mb-5">
             <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30">
-              <Icon name="filter" size={16} className="text-emerald-300" />
+              <Icon name="settings" size={16} className="text-emerald-300" />
             </div>
             <h3 className="text-lg sm:text-xl font-black text-white">Filtros de Búsqueda</h3>
           </div>
@@ -230,7 +229,7 @@ export default function Arbitrage() {
                 onClick={fetchOpportunities}
                 className="w-full px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white rounded-lg font-black transition-all shadow-lg shadow-emerald-500/30 hover:scale-105 flex items-center justify-center gap-2"
               >
-                <Icon name="refresh" size={18} />
+                <Icon name="refresh-cw" size={18} />
                 Actualizar
               </button>
             </div>

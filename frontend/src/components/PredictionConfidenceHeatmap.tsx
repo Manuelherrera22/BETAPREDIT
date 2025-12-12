@@ -10,14 +10,6 @@ import { eventsService } from '../services/eventsService';
 import Icon from './icons/IconSystem';
 import { useNavigate } from 'react-router-dom';
 
-interface ConfidenceData {
-  sport: string;
-  league?: string;
-  avgConfidence: number;
-  predictionCount: number;
-  highConfidenceCount: number; // >70%
-}
-
 export default function PredictionConfidenceHeatmap() {
   const [selectedMarket, setSelectedMarket] = useState<string>('all');
   const navigate = useNavigate();

@@ -406,7 +406,7 @@ export default function Predictions() {
         <div className="bg-slate-800/70 backdrop-blur-xl rounded-2xl border-2 border-slate-700/50 p-5 sm:p-6 mb-6 sm:mb-8 shadow-xl">
           <div className="flex items-center gap-3 mb-5">
             <div className="w-8 h-8 rounded-lg bg-primary-500/20 flex items-center justify-center border border-primary-500/30">
-              <Icon name="filter" size={16} className="text-primary-300" />
+              <Icon name="settings" size={16} className="text-primary-300" />
             </div>
             <h3 className="text-lg sm:text-xl font-black text-white">Filtros y Opciones</h3>
           </div>
