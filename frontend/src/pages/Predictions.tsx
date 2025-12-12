@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { predictionsService } from '../services/predictionsService';
 import { eventsService } from '../services/eventsService';
 import { theOddsApiService } from '../services/theOddsApiService';
@@ -42,7 +43,14 @@ interface EventPrediction {
 }
 
 export default function Predictions() {
-  const [selectedSport, setSelectedSport] = useState<string>('all');
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Leer parámetros de la URL al cargar la página
+  const urlSport = searchParams.get('sport') || 'all';
+  const urlLeague = searchParams.get('league') || null;
+  
+  const [selectedSport, setSelectedSport] = useState<string>(urlSport);
+  const [selectedLeague, setSelectedLeague] = useState<string | null>(urlLeague);
   const [minConfidence, setMinConfidence] = useState<number>(0.0);
   const [minValue, setMinValue] = useState<number>(-0.1);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -57,6 +65,20 @@ export default function Predictions() {
     eventName: string;
     sport: string;
   } | null>(null);
+
+  // Sincronizar selectedSport con parámetros de URL cuando cambian
+  useEffect(() => {
+    const sportParam = searchParams.get('sport');
+    const leagueParam = searchParams.get('league');
+    
+    if (sportParam && sportParam !== selectedSport) {
+      setSelectedSport(sportParam);
+    }
+    
+    if (leagueParam !== selectedLeague) {
+      setSelectedLeague(leagueParam);
+    }
+  }, [searchParams, selectedSport, selectedLeague]);
 
   // Get available sports
   const { data: sports } = useQuery({
@@ -240,17 +262,67 @@ export default function Predictions() {
     enabled: true,
   });
 
-  // Filter and sort predictions - Memoizado
+  // Filter and sort predictions - Memoizado con filtro de league
   const filteredEvents = useMemo(() => {
     if (!eventsWithPredictions) return [];
     return eventsWithPredictions.filter((event) => {
+      // Filtrar por sport si está seleccionado
+      if (selectedSport !== 'all' && event.sport !== selectedSport) {
+        return false;
+      }
+      
+      // Filtrar por league si está seleccionado (usando metadata del evento)
+      if (selectedLeague) {
+        // Intentar obtener la liga del evento desde diferentes fuentes
+        const eventAny = event as any;
+        const eventLeague = eventAny.metadata?.league || 
+                           eventAny.league || 
+                           eventAny.event?.metadata?.league ||
+                           eventAny.event?.league ||
+                           eventAny.eventName?.match(/(EPL|La Liga|Serie A|Bundesliga|Ligue 1|Premier League|Premier|Championship)/i)?.[0];
+        
+        // Normalizar nombres de ligas para comparación
+        const normalizeLeague = (name: string) => {
+          if (!name) return '';
+          return name.toLowerCase()
+            .replace(/[^a-z0-9]/g, '')
+            .replace(/premierleague|premier/g, 'epl')
+            .replace(/laliga|spain/g, 'laliga')
+            .replace(/seriea|italy/g, 'seriea');
+        };
+        
+        const normalizedSelected = normalizeLeague(selectedLeague);
+        const normalizedEvent = normalizeLeague(eventLeague || '');
+        
+        // Comparar nombres normalizados
+        if (normalizedEvent && normalizedSelected && 
+            !normalizedEvent.includes(normalizedSelected) && 
+            !normalizedSelected.includes(normalizedEvent)) {
+          return false;
+        }
+        
+        // Si no se encontró league en el evento pero hay un filtro, intentar buscar en el nombre del evento
+        if (!eventLeague && normalizedSelected) {
+          const eventNameLower = (event.eventName || '').toLowerCase();
+          if (!eventNameLower.includes(normalizedSelected.replace(/epl|laliga|seriea/g, ''))) {
+            // Permitir pasar si el nombre del evento contiene palabras clave comunes
+            const commonKeywords = ['vs', 'match', 'game'];
+            const hasCommonKeywords = commonKeywords.some(kw => eventNameLower.includes(kw));
+            if (!hasCommonKeywords) {
+              return false;
+            }
+          }
+        }
+      }
+      
+      // Filtrar por confianza y valor
       return event.predictions.some(
         (pred) =>
           pred.confidence >= minConfidence &&
           pred.value >= minValue
       );
     });
-  }, [eventsWithPredictions, minConfidence, minValue]);
+  }, [eventsWithPredictions, minConfidence, minValue, selectedSport, selectedLeague]);
 
   // Sort events - Memoizado
   const sortedEvents = useMemo(() => {
@@ -416,7 +488,22 @@ export default function Predictions() {
               <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">Deporte</label>
               <select
                 value={selectedSport}
-                onChange={(e) => setSelectedSport(e.target.value)}
+                onChange={(e) => {
+                  setSelectedSport(e.target.value);
+                  // Actualizar URL cuando cambia el filtro
+                  const newParams = new URLSearchParams(searchParams);
+                  if (e.target.value === 'all') {
+                    newParams.delete('sport');
+                  } else {
+                    newParams.set('sport', e.target.value);
+                  }
+                  // Si cambia el sport, eliminar el filtro de league
+                  if (e.target.value !== selectedSport) {
+                    newParams.delete('league');
+                    setSelectedLeague(null);
+                  }
+                  setSearchParams(newParams);
+                }}
                 className="w-full px-3 py-2.5 bg-slate-900/80 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
               >
                 <option value="all">🌍 Todos los Deportes</option>
@@ -427,6 +514,26 @@ export default function Predictions() {
                 ))}
               </select>
             </div>
+            
+            {/* League Filter - Mostrar si hay league en URL o si está seleccionado un sport */}
+            {selectedLeague && (
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">
+                  Liga: <span className="text-primary-400 font-bold">{selectedLeague}</span>
+                </label>
+                <button
+                  onClick={() => {
+                    setSelectedLeague(null);
+                    const newParams = new URLSearchParams(searchParams);
+                    newParams.delete('league');
+                    setSearchParams(newParams);
+                  }}
+                  className="w-full px-3 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 rounded-lg text-red-300 text-sm font-semibold transition-all"
+                >
+                  Limpiar Filtro de Liga
+                </button>
+              </div>
+            )}
 
             {/* Confidence Filter */}
             <div>
@@ -796,7 +903,7 @@ export default function Predictions() {
               )
             )}
 
-            {/* Empty State */}
+            {/* Empty State - Mejorado con información de filtros */}
             {allPredictions.length === 0 && (
               <div className="bg-slate-800/70 backdrop-blur-xl rounded-3xl p-12 sm:p-20 border-2 border-slate-700/50 text-center shadow-2xl">
                 <div className="mb-8">
@@ -813,18 +920,39 @@ export default function Predictions() {
                   </div>
                 </div>
                 <h3 className="text-2xl sm:text-3xl font-black text-white mb-3 sm:mb-4">Mercado de Predicciones Vacío</h3>
-                <p className="text-gray-400 mb-6 sm:mb-8 max-w-md mx-auto text-base sm:text-lg">
-                  No hay predicciones que cumplan los filtros actuales. El sistema genera predicciones automáticamente para múltiples mercados (1X2, Over/Under, Both Teams to Score, etc.) cuando hay eventos próximos con odds disponibles.
+                <p className="text-gray-400 mb-4 max-w-md mx-auto text-base sm:text-lg">
+                  {selectedSport !== 'all' || selectedLeague ? (
+                    <>
+                      No se encontraron predicciones para{' '}
+                      {selectedSport !== 'all' && <span className="text-primary-400 font-bold">{selectedSport}</span>}
+                      {selectedSport !== 'all' && selectedLeague && ' en '}
+                      {selectedLeague && <span className="text-primary-400 font-bold">{selectedLeague}</span>}
+                      {' '}con los filtros actuales.
+                    </>
+                  ) : (
+                    'No hay predicciones que cumplan los filtros actuales. El sistema genera predicciones automáticamente para múltiples mercados (1X2, Over/Under, Both Teams to Score, etc.) cuando hay eventos próximos con odds disponibles.'
+                  )}
                 </p>
+                {(selectedSport !== 'all' || selectedLeague) && (
+                  <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg max-w-md mx-auto">
+                    <p className="text-sm text-amber-300">
+                      💡 <strong>Tip:</strong> Intenta ajustar los filtros de confianza y valor, o ver todas las predicciones sin filtros de deporte/liga.
+                    </p>
+                  </div>
+                )}
                 <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
                   <button
                     onClick={() => {
                       setMinConfidence(0);
                       setMinValue(-0.1);
+                      setSelectedSport('all');
+                      setSelectedLeague(null);
+                      const newParams = new URLSearchParams();
+                      setSearchParams(newParams);
                     }}
                     className="px-6 py-3 bg-slate-700/50 hover:bg-slate-700 text-white rounded-xl font-semibold text-sm transition-all border border-slate-600"
                   >
-                    Restablecer Filtros
+                    Restablecer Todos los Filtros
                   </button>
                   <button
                     onClick={() => generatePredictionsMutation.mutate()}
