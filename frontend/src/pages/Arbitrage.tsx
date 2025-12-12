@@ -20,6 +20,7 @@ export default function Arbitrage() {
     minProfitMargin: 0.01,
     sport: '',
   });
+  const [isOnline, setIsOnline] = useState(false);
 
   const { socket, connected } = useWebSocket();
 
@@ -97,11 +98,15 @@ export default function Arbitrage() {
         limit: 50,
       });
       // Ensure data is always an array
-      setOpportunities(Array.isArray(data) ? data : []);
+      const opportunitiesArray = Array.isArray(data) ? data : [];
+      setOpportunities(opportunitiesArray);
+      // Set online status if we got a response (even if empty)
+      setIsOnline(true);
     } catch (err: any) {
       console.error('Error fetching opportunities:', err);
       setError('Error al cargar oportunidades de arbitraje');
       setOpportunities([]); // Set empty array on error
+      setIsOnline(false);
     } finally {
       setLoading(false);
     }
@@ -172,9 +177,9 @@ export default function Arbitrage() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${connected ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`}></div>
+              <div className={`w-3 h-3 rounded-full ${(connected || isOnline) ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`}></div>
               <span className="text-sm text-gray-400 font-semibold">
-                {connected ? 'En tiempo real' : 'Offline'}
+                {(connected || isOnline) ? 'En línea' : 'Offline'}
               </span>
             </div>
           </div>
@@ -270,13 +275,15 @@ export default function Arbitrage() {
           <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-xl p-4 border-2 border-purple-500/30 shadow-lg">
             <div className="text-xs text-gray-400 mb-1 uppercase tracking-wide">Estado</div>
             <div className="flex items-center gap-2 mb-1">
-              <div className={`w-3 h-3 rounded-full ${connected ? 'bg-green-400 animate-pulse shadow-lg shadow-green-400/50' : 'bg-red-400'}`}></div>
+              <div className={`w-3 h-3 rounded-full ${(connected || isOnline) ? 'bg-green-400 animate-pulse shadow-lg shadow-green-400/50' : 'bg-red-400'}`}></div>
               <div className="text-xl sm:text-2xl font-black text-white">
-                {connected ? 'En Vivo' : 'Offline'}
+                {(connected || isOnline) ? 'En línea' : 'Offline'}
               </div>
             </div>
-            {connected && (
-              <div className="text-xs text-green-400 font-semibold">Actualización en tiempo real</div>
+            {(connected || isOnline) && (
+              <div className="text-xs text-green-400 font-semibold">
+                {connected ? 'Actualización en tiempo real' : 'Sistema operativo'}
+              </div>
             )}
           </div>
         </div>
