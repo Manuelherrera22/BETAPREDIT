@@ -298,7 +298,10 @@ export default function Predictions() {
   const filteredEvents = useMemo(() => {
     if (!eventsWithPredictions) return [];
     
-    console.log(`Filtering ${eventsWithPredictions.length} events with sport="${selectedSport}", league="${selectedLeague}"`);
+    console.log(`\n=== FILTRANDO PREDICCIONES ===`);
+    console.log(`Total eventos: ${eventsWithPredictions.length}`);
+    console.log(`Filtros: sport="${selectedSport}", league="${selectedLeague}"`);
+    console.log(`Min confidence: ${minConfidence}, Min value: ${minValue}`);
     
     const filtered = eventsWithPredictions.filter((event) => {
       // Filtrar por sport si está seleccionado - comparación flexible
@@ -328,102 +331,76 @@ export default function Predictions() {
         }
       }
       
-      // Filtrar por league si está seleccionado - USAR EXACTAMENTE LA MISMA LÓGICA QUE EL HEATMAP
+      // Filtrar por league si está seleccionado - MUY PERMISIVO
+      // Si el heatmap muestra predicciones para una liga, esos eventos DEBEN aparecer
       if (selectedLeague) {
         const eventAny = event as any;
         
-        // IMPORTANTE: Usar EXACTAMENTE la misma lógica que el heatmap (línea 65 del heatmap)
-        // const leagueName = event.metadata?.league || event.sport?.name || sportName;
+        // Usar la misma lógica que el heatmap
         const sportName = event.sport || 'Unknown';
-        const eventLeagueName = eventAny.metadata?.league || eventAny.league || eventAny.event?.metadata?.league || eventAny.event?.league || eventAny.sport?.name || sportName;
+        const eventLeagueName = eventAny.metadata?.league || 
+                               eventAny.league || 
+                               eventAny.event?.metadata?.league || 
+                               eventAny.event?.league || 
+                               eventAny.sport?.name || 
+                               sportName;
         
-        console.log(`Checking league filter for event ${event.eventId}:`);
-        console.log(`  - selectedLeague: "${selectedLeague}"`);
-        console.log(`  - eventLeagueName (heatmap logic): "${eventLeagueName}"`);
-        console.log(`  - event.metadata?.league: "${eventAny.metadata?.league}"`);
-        console.log(`  - event.sport: "${event.sport}"`);
+        const homeTeam = (event.homeTeam || '').toLowerCase();
+        const awayTeam = (event.awayTeam || '').toLowerCase();
+        const selectedLeagueLower = selectedLeague.toLowerCase();
+        const eventLeagueLower = (eventLeagueName || '').toLowerCase();
         
-        // Normalizar nombres de ligas para comparación
-        const normalizeLeague = (name: string) => {
+        // Normalizar para comparación
+        const normalize = (name: string) => {
           if (!name) return '';
-          const normalized = name.toLowerCase()
+          return name.toLowerCase()
             .replace(/[^a-z0-9]/g, '')
             .replace(/premierleague|premier|englishpremierleague|englishpremier|english/g, 'epl')
             .replace(/laliga|spain|spanishlaliga|spanish/g, 'laliga')
-            .replace(/seriea|italy|italianseriea|italian/g, 'seriea')
-            .replace(/bundesliga|germany|germanbundesliga|german/g, 'bundesliga')
-            .replace(/ligue1|france|frenchligue1|french/g, 'ligue1');
-          
-          if (name.toUpperCase() === 'EPL' || name.toLowerCase() === 'epl') {
-            return 'epl';
-          }
-          
-          return normalized;
+            .replace(/seriea|italy|italianseriea|italian/g, 'seriea');
         };
         
-        const normalizedSelected = normalizeLeague(selectedLeague);
-        const normalizedEvent = normalizeLeague(eventLeagueName || '');
+        const normalizedSelected = normalize(selectedLeague);
+        const normalizedEvent = normalize(eventLeagueName);
         
-        // También buscar en nombres de equipos para detectar ligas por equipos conocidos
-        const homeTeam = (event.homeTeam || '').toLowerCase();
-        const awayTeam = (event.awayTeam || '').toLowerCase();
-        const eventName = (event.eventName || '').toLowerCase();
-        const fullText = `${eventName} ${homeTeam} ${awayTeam}`.toLowerCase();
-        const fullTextNormalized = normalizeLeague(fullText);
+        // Equipos conocidos por liga
+        const eplTeams = ['manchester', 'liverpool', 'chelsea', 'arsenal', 'tottenham', 'city', 'united', 'everton', 'newcastle', 'brighton', 'crystal', 'wolves', 'villa', 'leicester', 'southampton', 'burnley', 'watford', 'norwich', 'brentford', 'fulham', 'bournemouth'];
+        const laligaTeams = ['real madrid', 'barcelona', 'atletico', 'sevilla', 'valencia', 'villarreal', 'sociedad', 'athletic', 'betis', 'espanyol', 'getafe', 'celta', 'levante', 'granada'];
+        const serieaTeams = ['juventus', 'inter', 'milan', 'napoli', 'roma', 'atalanta', 'lazio', 'fiorentina', 'torino', 'sampdoria', 'udinese', 'bologna', 'verona', 'sassuolo'];
         
-        // Lista de equipos conocidos por liga
-        const leagueTeams: Record<string, string[]> = {
-          'epl': ['manchester', 'liverpool', 'chelsea', 'arsenal', 'tottenham', 'city', 'united', 'everton', 'newcastle', 'brighton', 'west ham', 'crystal palace', 'wolves', 'aston villa', 'leicester', 'southampton', 'burnley', 'watford', 'norwich', 'brentford'],
-          'laliga': ['real madrid', 'barcelona', 'atletico', 'sevilla', 'valencia', 'villarreal', 'real sociedad', 'athletic', 'betis', 'espanyol', 'getafe', 'celta', 'levante', 'granada', 'osasuna'],
-          'seriea': ['juventus', 'inter', 'milan', 'napoli', 'roma', 'atalanta', 'lazio', 'fiorentina', 'torino', 'sampdoria', 'udinese', 'bologna', 'verona', 'sassuolo', 'empoli'],
-        };
+        // Múltiples formas de verificar coincidencia
+        const exactMatch = eventLeagueLower === selectedLeagueLower ||
+                          eventLeagueLower.includes(selectedLeagueLower) ||
+                          selectedLeagueLower.includes(eventLeagueLower);
         
-        // Detectar liga por equipos si el nombre normalizado coincide
-        let detectedByTeams = false;
-        if (normalizedSelected === 'epl' || normalizedSelected === 'laliga' || normalizedSelected === 'seriea') {
-          const teams = leagueTeams[normalizedSelected] || [];
-          detectedByTeams = teams.some(team => 
-            homeTeam.includes(team) || 
-            awayTeam.includes(team) || 
-            fullText.includes(team)
-          );
-        }
+        const normalizedMatch = normalizedEvent === normalizedSelected ||
+                               normalizedEvent.includes(normalizedSelected) ||
+                               normalizedSelected.includes(normalizedEvent);
         
-        // Comparar nombres normalizados - más permisivo
-        const leagueMatches = 
-          // Coincidencia exacta (sin normalizar)
-          (eventLeagueName && selectedLeague && 
-           (eventLeagueName.toLowerCase() === selectedLeague.toLowerCase() ||
-            eventLeagueName.toLowerCase().includes(selectedLeague.toLowerCase()) ||
-            selectedLeague.toLowerCase().includes(eventLeagueName.toLowerCase()))) ||
-          // Coincidencia normalizada
-          (normalizedEvent && normalizedSelected && 
-           (normalizedEvent === normalizedSelected ||
-            normalizedEvent.includes(normalizedSelected) || 
-            normalizedSelected.includes(normalizedEvent))) ||
-          // Buscar en texto completo
-          (fullTextNormalized && normalizedSelected &&
-           (fullTextNormalized.includes(normalizedSelected) ||
-            normalizedSelected.includes(fullTextNormalized))) ||
-          // Detección por equipos conocidos
-          detectedByTeams ||
-          // Casos especiales para EPL
-          (selectedLeague.toUpperCase() === 'EPL' && 
-           (normalizedEvent === 'epl' || 
-            eventLeagueName?.toUpperCase().includes('PREMIER') ||
-            eventLeagueName?.toUpperCase().includes('EPL')));
+        const teamMatch = 
+          (normalizedSelected === 'epl' && eplTeams.some(t => homeTeam.includes(t) || awayTeam.includes(t))) ||
+          (normalizedSelected === 'laliga' && laligaTeams.some(t => homeTeam.includes(t) || awayTeam.includes(t))) ||
+          (normalizedSelected === 'seriea' && serieaTeams.some(t => homeTeam.includes(t) || awayTeam.includes(t)));
+        
+        // Si el heatmap mostró predicciones para esta liga, ser MUY permisivo
+        // Si el sport coincide y es football/soccer, probablemente es de esa liga
+        const sportMatch = selectedSport !== 'all' && 
+                          (event.sport?.toLowerCase().includes('football') || 
+                           event.sport?.toLowerCase().includes('soccer')) &&
+                          (selectedSport.toLowerCase().includes('football') || 
+                           selectedSport.toLowerCase().includes('soccer'));
+        
+        const leagueMatches = exactMatch || normalizedMatch || teamMatch || 
+                             // Si no hay metadata.league específica y el sport coincide, permitir
+                             (sportMatch && !eventAny.metadata?.league && normalizedSelected !== '');
         
         if (!leagueMatches) {
-          console.log(`✗ Event ${event.eventId} filtered out: league "${eventLeagueName}" !== "${selectedLeague}"`);
-          console.log(`  - Normalized: "${normalizedEvent}" vs "${normalizedSelected}"`);
+          console.log(`✗ Event ${event.eventId} filtered: "${eventLeagueName}" !== "${selectedLeague}"`);
           console.log(`  - Teams: ${homeTeam} vs ${awayTeam}`);
+          console.log(`  - Normalized: "${normalizedEvent}" vs "${normalizedSelected}"`);
           return false;
         } else {
-          console.log(`✓ Event ${event.eventId} MATCHES league filter: "${eventLeagueName}" matches "${selectedLeague}"`);
-          console.log(`  - Has ${event.predictions.length} predictions`);
-          if (detectedByTeams) {
-            console.log(`  - Detected by team names`);
-          }
+          console.log(`✓ Event ${event.eventId} MATCHES: "${eventLeagueName}" (${event.predictions.length} preds)`);
         }
       }
       
