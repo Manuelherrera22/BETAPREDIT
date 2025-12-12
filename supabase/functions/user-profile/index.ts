@@ -56,25 +56,59 @@ serve(async (req) => {
 
     // Handle GET request - Get profile
     if (req.method === 'GET') {
-      const { data: profile, error } = await supabase
+      let { data: profile, error } = await supabase
         .from('User')
         .select('id, email, firstName, lastName, phone, dateOfBirth, avatar, timezone, preferredCurrency, preferredMode, subscriptionTier, createdAt')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
-      if (error) {
-        // If user not found, return 404, otherwise return 500
-        const status = error.code === 'PGRST116' ? 404 : 500;
+      // If user doesn't exist in User table, create it from auth user
+      if ((error && error.code === 'PGRST116') || !profile) {
+        // User not found in User table, create it
+        const userData: any = {
+          id: userId,
+          email: user.email || '',
+          firstName: user.user_metadata?.first_name || user.user_metadata?.firstName || null,
+          lastName: user.user_metadata?.last_name || user.user_metadata?.lastName || null,
+          passwordHash: null, // No password needed for OAuth users
+          provider: user.app_metadata?.provider || 'supabase',
+          verified: user.email_confirmed_at ? true : false,
+          preferredMode: 'pro', // Default to pro mode
+          preferredCurrency: 'USD', // Default currency
+          subscriptionTier: 'FREE', // Default tier
+        };
+
+        // Add avatar if available
+        if (user.user_metadata?.avatar_url || user.user_metadata?.picture) {
+          userData.avatar = user.user_metadata?.avatar_url || user.user_metadata?.picture;
+        }
+
+        const { data: newUser, error: createError } = await supabase
+          .from('User')
+          .insert(userData)
+          .select('id, email, firstName, lastName, phone, dateOfBirth, avatar, timezone, preferredCurrency, preferredMode, subscriptionTier, createdAt')
+          .single();
+
+        if (createError) {
+          console.error('Error creating user:', createError);
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: { message: `Failed to create user profile: ${createError.message}` }
+            }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        profile = newUser;
+      } else if (error) {
+        // Other error
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: { 
-              message: error.code === 'PGRST116' 
-                ? 'User profile not found' 
-                : error.message 
-            } 
+            error: { message: error.message }
           }),
-          { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
@@ -115,6 +149,53 @@ serve(async (req) => {
       if (preferredCurrency !== undefined) updateData.preferredCurrency = preferredCurrency;
       if (preferredMode !== undefined) updateData.preferredMode = preferredMode;
 
+      // First check if user exists, if not create it
+      const { data: existingUser } = await supabase
+        .from('User')
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (!existingUser) {
+        // User doesn't exist, create it first
+        const userData: any = {
+          id: userId,
+          email: user.email || '',
+          firstName: user.user_metadata?.first_name || user.user_metadata?.firstName || null,
+          lastName: user.user_metadata?.last_name || user.user_metadata?.lastName || null,
+          passwordHash: null,
+          provider: user.app_metadata?.provider || 'supabase',
+          verified: user.email_confirmed_at ? true : false,
+          preferredMode: 'pro',
+          preferredCurrency: 'USD',
+          subscriptionTier: 'FREE',
+          ...updateData, // Merge with update data
+        };
+
+        if (user.user_metadata?.avatar_url || user.user_metadata?.picture) {
+          userData.avatar = user.user_metadata?.avatar_url || user.user_metadata?.picture;
+        }
+
+        const { data: newUser, error: createError } = await supabase
+          .from('User')
+          .insert(userData)
+          .select('id, email, firstName, lastName, phone, dateOfBirth, avatar, timezone, preferredCurrency, preferredMode, subscriptionTier, createdAt')
+          .single();
+
+        if (createError) {
+          return new Response(
+            JSON.stringify({ success: false, error: { message: `Failed to create user profile: ${createError.message}` } }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        return new Response(
+          JSON.stringify({ success: true, data: newUser }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // User exists, update it
       const { data: updatedProfile, error } = await supabase
         .from('User')
         .update(updateData)
