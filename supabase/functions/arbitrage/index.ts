@@ -163,30 +163,15 @@ serve(async (req) => {
     // GET /arbitrage/opportunities - Get all active opportunities
     if (req.method === 'GET' && action === 'opportunities') {
       const minProfitMargin = parseFloat(url.searchParams.get('minProfitMargin') || '0.01');
-      const sport = url.searchParams.get('sport') || 'soccer_epl';
+      const sportParam = url.searchParams.get('sport') || '';
       const limit = parseInt(url.searchParams.get('limit') || '50');
 
       // Get events with odds from database
       const now = new Date();
       const maxTime = new Date(now.getTime() + 48 * 60 * 60 * 1000);
 
-      // Find sport
-      const { data: sportData } = await supabase
-        .from('Sport')
-        .select('id')
-        .eq('slug', sport)
-        .eq('isActive', true)
-        .single();
-
-      if (!sportData) {
-        return new Response(
-          JSON.stringify({ success: true, data: [], count: 0 }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Get events with markets and odds
-      const { data: events, error: eventsError } = await supabase
+      // Build query for events
+      let eventsQuery = supabase
         .from('Event')
         .select(`
           id,
@@ -194,18 +179,41 @@ serve(async (req) => {
           homeTeam,
           awayTeam,
           startTime,
+          sportId,
           sport:Sport (
+            id,
             name,
             slug
           )
         `)
-        .eq('sportId', sportData.id)
         .eq('status', 'SCHEDULED')
         .eq('isActive', true)
         .gte('startTime', now.toISOString())
         .lte('startTime', maxTime.toISOString())
-        .limit(limit)
+        .limit(limit * 2) // Get more events to have better chances of finding opportunities
         .order('startTime', { ascending: true });
+
+      // Filter by sport if specified
+      if (sportParam && sportParam.trim() !== '') {
+        // Find sport
+        const { data: sportData } = await supabase
+          .from('Sport')
+          .select('id')
+          .eq('slug', sportParam)
+          .eq('isActive', true)
+          .single();
+
+        if (!sportData) {
+          return new Response(
+            JSON.stringify({ success: true, data: [], count: 0 }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        eventsQuery = eventsQuery.eq('sportId', sportData.id);
+      }
+
+      const { data: events, error: eventsError } = await eventsQuery;
 
       if (eventsError) {
         console.error('Error fetching events:', eventsError);
@@ -262,7 +270,7 @@ serve(async (req) => {
         const comparisons: Record<string, Array<{ bookmaker: string; odds: number }>> = {};
         
         (market.odds as any[]).forEach((odd: any) => {
-          if (!odd.isActive) return;
+          if (!odd.isActive || !odd.decimal || odd.decimal <= 0) return;
           if (!comparisons[odd.selection]) {
             comparisons[odd.selection] = [];
           }
@@ -271,6 +279,27 @@ serve(async (req) => {
             odds: odd.decimal,
           });
         });
+
+        // Need at least 2 different selections with odds from different bookmakers for arbitrage
+        const selectionKeys = Object.keys(comparisons);
+        if (selectionKeys.length < 2) {
+          continue; // Need at least 2 outcomes for arbitrage
+        }
+
+        // Check if we have odds from different bookmakers
+        const hasMultipleBookmakers = selectionKeys.some(sel => 
+          comparisons[sel].length > 1 || 
+          selectionKeys.some(otherSel => 
+            otherSel !== sel && 
+            comparisons[sel].some(o1 => 
+              comparisons[otherSel].some(o2 => o1.bookmaker !== o2.bookmaker)
+            )
+          )
+        );
+
+        if (!hasMultipleBookmakers) {
+          continue; // Need odds from different bookmakers
+        }
 
         // Find arbitrage combinations
         const combinations = findArbitrageCombinations(comparisons, minProfitMargin);
