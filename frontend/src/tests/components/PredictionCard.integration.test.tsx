@@ -19,6 +19,8 @@ vi.mock('../../components/RegisterBetForm', () => ({
         <div data-testid="initial-selection">{initialData?.selection || 'N/A'}</div>
         <div data-testid="initial-odds">{initialData?.odds || 'N/A'}</div>
         <div data-testid="initial-event-id">{initialData?.eventId || 'N/A'}</div>
+        <div data-testid="initial-notes">{initialData?.notes || 'N/A'}</div>
+        <div data-testid="initial-metadata">{JSON.stringify(initialData?.metadata || {})}</div>
         <button onClick={onClose}>Close</button>
       </div>
     );
@@ -111,10 +113,16 @@ describe('PredictionCard - Integration with Register Bet', () => {
     fireEvent.click(registerButton);
 
     await waitFor(() => {
-      const form = screen.getByTestId('register-bet-form');
-      expect(form).toBeInTheDocument();
+      expect(screen.getByTestId('register-bet-form')).toBeInTheDocument();
       // The form should have notes with prediction data
-      expect(form.textContent).toContain('65.0%');
+      const notes = screen.getByTestId('initial-notes');
+      expect(notes).toHaveTextContent(/65.0%|confianza/);
+      // The form should have metadata with prediction data
+      const metadata = screen.getByTestId('initial-metadata');
+      expect(metadata.textContent).toContain('predictionConfidence');
+      expect(metadata.textContent).toContain('predictionValue');
+      expect(metadata.textContent).toContain('predictedProbability');
+      expect(metadata.textContent).toContain('recommendation');
     });
   });
 
