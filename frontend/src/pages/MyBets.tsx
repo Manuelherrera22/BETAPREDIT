@@ -291,7 +291,7 @@ export default function MyBets() {
                 type="text"
                 value={filters.search}
                 onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                placeholder="Buscar por evento, selección, plataforma..."
+                placeholder="Buscar por evento, selección..."
                 className="w-full px-4 py-3 pl-10 bg-dark-800 border border-primary-500/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-500/20"
               />
               <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -311,17 +311,13 @@ export default function MyBets() {
               className="w-full px-4 py-3 bg-dark-800 border border-primary-500/30 rounded-lg text-white focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-500/20"
             >
               <option value="all">Todas</option>
-              <option value="Bet365">Bet365</option>
-              <option value="Betfair">Betfair</option>
-              <option value="Pinnacle">Pinnacle</option>
-              <option value="William Hill">William Hill</option>
-              <option value="DraftKings">DraftKings</option>
-              <option value="FanDuel">FanDuel</option>
-              <option value="BetMGM">BetMGM</option>
-              <option value="Caesars">Caesars</option>
-              <option value="Unibet">Unibet</option>
-              <option value="888sport">888sport</option>
-              <option value="Betway">Betway</option>
+              <option value="Plataforma A">Plataforma A</option>
+              <option value="Plataforma B">Plataforma B</option>
+              <option value="Plataforma C">Plataforma C</option>
+              <option value="Plataforma D">Plataforma D</option>
+              <option value="Plataforma E">Plataforma E</option>
+              <option value="Plataforma F">Plataforma F</option>
+              <option value="Otra">Otra</option>
             </select>
           </div>
           
@@ -412,7 +408,7 @@ export default function MyBets() {
                         : bet.selection}
                     </h3>
                     <p className="text-gray-400 mb-1">
-                      {bet.selection} @ {bet.odds.toFixed(2)} en {bet.platform}
+                      {bet.selection} @ {bet.odds.toFixed(2)}
                     </p>
                     <p className="text-sm text-gray-500">
                       {format(new Date(bet.betPlacedAt), 'dd MMM yyyy, HH:mm', { locale: es })}
