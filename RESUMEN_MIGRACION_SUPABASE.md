@@ -1,7 +1,7 @@
 # ✅ Resumen de Migración a Supabase - Estado Actual
 
 **Fecha:** 12 de Diciembre, 2025  
-**Estado:** 6 de 14 servicios migrados (43% completado)  
+**Estado:** 7 de 14 servicios migrados (50% completado)  
 **WebSocket → Realtime:** ✅ Migrado
 
 ---
@@ -17,6 +17,7 @@
 | **ROI Tracking** | `roi-tracking` | ✅ ACTIVE | 1 | 2025-12-12 12:04:11 |
 | **Value Bet Detection** | `value-bet-detection` | ✅ ACTIVE | 1 | 2025-12-12 12:05:51 |
 | **Arbitrage** | `arbitrage` | ✅ ACTIVE | 1 | 2025-12-12 12:09:13 |
+| **Value Bet Analytics** | `value-bet-analytics` | ✅ ACTIVE | 1 | 2025-12-12 12:20:00 |
 
 ### ✅ WebSocket → Supabase Realtime
 
@@ -60,6 +61,12 @@
 - ✅ GET `/arbitrage/opportunities`
 - ✅ GET `/arbitrage/event/:eventId`
 - ✅ POST `/arbitrage/calculate-stakes`
+
+#### Value Bet Analytics
+- ✅ GET `/value-bet-analytics`
+- ✅ GET `/value-bet-analytics/top`
+- ✅ GET `/value-bet-analytics/trends`
+- ✅ POST `/value-bet-analytics/track/:alertId`
 
 ---
 
@@ -129,15 +136,15 @@ Sin necesidad de backend local, estas funcionalidades están **100% operativas**
 ## 📊 Progreso de Migración
 
 ```
-✅ Completado: 6/14 servicios (43%)
+✅ Completado: 7/14 servicios (50%)
 ⚠️  En progreso: 0/14 servicios (0%)
-❌ Pendiente: 8/14 servicios (57%)
+❌ Pendiente: 7/14 servicios (50%)
 ```
 
 ### Por Prioridad
 
 - **Crítico:** 1/1 completado (100%) ✅
-- **Importante:** 4/5 completado (80%)
+- **Importante:** 5/5 completado (100%) ✅
 - **Normal:** 1/8 completado (12.5%)
 
 ---
@@ -243,7 +250,7 @@ Ver `CONFIGURAR_REALTIME_SUPABASE.md` para instrucciones detalladas.
 
 ## 🎉 Logros
 
-- ✅ **6 servicios críticos migrados**
+- ✅ **7 servicios críticos migrados**
 - ✅ **15+ endpoints funcionando en producción**
 - ✅ **100% de las funcionalidades core operativas sin backend local**
 - ✅ **Todas las Edge Functions desplegadas y verificadas**

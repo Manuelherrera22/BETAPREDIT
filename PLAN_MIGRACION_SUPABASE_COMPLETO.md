@@ -81,11 +81,11 @@
 
 ### 🟡 IMPORTANTE - Servicios que AÚN usan Backend Local
 
-1. **Value Bet Analytics** ❌
-   - **Backend Route:** `/api/value-bet-analytics/*`
-   - **Frontend Service:** `valueBetAnalyticsService.ts` → Usa `api.get`
-   - **Estado:** ❌ Usa backend local
-   - **Acción:** Crear Edge Function `value-bet-analytics`
+1. **Value Bet Analytics** ✅
+   - **Edge Function:** `supabase/functions/value-bet-analytics/index.ts`
+   - **Frontend Service:** `valueBetAnalyticsService.ts` → Usa Edge Function en producción
+   - **Estado:** ✅ Migrado y desplegado
+   - **URL:** `https://mdjzqxhjbisnlfpbjfgb.supabase.co/functions/v1/value-bet-analytics`
 
 6. **Predictions** ⚠️
    - **Backend Route:** `/api/predictions/*`
@@ -195,14 +195,18 @@
 - [x] Actualizar `frontend/src/services/valueBetDetectionService.ts`
 - [x] Desplegado a producción
 
-#### 5. Value Bet Analytics ⚠️ **PENDIENTE**
-**Tareas:**
-- [ ] Crear `supabase/functions/value-bet-analytics/index.ts`
-- [ ] Migrar endpoints de analytics
-- [ ] Actualizar `frontend/src/services/valueBetAnalyticsService.ts`
-- [ ] Probar en producción
+#### 5. Value Bet Analytics ✅ **COMPLETADO**
+**Estado:** ✅ Migrado y desplegado
 
-**Tiempo estimado:** 2 horas
+**Tareas completadas:**
+- [x] Crear `supabase/functions/value-bet-analytics/index.ts`
+- [x] Migrar endpoints:
+  - GET `/value-bet-analytics`
+  - GET `/value-bet-analytics/top`
+  - GET `/value-bet-analytics/trends`
+  - POST `/value-bet-analytics/track/:alertId`
+- [x] Crear `frontend/src/services/valueBetAnalyticsService.ts`
+- [x] Desplegado a producción
 
 ---
 
