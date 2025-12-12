@@ -294,22 +294,23 @@ export default function Predictions() {
     enabled: true,
   });
 
-  // Filter and sort predictions - Memoizado con filtro de league mejorado
+  // Filter and sort predictions - SIMPLIFICADO: Solo filtrar por league cuando hay filtro de league
   const filteredEvents = useMemo(() => {
     if (!eventsWithPredictions) return [];
     
     console.log(`\n=== FILTRANDO PREDICCIONES ===`);
     console.log(`Total eventos: ${eventsWithPredictions.length}`);
     console.log(`Filtros: sport="${selectedSport}", league="${selectedLeague}"`);
-    console.log(`Min confidence: ${minConfidence}, Min value: ${minValue}`);
+    
+    // Si hay filtro de league, IGNORAR filtros de confianza/valor (mostrar todas las predicciones)
+    const useStrictFilters = !selectedLeague;
     
     const filtered = eventsWithPredictions.filter((event) => {
-      // Filtrar por sport si está seleccionado - comparación flexible
+      // Filtrar por sport si está seleccionado
       if (selectedSport !== 'all') {
         const eventSport = (event.sport || '').toLowerCase().trim();
         const selectedSportLower = selectedSport.toLowerCase().trim();
         
-        // Mapeo de nombres comunes de deportes (más completo)
         const sportMappings: Record<string, string[]> = {
           'football': ['football', 'soccer', 'futbol', 'fútbol'],
           'soccer': ['football', 'soccer', 'futbol', 'fútbol'],
@@ -318,7 +319,6 @@ export default function Predictions() {
           'baseball': ['baseball', 'beisbol', 'béisbol'],
         };
         
-        // Verificar coincidencia directa o mediante mapeo
         const sportMatches = eventSport === selectedSportLower || 
                             eventSport.includes(selectedSportLower) ||
                             selectedSportLower.includes(eventSport) ||
@@ -326,17 +326,15 @@ export default function Predictions() {
                             sportMappings[eventSport]?.includes(selectedSportLower);
         
         if (!sportMatches) {
-          console.log(`Event ${event.eventId} filtered out: sport "${eventSport}" !== "${selectedSportLower}"`);
           return false;
         }
       }
       
-      // Filtrar por league si está seleccionado - MUY PERMISIVO
-      // Si el heatmap muestra predicciones para una liga, esos eventos DEBEN aparecer
+      // Filtrar por league si está seleccionado - SIMPLE Y DIRECTO
       if (selectedLeague) {
         const eventAny = event as any;
         
-        // Usar la misma lógica que el heatmap
+        // Usar EXACTAMENTE la misma lógica que el heatmap
         const sportName = event.sport || 'Unknown';
         const eventLeagueName = eventAny.metadata?.league || 
                                eventAny.league || 
@@ -350,7 +348,7 @@ export default function Predictions() {
         const selectedLeagueLower = selectedLeague.toLowerCase();
         const eventLeagueLower = (eventLeagueName || '').toLowerCase();
         
-        // Normalizar para comparación
+        // Normalizar nombres
         const normalize = (name: string) => {
           if (!name) return '';
           return name.toLowerCase()
@@ -363,12 +361,12 @@ export default function Predictions() {
         const normalizedSelected = normalize(selectedLeague);
         const normalizedEvent = normalize(eventLeagueName);
         
-        // Equipos conocidos por liga
-        const eplTeams = ['manchester', 'liverpool', 'chelsea', 'arsenal', 'tottenham', 'city', 'united', 'everton', 'newcastle', 'brighton', 'crystal', 'wolves', 'villa', 'leicester', 'southampton', 'burnley', 'watford', 'norwich', 'brentford', 'fulham', 'bournemouth'];
-        const laligaTeams = ['real madrid', 'barcelona', 'atletico', 'sevilla', 'valencia', 'villarreal', 'sociedad', 'athletic', 'betis', 'espanyol', 'getafe', 'celta', 'levante', 'granada'];
-        const serieaTeams = ['juventus', 'inter', 'milan', 'napoli', 'roma', 'atalanta', 'lazio', 'fiorentina', 'torino', 'sampdoria', 'udinese', 'bologna', 'verona', 'sassuolo'];
+        // Equipos conocidos
+        const eplTeams = ['manchester', 'liverpool', 'chelsea', 'arsenal', 'tottenham', 'city', 'united', 'everton', 'newcastle', 'brighton', 'crystal', 'wolves', 'villa', 'leicester', 'southampton', 'burnley', 'watford', 'norwich', 'brentford', 'fulham', 'bournemouth', 'west ham', 'palace'];
+        const laligaTeams = ['real madrid', 'barcelona', 'atletico', 'sevilla', 'valencia', 'villarreal', 'sociedad', 'athletic', 'betis', 'espanyol', 'getafe', 'celta', 'levante', 'granada', 'osasuna', 'mallorca'];
+        const serieaTeams = ['juventus', 'inter', 'milan', 'napoli', 'roma', 'atalanta', 'lazio', 'fiorentina', 'torino', 'sampdoria', 'udinese', 'bologna', 'verona', 'sassuolo', 'empoli', 'salernitana'];
         
-        // Múltiples formas de verificar coincidencia
+        // Verificar coincidencia
         const exactMatch = eventLeagueLower === selectedLeagueLower ||
                           eventLeagueLower.includes(selectedLeagueLower) ||
                           selectedLeagueLower.includes(eventLeagueLower);
@@ -382,57 +380,34 @@ export default function Predictions() {
           (normalizedSelected === 'laliga' && laligaTeams.some(t => homeTeam.includes(t) || awayTeam.includes(t))) ||
           (normalizedSelected === 'seriea' && serieaTeams.some(t => homeTeam.includes(t) || awayTeam.includes(t)));
         
-        // Si el heatmap mostró predicciones para esta liga, ser MUY permisivo
-        // Si el sport coincide y es football/soccer, probablemente es de esa liga
-        const sportMatch = selectedSport !== 'all' && 
-                          (event.sport?.toLowerCase().includes('football') || 
-                           event.sport?.toLowerCase().includes('soccer')) &&
-                          (selectedSport.toLowerCase().includes('football') || 
-                           selectedSport.toLowerCase().includes('soccer'));
+        // Si no hay metadata.league y el sport es football, permitir si los equipos coinciden
+        const noSpecificLeague = !eventAny.metadata?.league && !eventAny.league;
+        const sportIsFootball = (event.sport || '').toLowerCase().includes('football') || 
+                               (event.sport || '').toLowerCase().includes('soccer');
+        const allowBySport = noSpecificLeague && sportIsFootball && teamMatch;
         
-        const leagueMatches = exactMatch || normalizedMatch || teamMatch || 
-                             // Si no hay metadata.league específica y el sport coincide, permitir
-                             (sportMatch && !eventAny.metadata?.league && normalizedSelected !== '');
+        const leagueMatches = exactMatch || normalizedMatch || teamMatch || allowBySport;
         
         if (!leagueMatches) {
-          console.log(`✗ Event ${event.eventId} filtered: "${eventLeagueName}" !== "${selectedLeague}"`);
-          console.log(`  - Teams: ${homeTeam} vs ${awayTeam}`);
-          console.log(`  - Normalized: "${normalizedEvent}" vs "${normalizedSelected}"`);
           return false;
-        } else {
-          console.log(`✓ Event ${event.eventId} MATCHES: "${eventLeagueName}" (${event.predictions.length} preds)`);
         }
       }
       
-      // Filtrar por confianza y valor - PERO solo si hay predicciones que cumplan
-      // Si hay filtro de league, ser más permisivo con los filtros de confianza/valor
-      const effectiveMinConfidence = selectedLeague ? Math.max(0, minConfidence - 0.1) : minConfidence;
-      const effectiveMinValue = selectedLeague ? Math.max(-0.2, minValue - 0.05) : minValue;
-      
-      const validPredictions = event.predictions.filter(
-        (pred) =>
-          pred.confidence >= effectiveMinConfidence &&
-          pred.value >= effectiveMinValue
-      );
-      
-      const hasValidPredictions = validPredictions.length > 0;
-      
-      if (!hasValidPredictions) {
-        console.log(`Event ${event.eventId} filtered out: no predictions match confidence>=${effectiveMinConfidence} and value>=${effectiveMinValue}`);
-        console.log(`  - Total predictions: ${event.predictions.length}`);
-        if (event.predictions.length > 0) {
-          const minConf = Math.min(...event.predictions.map(p => p.confidence));
-          const maxConf = Math.max(...event.predictions.map(p => p.confidence));
-          const minVal = Math.min(...event.predictions.map(p => p.value));
-          const maxVal = Math.max(...event.predictions.map(p => p.value));
-          console.log(`  - Confidence range: ${minConf.toFixed(2)} - ${maxConf.toFixed(2)}`);
-          console.log(`  - Value range: ${minVal.toFixed(2)} - ${maxVal.toFixed(2)}`);
+      // Solo aplicar filtros de confianza/valor si NO hay filtro de league
+      if (useStrictFilters) {
+        const hasValidPredictions = event.predictions.some(
+          (pred) =>
+            pred.confidence >= minConfidence &&
+            pred.value >= minValue
+        );
+        
+        if (!hasValidPredictions) {
+          return false;
         }
-      } else {
-        console.log(`✓ Event ${event.eventId} has ${validPredictions.length} valid predictions (from ${event.predictions.length} total)`);
       }
+      // Si hay filtro de league, mostrar TODAS las predicciones sin filtrar por confianza/valor
       
-      return hasValidPredictions;
+      return true;
     });
     
     console.log(`Filtered to ${filtered.length} events (from ${eventsWithPredictions.length})`);
