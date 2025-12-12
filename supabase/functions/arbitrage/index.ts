@@ -57,10 +57,17 @@ function findArbitrageCombinations(
     }
 
     if (index === limitedSelections.length) {
+      // Need at least 2 selections for arbitrage
+      if (currentOdds.length < 2) {
+        return;
+      }
+
       const totalImpliedProb = currentOdds.reduce((sum, odd) => sum + 1 / odd, 0);
       const profitMargin = 1 - totalImpliedProb;
 
-      if (profitMargin >= minProfitMargin) {
+      // Allow very small negative margins (rounding errors) but filter positive ones
+      // This helps catch opportunities that might be slightly below threshold due to rounding
+      if (profitMargin >= minProfitMargin || (profitMargin > -0.001 && profitMargin >= minProfitMargin - 0.001)) {
         combinations.push({
           selections: currentSelections.map((sel, i) => ({
             selection: sel,
@@ -340,10 +347,10 @@ serve(async (req) => {
           continue;
         }
 
-        // Find arbitrage combinations - use a lower threshold to find more opportunities
-        // We'll filter by minProfitMargin later, but first let's see all valid combinations
-        const lowerThreshold = Math.max(0, minProfitMargin - 0.005); // Allow slightly lower to find more
-        const combinations = findArbitrageCombinations(comparisons, lowerThreshold);
+        // Find arbitrage combinations
+        // Use a very low threshold to find all possible combinations, then filter by actual margin
+        const searchThreshold = Math.max(0, minProfitMargin - 0.01); // Search with lower threshold
+        const combinations = findArbitrageCombinations(comparisons, searchThreshold);
 
         // Only take the BEST opportunity per event (highest profit margin)
         if (combinations.length > 0) {
